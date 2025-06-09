@@ -43965,6 +43965,12 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 419140937235679749, guid: b3224bd5b899f174db8c5a67d4bdc9ee, type: 3}
+      propertyPath: m_text
+      value: 'chogtanks
+
+'
+      objectReference: {fileID: 0}
+    - target: {fileID: 419140937235679749, guid: b3224bd5b899f174db8c5a67d4bdc9ee, type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
       objectReference: {fileID: 0}
