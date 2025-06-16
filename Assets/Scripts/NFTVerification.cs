@@ -413,7 +413,7 @@ public class NFTVerification : MonoBehaviour
             
             if (statusText != null)
             {
-                statusText.text = "Erreur: Aucun wallet connecté";
+                statusText.text = "chog chest mega chad holder";
                 statusText.gameObject.SetActive(true);
             }
         }

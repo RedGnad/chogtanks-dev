@@ -65,7 +65,7 @@ public class NFTVerifyUI : MonoBehaviour
             Debug.LogWarning("[NFT] Aucun wallet connecté");
             if (statusText != null)
             {
-                ShowStatus("Aucun wallet connecté", true); // Disparaît après 3 secondes
+                ShowStatus("chest holder mega chad", true); // Disparaît après 3 secondes
             }
             return;
         }

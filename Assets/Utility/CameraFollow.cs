@@ -10,13 +10,29 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] private Vector3 offset = new Vector3(0f, 0f, -10f);
     [SerializeField] private float smoothTime = 0.1f;
 
-    private Transform target;       // Référence au TankPlayer
+    [Header("Zoom caméra")]
+    [SerializeField] private float orthoSizeLandscape = 5f;
+    [SerializeField] private float orthoSizePortrait = 8f;
+
+    private Transform target;
     private Vector3 velocity = Vector3.zero;
     private float nextSearchTime = 0f;
+    private Camera cam;
+
+    private void Awake()
+    {
+        cam = GetComponent<Camera>();
+        if (cam == null) cam = Camera.main;
+    }
 
     private void LateUpdate()
     {
-        // Si on n'a pas encore référencé le Tank à suivre, on tente de le trouver périodiquement
+        float aspect = (float)Screen.width / Screen.height;
+        if (aspect < 1f)
+            cam.orthographicSize = orthoSizePortrait;
+        else
+            cam.orthographicSize = orthoSizeLandscape;
+
         if (target == null)
         {
             if (Time.time >= nextSearchTime)
@@ -27,21 +43,16 @@ public class CameraFollow : MonoBehaviour
             return;
         }
 
-        // Une fois qu'on a target, on suit son mouvement de façon lissée
         Vector3 desiredPosition = target.position + offset;
         transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);
     }
 
-    /// <summary>
-    /// Cherche dans la scène un objet taggé "Player" (ou "TankPlayer") et l'affecte à target.
-    /// </summary>
     private void FindPlayerInstance()
     {
         GameObject playerGO = GameObject.FindWithTag("Player");
         if (playerGO != null)
         {
             target = playerGO.transform;
-            Debug.Log("[CameraFollow] Player trouvé, suivi activé.");
         }
     }
 }

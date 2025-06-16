@@ -3,6 +3,12 @@ using UnityEngine;
 
 public class PhotonTankSpawner : MonoBehaviourPunCallbacks
 {
+    [Header("Spawns multiples")]
+    public Transform[] spawnPoints; // À assigner dans l’inspecteur Unity (drag & drop)
+
+    public string tankPrefabName = "TankPrefab"; // Mets ici le nom EXACT de ton prefab (sans .prefab)
+    public Vector2 fallbackSpawnPosition = new Vector2(0, 0); // Utilisé si pas de spawnPoints
+
     private void Start()
     {
         // Si déjà dans une room, spawn le tank (utile après reload)
@@ -13,23 +19,26 @@ public class PhotonTankSpawner : MonoBehaviourPunCallbacks
         }
     }
 
-    public string tankPrefabName = "TankPrefab"; // Mets ici le nom EXACT de ton prefab (sans .prefab)
-    public Vector2 spawnPosition = new Vector2(0, 0);
-
     public void SpawnTank()
     {
-        GameObject tank = PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, Quaternion.identity);
+        Vector2 spawnPos = fallbackSpawnPosition;
+        if (spawnPoints != null && spawnPoints.Length > 0)
+        {
+            // Utilise l’index unique du joueur dans la room pour choisir le spawn
+            int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+            int spawnIdx = playerIndex % spawnPoints.Length;
+            spawnPos = spawnPoints[spawnIdx].position;
+        }
+
+        GameObject tank = PhotonNetwork.Instantiate(tankPrefabName, spawnPos, Quaternion.identity);
         var view = tank.GetComponent<PhotonView>();
         Debug.Log("[SPAWN DEBUG] Owner du tank instancié : " + (view.Owner != null ? view.Owner.NickName : "null") + " (IsMine=" + view.IsMine + ") sur client " + PhotonNetwork.LocalPlayer.NickName);
 
-        // Masque le panneau d’attente dès que le tank est spawné
+        // Affiche le code de la room pour tous les joueurs
         var lobbyUI = FindObjectOfType<LobbyUI>();
-        if (lobbyUI != null)
+        if (lobbyUI != null && PhotonNetwork.CurrentRoom != null)
         {
-            // Ne masque plus le panel d’attente ici !
-            // Affiche le code de la room pour tous les joueurs
-            if (PhotonNetwork.CurrentRoom != null)
-                lobbyUI.createdCodeText.text = "Room code : " + PhotonNetwork.CurrentRoom.Name;
+            lobbyUI.createdCodeText.text = "Room code : " + PhotonNetwork.CurrentRoom.Name;
         }
     }
 }

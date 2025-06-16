@@ -23,4 +23,10 @@ public class GameOverUIController : MonoBehaviour
         if (gameOverText != null) gameOverText.gameObject.SetActive(false);
         if (winText      != null) winText.gameObject.SetActive(true);
     }
+    
+    public void HideAll()
+    {
+        if (gameOverText != null) gameOverText.gameObject.SetActive(false);
+        if (winText      != null) winText.gameObject.SetActive(false);
+    }
 }

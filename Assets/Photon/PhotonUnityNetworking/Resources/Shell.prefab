@@ -172,11 +172,14 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 320
   explosionRadius: 2
-  explosionDamage: 25
+  normalDamage: 25
+  precisionDamage: 50
   tankLayerMask:
     serializedVersion: 2
     m_Bits: 64
   particleOnlyExplosionPrefab: {fileID: 9193524732314840149, guid: ad560631223004304b75d451065a5220, type: 3}
+  normalSprite: {fileID: 1137255479, guid: b5cb1cf9ebcebb6438035e1999ed0d12, type: 3}
+  precisionSprite: {fileID: 21300000, guid: ddb1c1f50d6b24b22a0f6e4ab92520d8, type: 3}
 --- !u!114 &-5720231297948589548
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -196,8 +199,8 @@ MonoBehaviour:
   OwnershipTransfer: 0
   observableSearch: 0
   ObservedComponents:
-  - {fileID: -8298993256112675403}
   - {fileID: 3873608418908156108}
+  - {fileID: -8298993256112675403}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0

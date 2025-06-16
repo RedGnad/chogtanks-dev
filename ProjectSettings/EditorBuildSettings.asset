@@ -8,10 +8,10 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Game/Version02_MultiplayerCA/Scenes/GameSceneCA.unity
     guid: 13efd82e3d5dfd84ab5b87977d8bc85d
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/AppKit Init.unity
     guid: d423f40c05f594a43ae7ddd6222158f0
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/AppKit Menu.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
   - enabled: 1

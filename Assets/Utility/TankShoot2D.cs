@@ -1,5 +1,3 @@
-// Assets/Utility/TankShoot2D.cs
-
 using Photon.Pun;
 using UnityEngine;
 
@@ -21,6 +19,21 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
     [Header("Détection Sol partagée")]
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckRadius = 0.3f;
+
+    // SFX
+    [Header("SFX")]
+    [SerializeField] private AudioSource fireNormalSFX;
+    [SerializeField] private AudioSource firePrecisionSFX;
+    [SerializeField] private AudioSource chargeReadySFX;
+
+    // Ajout pour tir chargé
+    [Header("Tir chargé")]
+    [SerializeField] private float chargeTimeThreshold = 1.0f;
+    [SerializeField] private float precisionShellSpeedMultiplier = 2f;
+    [SerializeField] private float precisionRecoilMultiplier = 0.15f;
+    private bool isCharging = false;
+    private float chargeStartTime = 0f;
+    private bool chargeSFXPlayed = false;
 
     private float lastFireTime = 0f;
     private Rigidbody2D rb;
@@ -64,68 +77,121 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
         float angle = Mathf.Atan2(shootDir.y, shootDir.x) * Mathf.Rad2Deg;
         cannonPivot.rotation = Quaternion.Euler(0f, 0f, angle);
 
-        bool clickLeft = Input.GetMouseButtonDown(0);
-        bool keySpace = Input.GetKeyDown(KeyCode.Space);
-        if ((clickLeft || keySpace) && (Time.time - lastFireTime > fireCooldown))
+        // Gestion du tir chargé
+        bool firePressed = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space);
+        bool fireHeld = Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space);
+        bool fireReleased = Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.Space);
+
+        // Début du chargement
+        if (firePressed && !isCharging)
         {
-            lastFireTime = Time.time;
-            loggedThisShot = false;
+            isCharging = true;
+            chargeStartTime = Time.time;
+            chargeSFXPlayed = false;
+        }
 
-            bool wasGrounded = isGrounded;
-            isGrounded = Physics2D.OverlapCircle(
-                groundCheck.position,
-                groundCheckRadius,
-                groundLayer
-            );
-            if (isGrounded != wasGrounded)
-                Debug.Log($"[TankShoot2D] isGrounded = {isGrounded}");
-
-            if (!isGrounded)
+        // SFX de charge prête
+        if (isCharging && !chargeSFXPlayed)
+        {
+            float heldTime = Time.time - chargeStartTime;
+            if (heldTime >= chargeTimeThreshold)
             {
-                Vector2 impulseAir = -shootDir * (inAirForce * inAirMultiplier);
-                if (!loggedThisShot)
-                {
-                    Debug.Log($"[TankShoot2D] Jump en vol : impulse = {impulseAir}");
-                    loggedThisShot = true;
-                }
-                rb.AddForce(impulseAir, ForceMode2D.Impulse);
+                if (chargeReadySFX != null)
+                    chargeReadySFX.Play();
+                chargeSFXPlayed = true;
             }
-            else
-            {
-                RaycastHit2D hit = Physics2D.Raycast(
-                    firePoint.position,
-                    shootDir,
-                    groundCheckDistance,
-                    groundLayer
-                );
+        }
 
-                if (hit.collider != null)
-                {
-                    Vector2 impulseSurface = -shootDir * rocketJumpForce;
-                    if (!loggedThisShot)
-                    {
-                        Debug.Log($"[TankShoot2D] Self-explosion (rocket-jump) : impulse = {impulseSurface}");
-                        loggedThisShot = true;
-                    }
-                    var movement = GetComponent<TankMovement2D>();
-                    movement?.NotifySelfExplosion();
-                    // Propulsion à 360° : applique la force dans la direction opposée au tir
-                    Vector2 propulsion = -shootDir * rocketJumpForce;
-                    Debug.Log($"[ROCKET JUMP] AddForce: direction={-shootDir}, force={rocketJumpForce}, vector={propulsion}");
-                    rb.AddForce(propulsion, ForceMode2D.Impulse);
-                }
-            }
-
-            Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.2f);
-            spawnPos.z = 0f;
-            // Instancie le shell réseau (un seul objet synchronisé)
-            GameObject shell = PhotonNetwork.Instantiate(shellPrefab.name, spawnPos, Quaternion.Euler(0f, 0f, angle), 0);
-            Rigidbody2D shellRb = shell.GetComponent<Rigidbody2D>();
-            shellRb.linearVelocity = shootDir * shellSpeed;
-            // Optionnel : log pour debug
-            Debug.Log($"[DEBUG SHOOT] PhotonNetwork.Instantiate shell sur {PhotonNetwork.LocalPlayer.NickName} (Actor {PhotonNetwork.LocalPlayer.ActorNumber})");
+        // Fin du chargement (relâchement)
+        if (isCharging && fireReleased)
+        {
+            float heldTime = Time.time - chargeStartTime;
+            bool isPrecision = heldTime >= chargeTimeThreshold;
+            FireShell(shootDir, angle, isPrecision);
+            isCharging = false;
+            chargeSFXPlayed = false;
         }
     }
 
+    private void FireShell(Vector2 shootDir, float angle, bool isPrecision)
+    {
+        if (Time.time - lastFireTime < fireCooldown) return;
+        lastFireTime = Time.time;
 
+        // SFX
+        if (isPrecision)
+        {
+            if (firePrecisionSFX != null) firePrecisionSFX.Play();
+        }
+        else
+        {
+            if (fireNormalSFX != null) fireNormalSFX.Play();
+        }
+
+        // --- Recul adapté pour le tir chargé ---
+        float recoilMultiplier = isPrecision ? precisionRecoilMultiplier : 1f;
+
+        // Gestion du recul (identique à avant)
+        bool wasGrounded = isGrounded;
+        isGrounded = Physics2D.OverlapCircle(
+            groundCheck.position,
+            groundCheckRadius,
+            groundLayer
+        );
+        if (isGrounded != wasGrounded)
+            Debug.Log($"[TankShoot2D] isGrounded = {isGrounded}");
+
+        if (!isGrounded)
+        {
+            Vector2 impulseAir = -shootDir * (inAirForce * inAirMultiplier * recoilMultiplier);
+            if (!loggedThisShot)
+            {
+                Debug.Log($"[TankShoot2D] Jump en vol : impulse = {impulseAir}");
+                loggedThisShot = true;
+            }
+            rb.AddForce(impulseAir, ForceMode2D.Impulse);
+        }
+        else
+        {
+            RaycastHit2D hit = Physics2D.Raycast(
+                firePoint.position,
+                shootDir,
+                groundCheckDistance,
+                groundLayer
+            );
+
+            if (hit.collider != null)
+            {
+                Vector2 impulseSurface = -shootDir * rocketJumpForce * recoilMultiplier;
+                if (!loggedThisShot)
+                {
+                    Debug.Log($"[TankShoot2D] Self-explosion (rocket-jump) : impulse = {impulseSurface}");
+                    loggedThisShot = true;
+                }
+                var movement = GetComponent<TankMovement2D>();
+                movement?.NotifySelfExplosion();
+                Vector2 propulsion = -shootDir * rocketJumpForce * recoilMultiplier;
+                Debug.Log($"[ROCKET JUMP] AddForce: direction={-shootDir}, force={rocketJumpForce * recoilMultiplier}, vector={propulsion}");
+                rb.AddForce(propulsion, ForceMode2D.Impulse);
+            }
+        }
+
+        // Calcul de la vitesse du shell selon le type de tir
+        float shellSpeedFinal = isPrecision ? shellSpeed * precisionShellSpeedMultiplier : shellSpeed;
+
+        Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.2f);
+        spawnPos.z = 0f;
+        GameObject shell = PhotonNetwork.Instantiate(shellPrefab.name, spawnPos, Quaternion.Euler(0f, 0f, angle), 0);
+        Rigidbody2D shellRb = shell.GetComponent<Rigidbody2D>();
+        shellRb.linearVelocity = shootDir * shellSpeedFinal;
+
+        // --- Synchronisation du sprite du shell ---
+        var shellHandler = shell.GetComponent<ShellCollisionHandler>();
+        if (shellHandler != null)
+        {
+            shellHandler.photonView.RPC("SetPrecision", RpcTarget.AllBuffered, isPrecision);
+        }
+
+        Debug.Log($"[DEBUG SHOOT] PhotonNetwork.Instantiate shell {(isPrecision ? "CHARGÉ" : "normal")} sur {PhotonNetwork.LocalPlayer.NickName} (Actor {PhotonNetwork.LocalPlayer.ActorNumber})");
+    }
 }

@@ -46,6 +46,10 @@ MonoBehaviour:
   - WinRPC
   - RestartMatchSoftRPC
   - SimulateRespawnRPC
+  - SetSpawnPointUsed
+  - RestartMatchRPC
+  - SyncSpawnPositions
+  - SetPrecision
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

@@ -99,11 +99,11 @@ namespace Sample
             var appKitConfig = new AppKitConfig
             {
                 // Project ID from https://cloud.reown.com/
-                projectId = "884a108399b5e7c9bc00bd9be4ccb2cc",
+                projectId = "a4ea622af154daef687398cb6c4ce85a",
                 metadata = new Metadata(
                     "AppKit Unity",
                     "AppKit Unity Sample",
-                    "https://reown.com",
+                    "https://redgnad.github.io",
                     "https://raw.githubusercontent.com/reown-com/reown-dotnet/main/media/appkit-icon.png",
                     new RedirectData
                     {
