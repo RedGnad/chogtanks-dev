@@ -1,0 +1,8 @@
+Library/
+Temp/
+Obj/
+.vscode/
+.DS_Store
+Library/PackageCache/
+chogtanksbuild.app/Contents/Frameworks/UnityPlayer.dylib
+chogtanksbuild/Build/chogtanksbuild.wasm
