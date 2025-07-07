@@ -256,4 +256,148 @@ mergeInto(LibraryManager.library, {
       return false;
     }
   },
+
+  // Nouvelle fonction pour vérifier si un joueur peut évoluer son NFT
+  CheckEvolutionEligibilityJS: function (walletAddressPtr) {
+    try {
+      var walletAddress = UTF8ToString(walletAddressPtr);
+
+      if (!walletAddress || walletAddress.length < 5) {
+        console.error("Invalid wallet address for evolution check");
+        unityInstance.SendMessage(
+          "ChogTanksNFTManager",
+          "OnEvolutionEligibilityError",
+          "Invalid wallet address"
+        );
+        return false;
+      }
+
+      var db = firebase.firestore();
+
+      // Récupérer le score du joueur
+      db.collection("WalletScores")
+        .doc(walletAddress)
+        .get()
+        .then((doc) => {
+          if (doc.exists) {
+            var playerData = doc.data();
+            var score = playerData.score || 0;
+            var currentLevel = doc.data().nftLevel || 0;
+
+            // Calcul de l'éligibilité à l'évolution - MÊMES VALEURS QUE LE CONTRAT
+            const nextLevel = currentLevel + 1;
+
+            // Valeurs exactes du contrat smart contract
+            const levelRequirements = {
+              1: 2,
+              2: 200,
+              3: 400,
+              4: 600,
+              5: 800,
+              6: 1000,
+              7: 1500,
+              8: 2000,
+              9: 3000,
+              10: 5000,
+            };
+
+            const requiredScore = levelRequirements[nextLevel];
+            const isEligible = score >= requiredScore && nextLevel <= 10;
+
+            console.log(`[Firebase] Evolution check for ${walletAddress}:`);
+            console.log(`  Current Level: ${currentLevel}`);
+            console.log(`  Score: ${score}`);
+            console.log(`  Next Level: ${nextLevel}`);
+            console.log(`  Required Score: ${requiredScore}`);
+            console.log(`  Eligible: ${isEligible}`);
+
+            if (isEligible) {
+              // Envoyer les données d'évolution à Unity
+              const evolutionData = {
+                walletAddress: walletAddress,
+                score: score,
+                currentLevel: currentLevel,
+                nextLevel: nextLevel,
+                eligible: true,
+              };
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnEvolutionEligibilitySuccess",
+                JSON.stringify(evolutionData)
+              );
+            } else {
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnEvolutionEligibilityError",
+                `Not enough score. Need ${requiredScore}, have ${score}`
+              );
+            }
+          } else {
+            console.log(`[Firebase] No score data found for ${walletAddress}`);
+            unityInstance.SendMessage(
+              "ChogTanksNFTManager",
+              "OnEvolutionEligibilityError",
+              "No score data found"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Evolution eligibility check error:", error);
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnEvolutionEligibilityError",
+            error.message
+          );
+        });
+
+      return true;
+    } catch (error) {
+      console.error("CheckEvolutionEligibilityJS error:", error);
+      unityInstance.SendMessage(
+        "ChogTanksNFTManager",
+        "OnEvolutionEligibilityError",
+        error.message
+      );
+      return false;
+    }
+  },
+
+  // Fonction pour mettre à jour le niveau NFT après évolution réussie
+  UpdateNFTLevelJS: function (walletAddressPtr, newLevelPtr) {
+    try {
+      var walletAddress = UTF8ToString(walletAddressPtr);
+      var newLevel = parseInt(UTF8ToString(newLevelPtr));
+
+      var db = firebase.firestore();
+
+      // Mettre à jour le niveau NFT dans la base de données
+      db.collection("WalletScores")
+        .doc(walletAddress)
+        .update({
+          nftLevel: newLevel,
+          lastEvolution: firebase.firestore.FieldValue.serverTimestamp(),
+        })
+        .then(() => {
+          console.log(`NFT level updated to ${newLevel} for ${walletAddress}`);
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnNFTLevelUpdated",
+            `${newLevel}`
+          );
+        })
+        .catch((error) => {
+          console.error("Error updating NFT level:", error);
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnNFTLevelUpdateError",
+            error.message
+          );
+        });
+
+      return true;
+    } catch (error) {
+      console.error("UpdateNFTLevelJS error:", error);
+      return false;
+    }
+  },
 });

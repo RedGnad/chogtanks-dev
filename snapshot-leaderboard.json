@@ -1,0 +1,17 @@
+{
+    "tasks": [
+      {
+        "httpTask": {
+          "url": "https://firestore.googleapis.com/v1/projects/chogtanks/databases/(default)/documents/WalletScores"
+        }
+      },
+      {
+        "jsonParseTask": {
+          "path": "$.documents[*].fields.score.integerValue"
+        }
+      },
+      {
+        "meanTask": {}
+      }
+    ]
+  }

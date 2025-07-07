@@ -22,7 +22,7 @@ AssetImportWorker0
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-52932
+65037
 -job-worker-count
 3
 -background-job-worker-count
@@ -68,7 +68,7 @@ Successfully changed project path to: /Users/red.g/Desktop/CHOGTANKS/chogtanks-a
     "memorysetup-temp-allocator-size-gfx=262144"
 Player connection [8667107200]  Target information:
 
-Player connection [8667107200]  * "[IP] 192.168.12.151 [Port] 0 [Flags] 2 [Guid] 1433409117 [EditorId] 1433409117 [Version] 1048832 [Id] OSXEditor(0,MacBook-Pro-de-RedG.local) [Debug] 1 [PackageName] OSXEditor [ProjectName] Editor" 
+Player connection [8667107200]  * "[IP] 192.168.12.151 [Port] 0 [Flags] 2 [Guid] 769274090 [EditorId] 769274090 [Version] 1048832 [Id] OSXEditor(0,MacBook-Pro-de-RedG.local) [Debug] 1 [PackageName] OSXEditor [ProjectName] Editor" 
 
 Player connection [8667107200] Host joined multi-casting on [225.0.0.222:54997]...
 Player connection [8667107200] Host joined alternative multi-casting on [225.0.0.222:34997]...
@@ -82,7 +82,7 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 4.81 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 32.76 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.0.20f1 (05208a74e9aa)
 [Subsystems] Discovering subsystems at path /Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/Resources/UnitySubsystems
@@ -97,46 +97,46 @@ Initialize mono
 Mono path[0] = '/Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/Managed'
 Mono path[1] = '/Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/MonoBleedingEdge/lib/mono/unityjit-macos'
 Mono config path = '/Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56144
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56318
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /Applications/Unity/Hub/Editor/6000.0.20f1/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
 Register platform support module: /Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
-Registered in 0.092628 seconds.
-- Loaded All Assemblies, in  0.826 seconds
+Registered in 0.022602 seconds.
+- Loaded All Assemblies, in  1.822 seconds
 Native extension for OSXStandalone target not found
 Native extension for WebGL target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.439 seconds
-Domain Reload Profiling: 1265ms
-	BeginReloadAssembly (424ms)
+- Finished resetting the current domain, in  0.485 seconds
+Domain Reload Profiling: 2308ms
+	BeginReloadAssembly (1160ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
 		CreateAndSetChildDomain (1ms)
-	RebuildCommonClasses (95ms)
-	RebuildNativeTypeToScriptingClass (11ms)
-	initialDomainReloadingComplete (128ms)
-	LoadAllAssembliesAndSetupDomain (166ms)
-		LoadAssemblies (427ms)
+	RebuildCommonClasses (101ms)
+	RebuildNativeTypeToScriptingClass (10ms)
+	initialDomainReloadingComplete (70ms)
+	LoadAllAssembliesAndSetupDomain (481ms)
+		LoadAssemblies (1175ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (160ms)
-			TypeCache.Refresh (159ms)
-				TypeCache.ScanAssembly (143ms)
+		AnalyzeDomain (461ms)
+			TypeCache.Refresh (460ms)
+				TypeCache.ScanAssembly (380ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (440ms)
+	FinalizeReload (486ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (397ms)
+		SetupLoadedEditorAssemblies (423ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (40ms)
+			InitializePlatformSupportModulesInManaged (48ms)
 			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (8ms)
-			ProcessInitializeOnLoadAttributes (210ms)
-			ProcessInitializeOnLoadMethodAttributes (132ms)
-			AfterProcessingInitializeOnLoad (2ms)
+			BeforeProcessingInitializeOnLoad (6ms)
+			ProcessInitializeOnLoadAttributes (217ms)
+			ProcessInitializeOnLoadMethodAttributes (138ms)
+			AfterProcessingInitializeOnLoad (10ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
 		AwakeInstancesAfterBackupRestoration (0ms)
@@ -145,11 +145,11 @@ Worker process is ready to serve import requests
 Import Worker Mode flag is 0x00
 Begin MonoManager ReloadAssembly
 Duplicate assembly 'websocket-sharp.dll' with different versions detected, using 'Packages/com.unity.services.wire/Plugins/websocket-sharp.dll, AssemblyName=websocket-sharp, Version=1.0.2.18559, Culture=neutral, PublicKeyToken=5660b08a1845a91e' and ignoring 'Assets/Photon/PhotonLibs/WebSocket/websocket-sharp.dll, AssemblyName=websocket-sharp, Version=1.0.2.0, Culture=neutral, PublicKeyToken=5660b08a1845a91e'.Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  2.055 seconds
-Refreshing native plugins compatible for Editor in 8.88 ms, found 1 plugins.
+- Loaded All Assemblies, in  4.267 seconds
+Refreshing native plugins compatible for Editor in 6.12 ms, found 1 plugins.
 Native extension for OSXStandalone target not found
 Native extension for WebGL target not found
-Refreshing native plugins compatible for Editor in 2.09 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 17.78 ms, found 1 plugins.
 
 ::error ::System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.NullReferenceException: Object reference not set to an instance of an object
   at Unity.Multiplayer.Playmode.Workflow.Editor.ProjectDataStore..ctor (System.String directory) [0x0006e] in ./Library/PackageCache/com.unity.multiplayer.playmode/Workflow/Editor/Configuration/ProjectDataStore.cs:55 
@@ -190,85 +190,77 @@ UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes () (at /Use
 (Filename: /Users/bokken/build/output/unity/unity/Editor/Mono/EditorAssemblies.cs Line: 146)
 
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  1.119 seconds
-Domain Reload Profiling: 3174ms
-	BeginReloadAssembly (811ms)
+- Finished resetting the current domain, in  2.200 seconds
+Domain Reload Profiling: 6465ms
+	BeginReloadAssembly (1014ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (4ms)
+		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (41ms)
-	RebuildCommonClasses (31ms)
+		CreateAndSetChildDomain (56ms)
+	RebuildCommonClasses (32ms)
 	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (54ms)
-	LoadAllAssembliesAndSetupDomain (1147ms)
-		LoadAssemblies (847ms)
+	initialDomainReloadingComplete (57ms)
+	LoadAllAssembliesAndSetupDomain (3148ms)
+		LoadAssemblies (2220ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (361ms)
-			TypeCache.Refresh (245ms)
-				TypeCache.ScanAssembly (214ms)
-			BuildScriptInfoCaches (104ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (1120ms)
+		AnalyzeDomain (1004ms)
+			TypeCache.Refresh (848ms)
+				TypeCache.ScanAssembly (791ms)
+			BuildScriptInfoCaches (140ms)
+			ResolveRequiredComponents (9ms)
+	FinalizeReload (2204ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (886ms)
+		SetupLoadedEditorAssemblies (1717ms)
 			LogAssemblyErrors (0ms)
 			InitializePlatformSupportModulesInManaged (3ms)
 			SetLoadedEditorAssemblies (7ms)
-			BeforeProcessingInitializeOnLoad (115ms)
-			ProcessInitializeOnLoadAttributes (373ms)
-			ProcessInitializeOnLoadMethodAttributes (385ms)
-			AfterProcessingInitializeOnLoad (3ms)
-			EditorAssembliesLoaded (0ms)
+			BeforeProcessingInitializeOnLoad (134ms)
+			ProcessInitializeOnLoadAttributes (400ms)
+			ProcessInitializeOnLoadMethodAttributes (1166ms)
+			AfterProcessingInitializeOnLoad (4ms)
+			EditorAssembliesLoaded (4ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (2ms)
+		AwakeInstancesAfterBackupRestoration (5ms)
 Launching external process: /Applications/Unity/Hub/Editor/6000.0.20f1/Unity.app/Contents/Tools/UnityShaderCompiler
-Launched and connected shader compiler UnityShaderCompiler after 0.37 seconds
-Refreshing native plugins compatible for Editor in 2.67 ms, found 1 plugins.
+Launched and connected shader compiler UnityShaderCompiler after 1.69 seconds
+Refreshing native plugins compatible for Editor in 1.76 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 214 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 7744 unused Assets / (3.9 MB). Loaded Objects now: 8475.
-Memory consumption went from 186.8 MB to 182.9 MB.
-Total: 43.569875 ms (FindLiveObjects: 4.022417 ms CreateObjectMapping: 0.604083 ms MarkObjects: 33.033542 ms  DeleteObjects: 5.905792 ms)
+Unloading 7744 unused Assets / (4.3 MB). Loaded Objects now: 8477.
+Memory consumption went from 187.4 MB to 183.0 MB.
+Total: 52.896709 ms (FindLiveObjects: 7.403708 ms CreateObjectMapping: 0.816333 ms MarkObjects: 37.642917 ms  DeleteObjects: 7.033042 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 44374.253197 seconds.
-  path: Assets/GroundCheck.prefab
-  artifactKey: Guid(cb1580937bf554031ae61f8ccb0c6cdd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/GroundCheck.prefab using Guid(cb1580937bf554031ae61f8ccb0c6cdd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'bb8926839fddc53b6f236edefdf1c32c') in 0.098265417 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.175308 seconds.
-  path: Assets/Prefabs/Sample App Settings.prefab
-  artifactKey: Guid(cd8fd27d7d8b64bb68e3ab851d5f2af6) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Prefabs/Sample App Settings.prefab using Guid(cd8fd27d7d8b64bb68e3ab851d5f2af6) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6acdf9dac7a3395061006910f2d7bf93') in 0.168208875 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 35
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.353722 seconds.
-  path: Assets/Resources/Mixpanel.asset
-  artifactKey: Guid(70a07ba8570944fc8a380cee90c7e49f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Resources/Mixpanel.asset using Guid(70a07ba8570944fc8a380cee90c7e49f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9730f1edabb67314a12ad329e2e689d5') in 0.0025135 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 7.342235 seconds.
-  path: Assets/Assets/blaster-shot-229313.mp3
-  artifactKey: Guid(e4ea2c00e70b144e7b1bcf206f1e5fad) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/blaster-shot-229313.mp3 using Guid(e4ea2c00e70b144e7b1bcf206f1e5fad) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'da22d85d771426bddcee35f8a9dc7847') in 0.214702292 seconds
+  Time since last request: 50464.784819 seconds.
+  path: Assets/Photon/PhotonUnityNetworking/Demos/DemoSlotRacer/Kenney Assets/Stylized city/Materials/tank.mat
+  artifactKey: Guid(479cbf10a2ba803449168e0148bcdbb5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Photon/PhotonUnityNetworking/Demos/DemoSlotRacer/Kenney Assets/Stylized city/Materials/tank.mat using Guid(479cbf10a2ba803449168e0148bcdbb5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '32b6d74e70ebd52931eadbca26d40f92') in 0.577240125 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.000059 seconds.
-  path: Assets/Assets/jungle-adventurer.regular2.ttf
-  artifactKey: Guid(e1a07b78873514bdca17f86154f5d66d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/jungle-adventurer.regular2.ttf using Guid(e1a07b78873514bdca17f86154f5d66d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '2dc13a96f8471360fa1c5387f6f85fd0') in 0.512778 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+  Time since last request: 0.000084 seconds.
+  path: Assets/Photon/PhotonUnityNetworking/Resources/TankPlayer.prefab
+  artifactKey: Guid(2f87c57323c4f464bbdb49914630ac51) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Photon/PhotonUnityNetworking/Resources/TankPlayer.prefab using Guid(2f87c57323c4f464bbdb49914630ac51) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd7a34e77ad59560688676f2ba89f9c6d') in 0.171466959 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 79
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000070 seconds.
+  path: Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset
+  artifactKey: Guid(4f995ad2dc98b45fdae97fd7fa281e8b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Photon/PhotonUnityNetworking/Resources/PhotonServerSettings.asset using Guid(4f995ad2dc98b45fdae97fd7fa281e8b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'f2bf73064a7fadef57f26c3c446e935c') in 0.003236334 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000074 seconds.
+  path: Assets/Photon/PhotonUnityNetworking/Resources/Shell.prefab
+  artifactKey: Guid(65b9e4f4a02f94f78beb384d4e0bb252) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Photon/PhotonUnityNetworking/Resources/Shell.prefab using Guid(65b9e4f4a02f94f78beb384d4e0bb252) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'f728f9f78595b422a19aed557be88a7f') in 0.129692959 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 20
 
