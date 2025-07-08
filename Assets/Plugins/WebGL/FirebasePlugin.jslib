@@ -1,403 +1,498 @@
 mergeInto(LibraryManager.library, {
   // Initialisation de Firebase
-  InitializeFirebaseJS: function (
-    appIdPtr,
-    apiKeyPtr,
-    authDomainPtr,
-    projectIdPtr,
-    storageBucketPtr,
-    messagingSenderIdPtr,
-    measurementIdPtr
-  ) {
+  InitializeFirebaseJS: function () {
     try {
-      var appId = UTF8ToString(appIdPtr);
-      var apiKey = UTF8ToString(apiKeyPtr);
-      var authDomain = UTF8ToString(authDomainPtr);
-      var projectId = UTF8ToString(projectIdPtr);
-      var storageBucket = UTF8ToString(storageBucketPtr);
-      var messagingSenderId = UTF8ToString(messagingSenderIdPtr);
-      var measurementId = UTF8ToString(measurementIdPtr);
-
-      var firebaseConfig = {
-        apiKey: apiKey,
-        authDomain: authDomain,
-        projectId: projectId,
-        storageBucket: storageBucket,
-        messagingSenderId: messagingSenderId,
-        appId: appId,
-        measurementId: measurementId,
-      };
-
-      // Initialiser Firebase s'il n'est pas déjà initialisé
-      if (firebase.apps.length === 0) {
-        firebase.initializeApp(firebaseConfig);
-      }
-
-      console.log("Firebase initialized successfully");
+      console.log("Firebase déjà initialisé depuis index.html");
       return true;
     } catch (error) {
-      console.error("Failed to initialize Firebase:", error);
+      console.error("Erreur d'initialisation Firebase:", error);
       return false;
     }
   },
 
-  // Authentification anonyme (utilisée si le wallet n'est pas connecté)
-  SignInAnonymouslyJS: function () {
+  // Soumettre un score
+  SubmitScoreJS: function (score, bonus, walletAddress) {
+  // Vérification stricte d'adresse Ethereum (0x + 40 hex)
+  function isValidEthAddress(addr) {
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  }
     try {
-      firebase
-        .auth()
-        .signInAnonymously()
-        .then(() => {
-          console.log("Signed in anonymously to Firebase");
-          var callback = "OnFirebaseAuthSuccess";
-          var uid = firebase.auth().currentUser.uid;
-          unityInstance.SendMessage("FirebaseManager", callback, uid);
-        })
-        .catch((error) => {
-          console.error("Anonymous auth error:", error);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnFirebaseAuthError",
-            error.message
-          );
-        });
-      return true;
-    } catch (error) {
-      console.error("SignInAnonymously error:", error);
+    const scoreValue = parseInt(UTF8ToString(score), 10);
+    const bonusValue = parseInt(UTF8ToString(bonus), 10) || 0;
+    const address = UTF8ToString(walletAddress);
+    
+    // Validation plus permissive
+    if (!address) {
+      console.error("[SCORE] Adresse invalide ou vide");
       return false;
     }
-  },
 
-  // Authentification avec CustomToken (créé à partir de l'adresse wallet)
-  SignInWithCustomTokenJS: function (tokenPtr) {
-    try {
-      var token = UTF8ToString(tokenPtr);
-      firebase
-        .auth()
-        .signInWithCustomToken(token)
-        .then(() => {
-          console.log("Signed in with custom token");
-          var callback = "OnFirebaseAuthSuccess";
-          var uid = firebase.auth().currentUser.uid;
-          unityInstance.SendMessage("FirebaseManager", callback, uid);
-        })
-        .catch((error) => {
-          console.error("Custom token auth error:", error);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnFirebaseAuthError",
-            error.message
-          );
-        });
-      return true;
-    } catch (error) {
-      console.error("SignInWithCustomToken error:", error);
+    // Normalisation systématique
+    const normalizedAddress = address.toLowerCase().trim();
+    if (!isValidEthAddress(normalizedAddress)) {
+      console.error(`[SCORE][SECURITE] Adresse Ethereum invalide pour soumission score: '${normalizedAddress}'`);
       return false;
     }
-  },
-
-  // Soumettre un score à Firebase Firestore
-  SubmitScoreJS: function (scorePtr, bonusPtr, walletAddressPtr) {
-    try {
-      var score = parseInt(UTF8ToString(scorePtr));
-      var bonus = parseInt(UTF8ToString(bonusPtr));
-      var walletAddress = UTF8ToString(walletAddressPtr);
-
-      if (!walletAddress || walletAddress.length < 5) {
-        console.error("Invalid wallet address");
-        return false;
-      }
-
-      var totalScore = score + bonus;
-      var db = firebase.firestore();
-
-      // D'abord vérifier si un document existe déjà pour ce wallet
-      db.collection("WalletScores")
-        .doc(walletAddress)
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            var currentScore = doc.data().score || 0;
-            var newScore = currentScore + totalScore;
-
-            // Mettre à jour le score existant
-            return db.collection("WalletScores").doc(walletAddress).update({
-              score: newScore,
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-          } else {
-            // Créer un nouveau document pour ce wallet
-            return db.collection("WalletScores").doc(walletAddress).set({
-              wallet: walletAddress,
-              score: totalScore,
-              created: firebase.firestore.FieldValue.serverTimestamp(),
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-          }
-        })
-        .then(() => {
-          console.log("Score submitted successfully");
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnScoreSubmitted",
-            "Success"
-          );
-        })
-        .catch((error) => {
-          console.error("Error submitting score:", error);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnScoreSubmitError",
-            error.message
-          );
-        });
-
-      return true;
-    } catch (error) {
-      console.error("SubmitScoreJS error:", error);
-      return false;
+    
+    const totalScore = scoreValue + bonusValue;
+    
+    // Générer un ID unique pour cette session de jeu
+    // Si on n'a pas encore d'ID de session pour ce score, on en crée un
+    if (!window.lastScoreSessionId) {
+      window.lastScoreSessionId = Date.now().toString();
+      window.lastScoreValue = totalScore;
+      console.log(`[SCORE] Nouvelle session de score #${window.lastScoreSessionId}, valeur: ${totalScore}`);
+    } else if (window.lastScoreValue === totalScore) {
+      // Même score détecté = probable doublon
+      console.warn(`[SCORE] ⚠️ Doublon probable détecté! Score ${totalScore} déjà soumis récemment. Ignorant.`);
+      return true; // Ignorer silencieusement le doublon
+    } else {
+      // Nouveau score différent = nouvelle session
+      window.lastScoreSessionId = Date.now().toString();
+      window.lastScoreValue = totalScore;
+      console.log(`[SCORE] Nouvelle session de score #${window.lastScoreSessionId}, valeur: ${totalScore}`);
     }
-  },
+    
+    console.log(`[SCORE] Score soumis à Firebase pour ${normalizedAddress}: ${scoreValue} (+${bonusValue})`);
 
-  // Récupérer le classement des joueurs (top X)
-  GetLeaderboardJS: function (limitPtr) {
-    try {
-      var limit = parseInt(UTF8ToString(limitPtr));
-      var db = firebase.firestore();
-
-      db.collection("WalletScores")
-        .orderBy("score", "desc")
-        .limit(limit)
-        .get()
-        .then((querySnapshot) => {
-          var leaderboardData = [];
-          querySnapshot.forEach((doc) => {
-            var data = doc.data();
-            leaderboardData.push({
-              wallet: data.wallet,
-              score: data.score,
-            });
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const db = firebase.firestore();
+          const docRef = db.collection("WalletScores").doc(normalizedAddress);
+          
+          // Vérifier d'abord si le document existe
+          docRef.get().then((doc) => {
+            if (!doc.exists) {
+              // Création d'un nouveau document sans condition
+              docRef.set({
+                score: totalScore,
+                nftLevel: 0, // Initialisation à 0
+                walletAddress: normalizedAddress,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              })
+              .then(() => {
+                console.log(`[SCORE] ✅ Nouveau document créé pour ${normalizedAddress} avec score: ${totalScore}`);
+              })
+              .catch((error) => {
+                console.error("[SCORE] ❌ Erreur création document:", error);
+              });
+            } else {
+              // Mise à jour du document existant sans vérification de timestamp
+              const currentScore = Number(doc.data().score || 0);
+              
+              // Addition normale des scores (la détection des doublons en amont évite les doubles envois)
+              const newScore = currentScore + totalScore;
+              console.log(`[SCORE] Addition des scores: ${currentScore} + ${totalScore} = ${newScore}`);
+              
+              docRef.update({
+                score: newScore,
+                walletAddress: normalizedAddress, 
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true }) // Utiliser merge pour être plus permissif
+              .then(() => {
+                console.log(`[SCORE] 🚀 Score soumis à Firebase pour ${normalizedAddress}: ${newScore} (${currentScore} + ${totalScore})`);
+              })
+              .catch((error) => {
+                // En cas d'erreur, essayer une approche encore plus permissive
+                console.warn("[SCORE] ⚠️ Première tentative échouée, essai alternatif:", error);
+                
+                // Tentative alternative avec set et merge
+                docRef.set({
+                  score: newScore,
+                  walletAddress: normalizedAddress,
+                  lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true })
+                .then(() => {
+                  console.log(`[SCORE] ✅ Score mis à jour (méthode alternative) pour ${normalizedAddress}: ${newScore}`);
+                })
+                .catch((error2) => {
+                  console.error("[SCORE] ❌ Erreur critique mise à jour score:", error2);
+                });
+              });
+            }
+          }).catch((error) => {
+            console.error("[SCORE] ❌ Erreur récupération document:", error);
           });
 
-          var jsonData = JSON.stringify(leaderboardData);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnLeaderboardReceived",
-            jsonData
-          );
-        })
-        .catch((error) => {
-          console.error("Error getting leaderboard:", error);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnLeaderboardError",
-            error.message
-          );
-        });
+        } else {
+          console.log("[SCORE] Auth anonyme en cours...");
+          firebase.auth().signInAnonymously().catch((error) => {
+            console.error("[SCORE] Erreur auth:", error);
+          });
+        }
+      });
 
       return true;
     } catch (error) {
-      console.error("GetLeaderboardJS error:", error);
+      console.error("[SCORE] Erreur SubmitScoreJS:", error);
       return false;
     }
   },
 
-  // Vérifier si l'utilisateur est connecté à Firebase
-  IsUserSignedInJS: function () {
+  // Vérifier si le wallet peut minter un NFT (nftLevel == 0)
+  CanMintNFTJS: function (walletAddress, callbackMethod) {
     try {
-      var isSignedIn = firebase.auth().currentUser != null;
-      return isSignedIn;
-    } catch (error) {
-      console.error("IsUserSignedInJS error:", error);
-      return false;
-    }
-  },
-
-  // Récupérer l'ID de l'utilisateur actuel
-  GetCurrentUserUidJS: function () {
-    try {
-      var user = firebase.auth().currentUser;
-      if (user) {
-        var uid = user.uid;
-        var bufferSize = lengthBytesUTF8(uid) + 1;
-        var buffer = _malloc(bufferSize);
-        stringToUTF8(uid, buffer, bufferSize);
-        return buffer;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error("GetCurrentUserUidJS error:", error);
-      return null;
-    }
-  },
-
-  // Pour la déconnexion
-  SignOutJS: function () {
-    try {
-      firebase
-        .auth()
-        .signOut()
-        .then(() => {
-          console.log("Signed out from Firebase");
-          unityInstance.SendMessage("FirebaseManager", "OnSignOutSuccess", "");
-        })
-        .catch((error) => {
-          console.error("Sign out error:", error);
-          unityInstance.SendMessage(
-            "FirebaseManager",
-            "OnSignOutError",
-            error.message
-          );
-        });
-      return true;
-    } catch (error) {
-      console.error("SignOutJS error:", error);
-      return false;
-    }
-  },
-
-  // Nouvelle fonction pour vérifier si un joueur peut évoluer son NFT
-  CheckEvolutionEligibilityJS: function (walletAddressPtr) {
-    try {
-      var walletAddress = UTF8ToString(walletAddressPtr);
-
-      if (!walletAddress || walletAddress.length < 5) {
-        console.error("Invalid wallet address for evolution check");
-        unityInstance.SendMessage(
-          "ChogTanksNFTManager",
-          "OnEvolutionEligibilityError",
-          "Invalid wallet address"
-        );
+      const address = UTF8ToString(walletAddress);
+      const callback = UTF8ToString(callbackMethod);
+      const normalizedAddress = address.toLowerCase().trim();
+      
+      console.log(`[NFT] CanMintNFTJS called with address: ${address}, callback: ${callback}`);
+      
+      // Vérifier si unityInstance est défini
+      if (typeof unityInstance === "undefined") {
+        console.error('[NFT][ERREUR CRITIQUE] unityInstance n\'est pas défini dans CanMintNFTJS');
         return false;
       }
-
-      var db = firebase.firestore();
-
-      // Récupérer le score du joueur
-      db.collection("WalletScores")
-        .doc(walletAddress)
-        .get()
-        .then((doc) => {
-          if (doc.exists) {
-            var playerData = doc.data();
-            var score = playerData.score || 0;
-            var currentLevel = doc.data().nftLevel || 0;
-
-            // Calcul de l'éligibilité à l'évolution - MÊMES VALEURS QUE LE CONTRAT
-            const nextLevel = currentLevel + 1;
-
-            // Valeurs exactes du contrat smart contract
-            const levelRequirements = {
-              1: 2,
-              2: 200,
-              3: 400,
-              4: 600,
-              5: 800,
-              6: 1000,
-              7: 1500,
-              8: 2000,
-              9: 3000,
-              10: 5000,
-            };
-
-            const requiredScore = levelRequirements[nextLevel];
-            const isEligible = score >= requiredScore && nextLevel <= 10;
-
-            console.log(`[Firebase] Evolution check for ${walletAddress}:`);
-            console.log(`  Current Level: ${currentLevel}`);
-            console.log(`  Score: ${score}`);
-            console.log(`  Next Level: ${nextLevel}`);
-            console.log(`  Required Score: ${requiredScore}`);
-            console.log(`  Eligible: ${isEligible}`);
-
-            if (isEligible) {
-              // Envoyer les données d'évolution à Unity
-              const evolutionData = {
-                walletAddress: walletAddress,
-                score: score,
-                currentLevel: currentLevel,
-                nextLevel: nextLevel,
-                eligible: true,
-              };
-              unityInstance.SendMessage(
-                "ChogTanksNFTManager",
-                "OnEvolutionEligibilitySuccess",
-                JSON.stringify(evolutionData)
-              );
-            } else {
-              unityInstance.SendMessage(
-                "ChogTanksNFTManager",
-                "OnEvolutionEligibilityError",
-                `Not enough score. Need ${requiredScore}, have ${score}`
-              );
+      
+      if (!callback || callback.trim() === '') {
+        console.error('[NFT] Callback method name is empty!');
+        return false;
+      }
+      if (!/^0x[a-fA-F0-9]{40}$/.test(normalizedAddress)) {
+        console.error(`[NFT][SECURITE] Adresse Ethereum invalide pour CanMintNFTJS: '${normalizedAddress}'`);
+        unityInstance.SendMessage("ChogTanksNFTManager", callback, JSON.stringify({ canMint: false, error: "Adresse Ethereum invalide" }));
+        return false;
+      }
+      
+      // Vérifier si firebase est défini
+      if (typeof firebase === "undefined") {
+        console.error('[NFT][ERREUR] Firebase n\'est pas initialisé dans CanMintNFTJS');
+        unityInstance.SendMessage("ChogTanksNFTManager", callback, JSON.stringify({ canMint: false, error: "Firebase non initialisé" }));
+        return false;
+      }
+      
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          const db = firebase.firestore();
+          db.collection("WalletScores").doc(normalizedAddress).get().then(function(doc) {
+            let canMint = true;
+            if (doc.exists && Number(doc.data().nftLevel || 0) > 0) {
+              canMint = false;
             }
-          } else {
-            console.log(`[Firebase] No score data found for ${walletAddress}`);
             unityInstance.SendMessage(
               "ChogTanksNFTManager",
-              "OnEvolutionEligibilityError",
-              "No score data found"
+              callback,
+              JSON.stringify({ canMint: canMint })
             );
-          }
-        })
-        .catch((error) => {
-          console.error("Evolution eligibility check error:", error);
+          }).catch(function(error) {
+            console.error("[NFT] Erreur CanMintNFTJS:", error);
+            unityInstance.SendMessage(
+              "ChogTanksNFTManager",
+              callback,
+              JSON.stringify({ canMint: false, error: "Erreur Firestore" })
+            );
+          });
+        } else {
+          firebase.auth().signInAnonymously().catch(console.error);
           unityInstance.SendMessage(
             "ChogTanksNFTManager",
-            "OnEvolutionEligibilityError",
-            error.message
+            callback,
+            JSON.stringify({ canMint: false, error: "Non authentifié" })
           );
-        });
-
+        }
+      });
       return true;
     } catch (error) {
-      console.error("CheckEvolutionEligibilityJS error:", error);
+      console.error("[NFT] Erreur CanMintNFTJS:", error);
       unityInstance.SendMessage(
         "ChogTanksNFTManager",
-        "OnEvolutionEligibilityError",
-        error.message
+        callback,
+        JSON.stringify({ canMint: false, error: "Exception JS" })
       );
       return false;
     }
   },
 
-  // Fonction pour mettre à jour le niveau NFT après évolution réussie
-  UpdateNFTLevelJS: function (walletAddressPtr, newLevelPtr) {
+  // Mettre à jour le niveau NFT
+  UpdateNFTLevelJS: function (walletAddress, newLevel) {
+    // Log explicite pour debug
+    console.log("[NFT][DEBUG] UpdateNFTLevelJS called with:", walletAddress, newLevel);
     try {
-      var walletAddress = UTF8ToString(walletAddressPtr);
-      var newLevel = parseInt(UTF8ToString(newLevelPtr));
+      const address = UTF8ToString(walletAddress);
+      let levelStr = UTF8ToString(newLevel);
+      
+      // Protection contre les valeurs vides ou nulles (cas de mint initial)
+      if (!levelStr || levelStr.trim() === '') {
+        console.warn(`[NFT] Niveau NFT vide reçu. Utilisation valeur par défaut '1' (mint initial)`); 
+        levelStr = '1'; // Valeur par défaut pour mint initial
+      }
+      
+      console.log(`[NFT] Traitement de la mise à jour niveau: adresse=${address}, niveau=${levelStr}`);
+      
+      let nftLevel;
+      try {
+        // Assurer que la valeur est un nombre entier valide
+        nftLevel = parseInt(levelStr, 10);
+        if (isNaN(nftLevel) || !isFinite(nftLevel)) {
+          console.error(`[NFT] Erreur de parsing du niveau NFT: '${levelStr}', utilisation valeur par défaut 1`);
+          nftLevel = 1; // Plus logique d'utiliser 1 comme minimum (pour mint initial)
+        }
+      } catch (e) {
+        console.error(`[NFT] Exception lors du parsing du niveau NFT: ${e.message}`);
+        nftLevel = 1; // Valeur par défaut pour mint initial
+      }  
+      
+      const normalizedAddress = address.toLowerCase().trim();
+      console.log(`[NFT] Mise à jour niveau NFT: ${nftLevel} pour ${normalizedAddress}`);
 
-      var db = firebase.firestore();
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const db = firebase.firestore();
 
-      // Mettre à jour le niveau NFT dans la base de données
-      db.collection("WalletScores")
-        .doc(walletAddress)
-        .update({
-          nftLevel: newLevel,
-          lastEvolution: firebase.firestore.FieldValue.serverTimestamp(),
-        })
-        .then(() => {
-          console.log(`NFT level updated to ${newLevel} for ${walletAddress}`);
-          unityInstance.SendMessage(
-            "ChogTanksNFTManager",
-            "OnNFTLevelUpdated",
-            `${newLevel}`
-          );
-        })
-        .catch((error) => {
-          console.error("Error updating NFT level:", error);
-          unityInstance.SendMessage(
-            "ChogTanksNFTManager",
-            "OnNFTLevelUpdateError",
-            error.message
-          );
-        });
+          // Forcer le type number pour nftLevel
+          const nftLevelNumber = Number(nftLevel);
+          
+          db.collection("WalletScores")
+            .doc(normalizedAddress)
+            .set(
+              {
+                nftLevel: nftLevelNumber, // Utiliser la variable convertie explicitement
+                walletAddress: normalizedAddress,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+              },
+              { merge: true }
+            )
+            .then(() => {
+              console.log(`[NFT] Niveau NFT mis à jour: ${nftLevelNumber}`);
+              if (typeof unityInstance !== "undefined") {
+                unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnNFTLevelUpdated", 
+                  String(nftLevelNumber)
+                );
+              }
+            })
+            .catch((error) => {
+              console.error("[NFT] Erreur mise à jour niveau:", error);
+            });
+        } else {
+          console.log("[NFT] Auth anonyme en cours...");
+          firebase.auth().signInAnonymously().catch(console.error);
+        }
+      });
 
       return true;
     } catch (error) {
-      console.error("UpdateNFTLevelJS error:", error);
+      console.error("[NFT] Erreur UpdateNFTLevelJS:", error);
       return false;
     }
+  },
+
+  // Vérifier l'éligibilité à l'évolution
+  CheckEvolutionEligibilityJS: function (walletAddress) {
+    try {
+      const address = UTF8ToString(walletAddress);
+      const normalizedAddress = address.toLowerCase().trim();
+      console.log(`[EVOL] Vérification éligibilité pour ${normalizedAddress}`);
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const db = firebase.firestore();
+
+          db.collection("WalletScores")
+            .doc(normalizedAddress)
+            .get()
+            .then((doc) => {
+              if (doc.exists) {
+                const data = doc.data();
+                // S'assurer d'avoir des nombres valides avec conversion explicite
+                const currentScore = Number(data.score || 0);
+                const currentLevel = Number(data.nftLevel || 0);
+
+                // Logique d'éligibilité selon les seuils spécifiques
+              let requiredScore;
+              if (currentLevel === 1) { // Déjà au niveau 1, pour niveau 2
+                requiredScore = 2; // Niveau 1->2 nécessite seulement 2 points
+              } else if (currentLevel >= 2) { // Niveau 2 et plus
+                requiredScore = 100 * (currentLevel - 1); // Niveau 2->3 = 100 points, 3->4 = 200 points, etc.
+              } else {
+                requiredScore = 0; // Cas impossible (currentLevel = 0 = pas de NFT)
+              }
+              const isEligible = currentScore >= requiredScore;
+
+                console.log(`[EVOL] Score ${currentScore}, niveau ${currentLevel}, requis ${requiredScore}, éligible: ${isEligible}`);
+                if (typeof unityInstance !== "undefined") {
+                  unityInstance.SendMessage(
+                    "ChogTanksNFTManager",
+                    "OnEvolutionCheckComplete",
+                    JSON.stringify({
+                      authorized: Boolean(isEligible),
+                      score: Number(currentScore) || 0,
+                      requiredScore: Number(requiredScore) || 0,
+                      currentLevel: Number(currentLevel) || 0
+                    })
+                  );
+                }
+              } else {
+                // Document n'existe pas
+                console.log(`[EVOL] Aucun document pour ${normalizedAddress}`);
+                if (typeof unityInstance !== "undefined") {
+                  unityInstance.SendMessage(
+                    "ChogTanksNFTManager",
+                    "OnEvolutionCheckComplete",
+                    JSON.stringify({
+                      authorized: false,
+                      score: 0,
+                      currentLevel: 0,
+                      requiredScore: 100,
+                      error: "Aucun document trouvé"
+                    })
+                  );
+                }
+              }
+            })
+            .catch((error) => {
+              console.error("[EVOL] Erreur vérification:", error);
+            });
+        } else {
+          console.log("[EVOL] Auth anonyme en cours...");
+          firebase.auth().signInAnonymously().catch(console.error);
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[EVOL] Erreur CheckEvolutionEligibilityJS:", error);
+      return false;
+    }
+  },
+
+  // Obtenir l'état actuel du NFT
+  GetNFTStateJS: function (walletAddress) {
+  try {
+    const address = UTF8ToString(walletAddress);
+    const normalizedAddress = address.toLowerCase().trim();
+    console.log(`[NFT][DEBUG] GetNFTStateJS - Récupération de l'état NFT pour: ${normalizedAddress}`);
+    
+    // Créer une réponse par défaut
+    let response = {
+      hasNFT: false,
+      level: 0,
+      score: 0,
+      walletAddress: normalizedAddress
+    };
+    
+    // Vérifier si Firebase est initialisé
+    if (typeof firebase === "undefined" || !firebase.apps.length) {
+      console.error("[NFT][ERREUR] Firebase n'est pas initialisé dans GetNFTStateJS");
+      // Essai de recuperation de unityInstance en cas d'erreur
+      if (typeof unityInstance !== "undefined") {
+        console.log("[NFT][DEBUG] unityInstance est défini, envoi du message de fallback");
+        unityInstance.SendMessage("ChogTanksNFTManager", "OnNFTStateLoaded", JSON.stringify(response));
+      } else {
+        console.error("[NFT][ERREUR CRITIQUE] unityInstance n'est pas défini dans GetNFTStateJS");
+      }
+      return;
+    }
+
+    console.log("[NFT][DEBUG] Avant firebase.auth().onAuthStateChanged");
+    firebase.auth().onAuthStateChanged(function(user) {
+      console.log("[NFT][DEBUG] Dans onAuthStateChanged, user:", user ? "connecté" : "non connecté");
+      if (user) {
+        console.log("[NFT][DEBUG] Utilisateur authentifié, accès à Firestore");
+        const db = firebase.firestore();
+
+        db.collection("WalletScores")
+          .doc(normalizedAddress)
+          .get()
+          .then(function(doc) {
+            console.log("[NFT][DEBUG] Document Firestore récupéré, existe:", doc.exists);
+            if (doc.exists) {
+              const data = doc.data();
+              // Forcer la conversion numérique pour éviter les NaN
+              const nftLevel = Number(data.nftLevel || 0);
+              const score = Number(data.score || 0);
+              
+              response = {
+                hasNFT: nftLevel > 0,
+                level: nftLevel,
+                score: score,
+                walletAddress: normalizedAddress, // Toujours utiliser l'adresse normalisée
+              };
+            }
+
+            console.log(`[NFT][DEBUG] État récupéré: ${JSON.stringify(response)}`);
+            // Vérifier explicitement si unityInstance existe
+            if (typeof unityInstance === "undefined") {
+              console.error("[NFT][ERREUR CRITIQUE] unityInstance n'est pas défini lors de l'envoi du résultat");
+              return;
+            }
+            
+            try {
+              // Assurez-vous que tous les champs sont bien formatés
+              const safeResponse = {
+                hasNFT: Boolean(response.hasNFT),
+                level: Number(response.level) || 0,
+                score: Number(response.score) || 0,
+                walletAddress: String(response.walletAddress || '')
+              };
+              console.log("[NFT][DEBUG] Envoi du résultat à Unity via SendMessage");
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnNFTStateLoaded", 
+                JSON.stringify(safeResponse)
+              );
+              console.log("[NFT][DEBUG] SendMessage exécuté avec succès");
+            } catch (e) {
+              console.error("[NFT][ERREUR CRITIQUE] Erreur lors de l'appel à SendMessage:", e);
+            }
+          })
+          .catch(function(error) {
+            console.error("[NFT][ERREUR] Erreur récupération état:", error);
+            // En cas d'erreur, essayer quand même d'envoyer une réponse par défaut
+            if (typeof unityInstance !== "undefined") {
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnNFTStateLoaded", 
+                JSON.stringify(response)
+              );
+            }
+          });
+      } else {
+        console.log("[NFT][DEBUG] Auth anonyme en cours...");
+        firebase.auth().signInAnonymously()
+          .then(function() {
+            console.log("[NFT][DEBUG] Authentification anonyme réussie");
+            // On ne fait rien ici, onAuthStateChanged sera rappelé avec user non null
+          })
+          .catch(function(error) {
+            console.error("[NFT][ERREUR] Échec authentification anonyme:", error);
+            // En cas d'erreur, essayer quand même d'envoyer une réponse par défaut
+            if (typeof unityInstance !== "undefined") {
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnNFTStateLoaded", 
+                JSON.stringify(response)
+              );
+            }
+          });
+      }
+    });
+
+    console.log("[NFT][DEBUG] GetNFTStateJS terminé avec succès");
+    return true;
+  } catch (error) {
+    console.error("[NFT][ERREUR CRITIQUE] Exception dans GetNFTStateJS:", error);
+    try {
+      // Essayer d'envoyer une réponse par défaut même en cas d'erreur
+      if (typeof unityInstance !== "undefined") {
+        const fallbackResponse = {
+          hasNFT: false,
+          level: 0,
+          score: 0,
+          walletAddress: UTF8ToString(walletAddress).toLowerCase().trim()
+        };
+        unityInstance.SendMessage(
+          "ChogTanksNFTManager",
+          "OnNFTStateLoaded", 
+          JSON.stringify(fallbackResponse)
+        );
+      }
+    } catch (e) {
+      console.error("[NFT][ERREUR FATALE] Impossible d'envoyer la réponse de fallback:", e);
+    }
+    return false;
+  }
   },
 });
