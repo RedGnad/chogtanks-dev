@@ -128,7 +128,7 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         // Mettre à jour le statut de la room
         if (LobbyUI.Instance != null)
         {
-            LobbyUI.Instance.UpdateRoomStatus("Match en cours!");
+            LobbyUI.Instance.UpdateRoomStatus("Ongoing Match");
         }
         
         // Synchroniser le timer toutes les 5 secondes si on est MasterClient
@@ -364,8 +364,8 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
             localPlayerScore = playerScores[PhotonNetwork.LocalPlayer.ActorNumber];
         }
         
-        // Soumettre un score bonus si c'est le gagnant
-        int bonus = (winnerActorNumber == PhotonNetwork.LocalPlayer.ActorNumber) ? 1 : 0;
+        // Désactivation du bonus pour éviter double comptage dans Firebase
+        int bonus = 0; // plus de bonus de victoire
         
         // Soumettre le score à Firebase
         if (Application.platform == RuntimePlatform.WebGLPlayer)
