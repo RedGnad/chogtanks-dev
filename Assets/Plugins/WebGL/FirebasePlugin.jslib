@@ -851,6 +851,129 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  // 🎆 NOUVELLE FONCTION: Marquer le mint comme réussi dans Firebase
+  MarkMintSuccessJS: function (walletAddress) {
+    try {
+      const address = UTF8ToString(walletAddress);
+      const normalizedAddress = address.toLowerCase().trim();
+
+      console.log(
+        `[MINT-SUCCESS] 🎆 Marking mint as successful for wallet: ${normalizedAddress}`
+      );
+
+      if (typeof firebase === "undefined" || !firebase.apps.length) {
+        console.error("[MINT-SUCCESS] Firebase not initialized");
+        return false;
+      }
+
+      const db = firebase.firestore();
+
+      db.collection("WalletScores")
+        .doc(normalizedAddress)
+        .set(
+          {
+            hasMintedNFT: true,
+            walletAddress: normalizedAddress,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        )
+        .then(() => {
+          console.log(
+            `[MINT-SUCCESS] ✅ hasMintedNFT set to true for ${normalizedAddress}`
+          );
+          if (typeof unityInstance !== "undefined") {
+            unityInstance.SendMessage(
+              "ChogTanksNFTManager",
+              "OnMintMarkedInFirebase",
+              "success"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error(`[MINT-SUCCESS] ❌ Error marking mint success:`, error);
+        });
+
+      return true;
+    } catch (error) {
+      console.error(`[MINT-SUCCESS] ❌ Exception in MarkMintSuccessJS:`, error);
+      return false;
+    }
+  },
+
+  // 🔍 NOUVELLE FONCTION: Lire le champ hasMintedNFT depuis Firebase pour l'auto-mint
+  CheckHasMintedNFTJS: function (walletAddress) {
+    try {
+      const address = UTF8ToString(walletAddress);
+      const normalizedAddress = address.toLowerCase().trim();
+      
+      console.log(`[AUTO-MINT-CHECK] 🔍 Checking hasMintedNFT for wallet: ${normalizedAddress}`);
+      
+      if (typeof firebase === "undefined" || !firebase.apps.length) {
+        console.error("[AUTO-MINT-CHECK] Firebase not initialized");
+        return false;
+      }
+      
+      const db = firebase.firestore();
+      
+      db.collection("WalletScores")
+        .doc(normalizedAddress)
+        .get()
+        .then((doc) => {
+          let hasMinted = false;
+          
+          if (doc.exists) {
+            const data = doc.data();
+            hasMinted = data.hasMintedNFT === true;
+            console.log(`[AUTO-MINT-CHECK] 📊 Document found: hasMintedNFT=${hasMinted}`);
+          } else {
+            console.log(`[AUTO-MINT-CHECK] 📊 No document found, hasMintedNFT=false (first time)`);
+          }
+          
+          // Retourner le résultat à Unity
+          const result = {
+            walletAddress: normalizedAddress,
+            hasMintedNFT: hasMinted,
+            shouldAutoMint: !hasMinted // Auto-mint si jamais minté
+          };
+          
+          console.log(`[AUTO-MINT-CHECK] ✅ Sending result to Unity:`, result);
+          
+          if (typeof unityInstance !== "undefined") {
+            unityInstance.SendMessage(
+              "NFTDisplayPanel",
+              "OnHasMintedNFTChecked",
+              JSON.stringify(result)
+            );
+          }
+        })
+        .catch((error) => {
+          console.error(`[AUTO-MINT-CHECK] ❌ Error checking hasMintedNFT:`, error);
+          
+          // En cas d'erreur, considérer comme "pas encore minté" pour sécurité
+          const fallbackResult = {
+            walletAddress: normalizedAddress,
+            hasMintedNFT: false,
+            shouldAutoMint: true,
+            error: error.message
+          };
+          
+          if (typeof unityInstance !== "undefined") {
+            unityInstance.SendMessage(
+              "NFTDisplayPanel",
+              "OnHasMintedNFTChecked",
+              JSON.stringify(fallbackResult)
+            );
+          }
+        });
+        
+      return true;
+    } catch (error) {
+      console.error(`[AUTO-MINT-CHECK] ❌ Exception in CheckHasMintedNFTJS:`, error);
+      return false;
+    }
+  },
+
   ReadNFTFromBlockchainJS: function (walletAddress, callbackMethod) {
     try {
       const address = UTF8ToString(walletAddress);
@@ -1315,7 +1438,9 @@ mergeInto(LibraryManager.library, {
       const level = blockchainLevel;
       const nftTokenId = tokenId;
 
-      console.log(`[FIREBASE-SYNC] 🔄 Starting sync for wallet ${normalizedAddress}`);
+      console.log(
+        `[FIREBASE-SYNC] 🔄 Starting sync for wallet ${normalizedAddress}`
+      );
       console.log(
         `[FIREBASE-SYNC] 🔗 Blockchain data: level=${level}, tokenId=${nftTokenId}`
       );

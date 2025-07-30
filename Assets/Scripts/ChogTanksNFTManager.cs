@@ -114,6 +114,12 @@ public class ChogTanksNFTManager : MonoBehaviour
     private static extern void DirectMintNFTJS(string walletAddress);
     
     [DllImport("__Internal")]
+    private static extern void MarkMintSuccessJS(string walletAddress);
+    
+    [DllImport("__Internal")]
+    public static extern void CheckHasMintedNFTJS(string walletAddress);
+    
+    [DllImport("__Internal")]
     private static extern void UpdateNFTLevelJS(string walletAddress, int newLevel);
     
     [DllImport("__Internal")]
@@ -125,6 +131,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     private static void GetNFTStateJS(string walletAddress) { }
     private static void CheckEvolutionEligibilityJS(string walletAddress) { }
     private static void CanMintNFTJS(string walletAddress, string callbackMethod) { }
+    
+    private static void MarkMintSuccessJS(string walletAddress) { }
+    private static void CheckHasMintedNFTJS(string walletAddress) { }
     private static void UpdateNFTLevelJS(string walletAddress, int newLevel) { }
     private static void ReadNFTFromBlockchainJS(string walletAddress, string callbackMethod) { }
     private static void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId) { }
@@ -244,9 +253,15 @@ public class ChogTanksNFTManager : MonoBehaviour
     {
         string walletAddress = PlayerPrefs.GetString("walletAddress", "");
         bool hasWallet = !string.IsNullOrEmpty(walletAddress);
+        bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
         
-        if (hasWallet)
+        Debug.Log($"[UI-LEVEL] ShowLevelUI check: hasWallet={hasWallet}, signApproved={signApproved}");
+        
+        // ✅ CONDITION STRICTE: Wallet ET signature requis
+        if (hasWallet && signApproved)
         {
+            Debug.Log($"[UI-LEVEL] ✅ Both wallet and signature approved - showing level UI");
+            
             if (levelText != null)
             {
                 levelText.gameObject.SetActive(true);
@@ -257,8 +272,23 @@ public class ChogTanksNFTManager : MonoBehaviour
                 scoreProgressText.gameObject.SetActive(true);
             }
         }
+        else
+        {
+            Debug.Log($"[UI-LEVEL] ❌ UI hidden - wallet: {hasWallet}, signature: {signApproved}");
+            
+            // Garder les UI cachées si signature pas faite
+            if (levelText != null)
+            {
+                levelText.gameObject.SetActive(false);
+            }
+            
+            if (scoreProgressText != null)
+            {
+                scoreProgressText.gameObject.SetActive(false);
+            }
+        }
     }
-    
+
     public void DisconnectWallet()
     {
         currentPlayerWallet = "";
@@ -396,6 +426,36 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
     }
 
+    private bool IsWalletConnectedAndSigned()
+    {
+        bool hasWallet = !string.IsNullOrEmpty(currentPlayerWallet);
+        bool hasSignature = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+        return hasWallet && hasSignature;
+    }
+    
+    public void UpdateStatusUI(string message = "")
+    {
+        bool hasWallet = !string.IsNullOrEmpty(currentPlayerWallet);
+        bool isFullyAuthenticated = IsWalletConnectedAndSigned();
+        
+        if (!hasWallet)
+        {
+            statusText.text = "Connect your wallet to continue";
+            return;
+        }
+        
+        if (!isFullyAuthenticated)
+        {
+            statusText.text = "Complete personal signature to continue";
+            return;
+        }
+        
+        if (!string.IsNullOrEmpty(message))
+        {
+            statusText.text = message;
+        }
+    }
+
     private bool IsFirebaseAllowed()
     {
         bool walletConnected = !string.IsNullOrEmpty(currentPlayerWallet);
@@ -432,6 +492,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     System.Collections.IEnumerator GetNFTsDirectlyFromBlockchain()
     {
         Debug.Log($"[BLOCKCHAIN] 🔍 Calling balanceOf directly via AppKit...");
+        
+        string normalizedWallet = currentPlayerWallet.ToLowerInvariant();
+        Debug.Log($"[BLOCKCHAIN] 🔧 Normalized wallet: {currentPlayerWallet} → {normalizedWallet}");
         
         bool balanceReceived = false;
         uint nftBalance = 0;
@@ -479,10 +542,13 @@ public class ChogTanksNFTManager : MonoBehaviour
                 hasNFT = false,
                 level = 0,
                 tokenId = 0,
-                walletAddress = currentPlayerWallet,
+                walletAddress = normalizedWallet,
                 score = 0
             };
             OnNFTStateLoaded(JsonUtility.ToJson(noNFTState));
+            
+            Debug.Log($"[BLOCKCHAIN] 🔄 Reading Firebase score for no-NFT wallet: {normalizedWallet}");
+            LoadNFTStateFromFirebase();
             yield break;
         }
         
@@ -493,13 +559,16 @@ public class ChogTanksNFTManager : MonoBehaviour
             hasNFT = true,
             level = 1, // Default level, will be updated if we can read it
             tokenId = 1, // Default token ID
-            walletAddress = currentPlayerWallet,
+            walletAddress = normalizedWallet,
             score = 0,
             nftCount = (int)nftBalance
         };
         
         Debug.Log($"[BLOCKCHAIN] 📤 Sending state: {nftBalance} NFTs found, Level {nftState.level}");
         OnNFTStateLoaded(JsonUtility.ToJson(nftState));
+        
+        Debug.Log($"[BLOCKCHAIN] 🔄 Now reading Firebase score for normalized wallet: {normalizedWallet}");
+        LoadNFTStateFromFirebase();
         
         yield return null;
     }
@@ -655,8 +724,11 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
         UpdateStatusUI("Loading NFT state...");
 #if UNITY_WEBGL && !UNITY_EDITOR
-        Debug.Log($"[NFT-DEBUG] GetNFTStateJS called with wallet: {currentPlayerWallet}");
-        GetNFTStateJS(currentPlayerWallet);
+        string normalizedWallet = currentPlayerWallet.ToLowerInvariant();
+        Debug.Log($"[FIREBASE-SCORE] 🔍 Loading score from Firebase for normalized wallet: {normalizedWallet}");
+        Debug.Log($"[FIREBASE-SCORE] 🔧 Original: {currentPlayerWallet} → Normalized: {normalizedWallet}");
+        
+        GetNFTStateJS(normalizedWallet);
 #else
         var mockNFTState = new NFTStateData
         {
@@ -1136,12 +1208,20 @@ public class ChogTanksNFTManager : MonoBehaviour
                 (transactionHash.Length > 10 ? transactionHash.Substring(0, 10) + "..." : transactionHash);
             
             UpdateNFTLevelInFirebase(1);
-            
-            currentNFTState.hasNFT = true;
-            currentNFTState.level = 1;
-            
-            UpdateStatusUI($"NFT minted successfully! TX: {displayHash}");
-            UpdateLevelUI(1);
+        
+        // MARQUER LE MINT COMME RÉUSSI DANS FIREBASE
+#if UNITY_WEBGL && !UNITY_EDITOR
+        MarkMintSuccessJS(currentPlayerWallet);
+        Debug.Log($"[MINT-SUCCESS] 🎆 Marked mint as successful in Firebase for wallet: {currentPlayerWallet}");
+#else
+        Debug.Log($"[MINT-SUCCESS] 🎮 Editor mode: skipping Firebase mint success marking");
+#endif
+        
+        currentNFTState.hasNFT = true;
+        currentNFTState.level = 1;
+        
+        UpdateStatusUI($"NFT minted successfully! TX: {displayHash}");
+        UpdateLevelUI(1);
         }
         catch (Exception ex)
         {
@@ -1437,21 +1517,7 @@ public class ChogTanksNFTManager : MonoBehaviour
         isProcessingEvolution = false;
     }
 
-    void UpdateStatusUI(string message)
-    {
-        Debug.Log($"[NFT-UI] UpdateStatusUI called with: '{message}'");
-        Debug.Log($"[NFT-UI] statusText component: {(statusText != null ? "ASSIGNED" : "NULL - NOT ASSIGNED!")}");
-        
-        if (statusText != null)
-        {
-            statusText.text = message;
-            Debug.Log($"[NFT-UI] ✅ Status text updated to: '{message}'");
-        }
-        else
-        {
-            Debug.LogError("[NFT-UI] ❌ statusText is NULL! UI component not assigned in inspector!");
-        }
-    }
+
 
 
 

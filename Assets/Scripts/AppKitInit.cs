@@ -224,7 +224,6 @@ namespace Sample
                 },
                 supportedChains = new[] { monadTestnet },
                 enableEmail = false,
-                allWallets = "HIDE"
                 socials = new[]
                 {
                     SocialLogin.Discord,
