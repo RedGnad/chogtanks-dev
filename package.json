@@ -1,0 +1,19 @@
+{
+  "name": "chogtanks-signature-server",
+  "version": "1.0.0",
+  "description": "Signature server for ChogTanks NFT system",
+  "main": "signature-server.js",
+  "scripts": {
+    "start": "node signature-server.js",
+    "dev": "nodemon signature-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "ethers": "^5.7.2",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
