@@ -423,15 +423,16 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
         
         currentPlayerWallet = walletAddress;
-        
-        if (!string.IsNullOrEmpty(currentPlayerWallet))
-        {
-        }
-        else
-        {
-            Debug.LogError("[NFT] Aucun wallet connecté détecté");
-        }
+    
+    if (!string.IsNullOrEmpty(currentPlayerWallet))
+    {
+        Debug.Log($"[NFT-SYNC] Wallet updated to: {currentPlayerWallet}");
     }
+    else
+    {
+        Debug.LogError("[NFT] Aucun wallet connecté détecté");
+    }
+}
 
     private bool IsWalletConnectedAndSigned()
     {

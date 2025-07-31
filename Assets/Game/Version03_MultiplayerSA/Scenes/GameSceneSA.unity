@@ -56525,7 +56525,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -143.00006, y: -26.999878}
+  m_AnchoredPosition: {x: -118, y: -26.999878}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &115102441
@@ -57244,7 +57244,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -629, y: -26.999878}
+  m_AnchoredPosition: {x: -544, y: -26.999878}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &189502973
@@ -63620,7 +63620,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -367, y: -27}
+  m_AnchoredPosition: {x: -331, y: -27}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1644012682
@@ -67016,7 +67016,7 @@ PrefabInstance:
       objectReference: {fileID: 9346775}
     - target: {fileID: 6303611370541638126, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_Name
-      value: NFTItemPrefab
+      value: NFTDisplayPanel
       objectReference: {fileID: 0}
     - target: {fileID: 7616803913695274525, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_margin.z

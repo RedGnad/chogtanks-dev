@@ -50,6 +50,12 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private string currentWalletAddress;
     private List<NFTDisplayItem> playerNFTs = new List<NFTDisplayItem>();
+    
+    public void UpdateWalletAddress(string newWalletAddress)
+    {
+        Debug.Log($"[NFT-PANEL] UpdateWalletAddress: {currentWalletAddress} → {newWalletAddress}");
+        currentWalletAddress = newWalletAddress;
+    }
     private ChogTanksNFTManager nftManager;
     private bool isRefreshing = false; // Protection contre les appels multiples
 
@@ -94,7 +100,19 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public async void RefreshNFTList()
     {
-        Debug.Log($"[NFT-PANEL] RefreshNFTList started for wallet: {currentWalletAddress}");
+        // TOUJOURS récupérer la dernière adresse wallet (comme un refresh de page)
+        string latestWallet = PlayerPrefs.GetString("walletAddress", "");
+        if (!string.IsNullOrEmpty(latestWallet))
+        {
+            currentWalletAddress = latestWallet;
+            Debug.Log($"[NFT-PANEL] RefreshNFTList using LATEST wallet: {currentWalletAddress}");
+        }
+        else
+        {
+            Debug.LogError("[NFT-PANEL] No wallet found in PlayerPrefs");
+            UpdateStatus("No wallet connected");
+            return;
+        }
         
         // Protection contre les appels multiples simultanés
         if (isRefreshing)
@@ -103,29 +121,19 @@ public class NFTDisplayPanel : MonoBehaviour
             return;
         }
         
-        if (string.IsNullOrEmpty(currentWalletAddress))
-        {
-            Debug.LogWarning("[NFT-PANEL] No wallet address provided - checking PlayerPrefs fallback");
-            string savedWallet = PlayerPrefs.GetString("walletAddress", "");
-            if (!string.IsNullOrEmpty(savedWallet))
-            {
-                Debug.Log($"[NFT-PANEL] Using fallback wallet from PlayerPrefs: {savedWallet}");
-                currentWalletAddress = savedWallet;
-            }
-            else
-            {
-                Debug.LogError("[NFT-PANEL] No wallet available in PlayerPrefs either");
-                UpdateStatus("No wallet connected");
-                return;
-            }
-        }
-        
         isRefreshing = true;
         
         try
         {
             Debug.Log("[NFT-PANEL] Clearing existing NFT list and loading new data");
+            
+            // Réinitialiser le status text pour le nouveau wallet
             UpdateStatus("Loading NFTs...");
+            Debug.Log($"[NFT-PANEL] Status reset for wallet: {currentWalletAddress}");
+            
+            // Nettoyer les boutons NFT simples pour assurer la cohérence avec le nouveau wallet
+            ClearSimpleNFTButtons();
+            
             ClearNFTList();
             
             await GetAllNFTsFromBlockchain(currentWalletAddress);
@@ -987,9 +995,9 @@ public class NFTDisplayPanel : MonoBehaviour
         var rectTransform = buttonObj.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
-            // Position dans le panel - layout horizontal compact
-            rectTransform.sizeDelta = new Vector2(100, 35); // Compact
-            rectTransform.anchoredPosition = new Vector2((nftIndex - 1) * 110, -50); // En haut du panel
+            // Position dans le panel - layout horizontal avec espacement amélioré
+            rectTransform.sizeDelta = new Vector2(120, 40); // Taille normale
+            rectTransform.anchoredPosition = new Vector2((nftIndex - 1) * 280, -50); // Espacement augmenté
             
             Debug.Log($"[NFT-PANEL] 📍 Positioned simple NFT #{nftIndex} at {rectTransform.anchoredPosition} in panel");
         }
