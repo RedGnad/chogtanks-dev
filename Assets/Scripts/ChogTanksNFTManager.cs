@@ -95,6 +95,13 @@ public class ChogTanksNFTManager : MonoBehaviour
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI scoreProgressText;
     
+    [Header("Simple NFT Buttons (Coexist with Panel)")]
+    [Tooltip("Container for simple NFT buttons - should be positioned to not conflict with NFTDisplayPanel")]
+    public Transform nftButtonContainer;
+    [Tooltip("Optional: Prefab template for NFT buttons")]
+    public GameObject nftButtonPrefab;
+    private List<UnityEngine.UI.Button> nftButtons = new List<UnityEngine.UI.Button>();
+    
     private string currentPlayerWallet = "";
     private bool isProcessingEvolution = false;
     public NFTStateData currentNFTState = new NFTStateData();
@@ -811,6 +818,10 @@ public class ChogTanksNFTManager : MonoBehaviour
                 
                 UpdateStatusUI(statusMessage);
                 UpdateLevelUI(nftState.level);
+                
+                // CRÉER LES BOUTONS NFT SIMPLES (COEXISTENT AVEC LE PANEL)
+                // DÉSACTIVÉ : Boutons NFT maintenant créés uniquement dans NFTDisplayPanel après refresh
+                // CreateSimpleNFTButtons(nftCount);
                 
                 // SYNCHRONISER FIREBASE AVEC LA RÉALITÉ BLOCKCHAIN
                 Debug.Log($"[FIREBASE-SYNC] 🔄 Starting Firebase sync for wallet: {nftState.walletAddress}");
@@ -1921,5 +1932,159 @@ public class ChogTanksNFTManager : MonoBehaviour
             currentNFTState.level = level;
             UpdateStatusUI($"NFT #{tokenId} is Level {level}");
         }
+    }
+    
+    // ========== BOUTONS NFT SIMPLES (COEXISTENCE AVEC PANEL) ==========
+    
+    private void CreateSimpleNFTButtons(int nftCount)
+    {
+        Debug.Log($"[NFT-BUTTONS] 🎯 Creating {nftCount} simple NFT buttons (coexist with panel)");
+        
+        ClearNFTButtons();
+        
+        if (nftButtonContainer == null)
+        {
+            Debug.LogWarning("[NFT-BUTTONS] ⚠️ nftButtonContainer is null - assign it in Inspector for simple NFT buttons");
+            return;
+        }
+        
+        for (int i = 0; i < nftCount; i++)
+        {
+            CreateSingleNFTButton(i + 1);
+        }
+        
+        Debug.Log($"[NFT-BUTTONS] ✅ Created {nftButtons.Count} simple NFT buttons successfully");
+    }
+
+    private void CreateSingleNFTButton(int nftIndex)
+    {
+        GameObject buttonObj = null;
+        
+        // Utiliser le prefab si disponible, sinon créer un bouton basique
+        if (nftButtonPrefab != null)
+        {
+            Debug.Log($"[NFT-BUTTONS] 🎨 Using prefab for NFT #{nftIndex}");
+            buttonObj = Instantiate(nftButtonPrefab, nftButtonContainer);
+            buttonObj.name = $"SimpleNFT_Button_{nftIndex}";
+        }
+        else
+        {
+            Debug.Log($"[NFT-BUTTONS] 🔧 Creating basic button for NFT #{nftIndex}");
+            buttonObj = CreateBasicNFTButton(nftIndex);
+        }
+        
+        // Configurer le bouton
+        var button = buttonObj.GetComponent<UnityEngine.UI.Button>();
+        if (button == null)
+        {
+            button = buttonObj.AddComponent<UnityEngine.UI.Button>();
+        }
+        
+        // Personnaliser le texte
+        CustomizeButtonText(buttonObj, nftIndex);
+        
+        // Positionner le bouton (non-conflictuel avec le panel)
+        PositionButton(buttonObj, nftIndex);
+        
+        // Ajouter l'action de clic
+        int tokenIndex = nftIndex;
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => OnSimpleNFTButtonClicked(tokenIndex));
+        
+        nftButtons.Add(button);
+        
+        Debug.Log($"[NFT-BUTTONS] ✅ Simple NFT button #{nftIndex} created and configured");
+    }
+    
+    private GameObject CreateBasicNFTButton(int nftIndex)
+    {
+        GameObject buttonObj = new GameObject($"SimpleNFT_Button_{nftIndex}");
+        buttonObj.transform.SetParent(nftButtonContainer, false);
+        
+        // Ajouter les composants de base
+        var button = buttonObj.AddComponent<UnityEngine.UI.Button>();
+        var image = buttonObj.AddComponent<UnityEngine.UI.Image>();
+        image.color = new Color(0.1f, 0.7f, 0.3f, 0.9f); // Vert pour distinguer des autres boutons
+        
+        // Créer le texte
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(buttonObj.transform, false);
+        
+        var text = textObj.AddComponent<TextMeshProUGUI>();
+        text.text = $"NFT #{nftIndex}";
+        text.fontSize = 14;
+        text.color = Color.white;
+        text.alignment = TextAlignmentOptions.Center;
+        
+        // Configurer le RectTransform du texte
+        var textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = UnityEngine.Vector2.zero;
+        textRect.anchorMax = UnityEngine.Vector2.one;
+        textRect.offsetMin = UnityEngine.Vector2.zero;
+        textRect.offsetMax = UnityEngine.Vector2.zero;
+        
+        return buttonObj;
+    }
+    
+    private void CustomizeButtonText(GameObject buttonObj, int nftIndex)
+    {
+        // Chercher TextMeshProUGUI dans le bouton
+        var textComponents = buttonObj.GetComponentsInChildren<TextMeshProUGUI>();
+        if (textComponents.Length > 0)
+        {
+            textComponents[0].text = $"NFT #{nftIndex}";
+            Debug.Log($"[NFT-BUTTONS] 📝 Updated text to 'NFT #{nftIndex}'");
+        }
+        else
+        {
+            // Fallback pour Text legacy
+            var legacyText = buttonObj.GetComponentsInChildren<UnityEngine.UI.Text>();
+            if (legacyText.Length > 0)
+            {
+                legacyText[0].text = $"NFT #{nftIndex}";
+                Debug.Log($"[NFT-BUTTONS] 📝 Updated legacy text to 'NFT #{nftIndex}'");
+            }
+        }
+    }
+    
+    private void PositionButton(GameObject buttonObj, int nftIndex)
+    {
+        var rectTransform = buttonObj.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            // Position compacte pour ne pas interférer avec le NFTDisplayPanel
+            rectTransform.sizeDelta = new UnityEngine.Vector2(120, 40); // Plus petit
+            rectTransform.anchoredPosition = new UnityEngine.Vector2((nftIndex - 1) * 130, 0); // Horizontal
+            
+            Debug.Log($"[NFT-BUTTONS] 📍 Positioned NFT #{nftIndex} at {rectTransform.anchoredPosition} (horizontal layout)");
+        }
+    }
+    
+    private void ClearNFTButtons()
+    {
+        Debug.Log($"[NFT-BUTTONS] 🧹 Clearing {nftButtons.Count} existing simple NFT buttons");
+        
+        foreach (var button in nftButtons)
+        {
+            if (button != null && button.gameObject != null)
+            {
+                DestroyImmediate(button.gameObject);
+            }
+        }
+        
+        nftButtons.Clear();
+    }
+    
+    private void OnSimpleNFTButtonClicked(int nftIndex)
+    {
+        Debug.Log($"[NFT-BUTTONS] 🖱️ Simple NFT #{nftIndex} button clicked");
+        
+        // Action simple : mettre à jour le statut et sélectionner le NFT
+        UpdateStatusUI($"Selected NFT #{nftIndex} - Level {currentNFTState.level}");
+        selectedTokenId = nftIndex;
+        
+        // Optionnel : ouvrir directement le NFTDisplayPanel pour ce NFT spécifique
+        Debug.Log($"[NFT-BUTTONS] 🎯 Opening detailed view for NFT #{nftIndex}");
+        OnEvolutionButtonClicked(); // Ouvre le panel détaillé
     }
 }
