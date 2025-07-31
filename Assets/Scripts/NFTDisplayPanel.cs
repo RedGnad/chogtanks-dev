@@ -109,8 +109,10 @@ public class NFTDisplayPanel : MonoBehaviour
         }
         else
         {
-            Debug.LogError("[NFT-PANEL] No wallet found in PlayerPrefs");
+            Debug.Log("[NFT-PANEL] No wallet connected - clearing NFT buttons");
+            currentWalletAddress = "";
             UpdateStatus("No wallet connected");
+            ClearSimpleNFTButtons();
             return;
         }
         
