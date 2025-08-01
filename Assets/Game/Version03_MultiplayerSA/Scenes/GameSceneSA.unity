@@ -154,7 +154,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 106.32003, y: 11}
+  m_AnchoredPosition: {x: 124, y: 11}
   m_SizeDelta: {x: 160, y: 160}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &9346773
@@ -405,7 +405,7 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
     overrideTagEffects: 0
-  updatesPerSecond: 66
+  updatesPerSecond: 37
 --- !u!1 &32026141
 GameObject:
   m_ObjectHideFlags: 0
@@ -61317,7 +61317,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Skin
+  m_text: Skins
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -62249,6 +62249,7 @@ GameObject:
   - component: {fileID: 1342877885}
   - component: {fileID: 1342877887}
   - component: {fileID: 1342877886}
+  - component: {fileID: 1342877888}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -62265,7 +62266,7 @@ RectTransform:
   m_GameObject: {fileID: 1342877884}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.4878683, y: 1.4878683, z: 1.4878683}
+  m_LocalScale: {x: 1.5064667, y: 1.5064667, z: 1.5064667}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 9346772}
@@ -62297,7 +62298,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'EVOLVE
 
-    NFT'
+    TANK'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -62376,6 +62377,30 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1342877884}
   m_CullTransparentMesh: 1
+--- !u!114 &1342877888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1342877884}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9840f87219df84505803024c796e739d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: {fileID: 1342877886}
+  usePreset: 0
+  preset: {fileID: 0}
+  tagEffects: []
+  globalEffects:
+  - triggerWhen: 0
+    effect: {fileID: 11400000, guid: 830c1dc635af14eb299566521c80f783, type: 2}
+    onEffectCompleted:
+      m_PersistentCalls:
+        m_Calls: []
+    overrideTagEffects: 0
+  updatesPerSecond: 36
 --- !u!1 &1355843688
 GameObject:
   m_ObjectHideFlags: 0
@@ -65927,7 +65952,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 107, y: -222.6}
+  m_AnchoredPosition: {x: 124.68002, y: -222.6}
   m_SizeDelta: {x: 110, y: 110}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2096564952

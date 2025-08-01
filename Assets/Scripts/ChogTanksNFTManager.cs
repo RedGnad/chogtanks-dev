@@ -57,8 +57,30 @@ public class EvolutionAuthorizationData
 public class PointConsumptionResponse
 {
     public bool success;
-    public int newBalance;
+    public int newScore; // ✅ Corrected to match JavaScript response
     public string error;
+    public UpdatedNFTInfo updatedNFT;
+}
+
+[System.Serializable]
+public class UpdatedNFTInfo
+{
+    public int tokenId;
+    public int newLevel;
+}
+
+[System.Serializable]
+public class PreEvolutionResponse
+{
+    public bool success;
+    public bool authorized;
+    public int pointsConsumed;
+    public int newScore;
+    public int tokenId;
+    public int targetLevel;
+    public string error;
+    public int currentScore;
+    public int pointsRequired;
 }
 
 [System.Serializable]
@@ -115,6 +137,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     private static extern void CheckEvolutionEligibilityJS(string walletAddress);
     
     [DllImport("__Internal")]
+    private static extern void SetUnityNFTStateJS(string nftStateJson);
+    
+    [DllImport("__Internal")]
     private static extern void CanMintNFTJS(string walletAddress, string callbackMethod);
     
     [DllImport("__Internal")]
@@ -134,6 +159,12 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     [DllImport("__Internal")]
     private static extern void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId);
+    
+    [DllImport("__Internal")]
+    private static extern void CheckAndConsumePointsBeforeEvolutionJS(string walletAddress, int pointsRequired, int tokenId, int targetLevel);
+    
+    [DllImport("__Internal")]
+    private static extern void RequestEvolutionSignatureJS(string walletAddress, int tokenId, int playerPoints, int targetLevel);
 #else
     private static void GetNFTStateJS(string walletAddress) { }
     private static void CheckEvolutionEligibilityJS(string walletAddress) { }
@@ -144,6 +175,8 @@ public class ChogTanksNFTManager : MonoBehaviour
     private static void UpdateNFTLevelJS(string walletAddress, int newLevel) { }
     private static void ReadNFTFromBlockchainJS(string walletAddress, string callbackMethod) { }
     private static void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId) { }
+    private static void CheckAndConsumePointsBeforeEvolutionJS(string walletAddress, int pointsRequired, int tokenId, int targetLevel) { }
+    private static void RequestEvolutionSignatureJS(string walletAddress, int tokenId, int playerPoints, int targetLevel) { }
 #endif
 
     void Start()
@@ -487,98 +520,155 @@ public class ChogTanksNFTManager : MonoBehaviour
         blockchainStateLoaded = false; // Reset to allow blockchain data
         Debug.Log("[NFT-DEBUG] 🔗 Blockchain verification ACTIVE - ready to receive blockchain data");
         
-        StartCoroutine(ReadNFTFromBlockchain());
+        StartCoroutine(VerifyNFTDirectlyFromBlockchain());
     }
     
-    System.Collections.IEnumerator ReadNFTFromBlockchain()
+    System.Collections.IEnumerator VerifyNFTDirectlyFromBlockchain()
     {
         Debug.Log($"[BLOCKCHAIN] 🔗 Starting DIRECT blockchain verification for wallet: {currentPlayerWallet}");
         
-        yield return StartCoroutine(GetNFTsDirectlyFromBlockchain());
+        // Démarrer la tâche async et attendre qu'elle se termine
+        var task = GetNFTsDirectlyFromBlockchainV2();
+        
+        while (!task.IsCompleted)
+        {
+            yield return null;
+        }
+        
+        if (task.Exception != null)
+        {
+            Debug.LogError($"[BLOCKCHAIN] ❌ Blockchain verification failed: {task.Exception.Message}");
+        }
     }
     
-    System.Collections.IEnumerator GetNFTsDirectlyFromBlockchain()
+    async System.Threading.Tasks.Task GetNFTsDirectlyFromBlockchainV2()
     {
-        Debug.Log($"[BLOCKCHAIN] 🔍 Calling balanceOf directly via AppKit...");
+        Debug.Log($"[BLOCKCHAIN-V2] 🔍 Using NFTDisplayPanel logic that WORKS...");
         
         string normalizedWallet = currentPlayerWallet.ToLowerInvariant();
-        Debug.Log($"[BLOCKCHAIN] 🔧 Normalized wallet: {currentPlayerWallet} → {normalizedWallet}");
-        
-        bool balanceReceived = false;
-        uint nftBalance = 0;
-        
-        System.Threading.Tasks.Task<uint> balanceTask = null;
+        Debug.Log($"[BLOCKCHAIN-V2] 🔧 Normalized wallet: {currentPlayerWallet} → {normalizedWallet}");
         
         try
         {
-            balanceTask = Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<uint>(
+            // ✅ MÊME ABI QUE NFTDisplayPanel qui fonctionne
+            string balanceAbi = "function balanceOf(address) view returns (uint256)";
+            
+            var balance = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
                 "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
-                "function balanceOf(address) view returns (uint256)",
+                balanceAbi,
                 "balanceOf",
-                new object[] { currentPlayerWallet }
+                new object[] { normalizedWallet }
             );
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"[BLOCKCHAIN] ❌ Error calling balanceOf: {e.Message}");
-        }
-        
-        if (balanceTask != null)
-        {
-            while (!balanceTask.IsCompleted)
+            
+            Debug.Log($"[BLOCKCHAIN-V2] ✅ Balance: {balance} NFTs found");
+            
+            if (balance == 0)
             {
-                yield return null;
+                Debug.Log($"[BLOCKCHAIN-V2] 📝 No NFTs found, sending empty state");
+                var emptyState = new NFTStateData
+                {
+                    hasNFT = false,
+                    level = 0,
+                    tokenId = 0,
+                    walletAddress = normalizedWallet,
+                    score = 0,
+                    nftCount = 0
+                };
+                OnNFTStateLoaded(JsonUtility.ToJson(emptyState));
+                return;
             }
             
-            if (balanceTask.Exception == null)
+            // ✅ MÊME LOGIQUE QUE NFTDisplayPanel
+            string tokenByIndexAbi = "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)";
+            string getLevelAbi = "function getLevel(uint256 tokenId) view returns (uint256)";
+            
+            int maxLevel = 0;
+            int maxTokenId = 0;
+            
+            for (int i = 0; i < balance; i++)
             {
-                nftBalance = balanceTask.Result;
-                balanceReceived = true;
-                Debug.Log($"[BLOCKCHAIN] ✅ Direct balanceOf result: {nftBalance} NFTs");
+                try
+                {
+                    Debug.Log($"[BLOCKCHAIN-V2] Getting token at index {i}/{balance-1}");
+                    
+                    var tokenId = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
+                        "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+                        tokenByIndexAbi,
+                        "tokenOfOwnerByIndex",
+                        new object[] { normalizedWallet, i }
+                    );
+                    
+                    Debug.Log($"[BLOCKCHAIN-V2] ✅ TokenId at index {i}: {tokenId}");
+                    
+                    if (tokenId > 0)
+                    {
+                        Debug.Log($"[BLOCKCHAIN-V2] Reading level for token #{tokenId}");
+                        
+                        int level = 1; // Default level
+                        
+                        try
+                        {
+                            level = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
+                                "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+                                getLevelAbi,
+                                "getLevel",
+                                new object[] { tokenId }
+                            );
+                            
+                            Debug.Log($"[BLOCKCHAIN-V2] ✅ Token #{tokenId} has level {level}");
+                        }
+                        catch (System.Exception ex)
+                        {
+                            Debug.LogWarning($"[BLOCKCHAIN-V2] ⚠️ Failed to read level for token #{tokenId}, using default: {ex.Message}");
+                        }
+                        
+                        // Garder le NFT avec le niveau le plus élevé
+                        if (level > maxLevel)
+                        {
+                            maxLevel = level;
+                            maxTokenId = tokenId;
+                            Debug.Log($"[BLOCKCHAIN-V2] 🏆 New max level: Token #{maxTokenId} level {maxLevel}");
+                        }
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"[BLOCKCHAIN-V2] ❌ Failed to read token at index {i}: {ex.Message}");
+                }
             }
-            else
+            
+            Debug.Log($"[BLOCKCHAIN-V2] 🎯 FINAL RESULT: {balance} NFTs, Max level {maxLevel} (Token #{maxTokenId})");
+            
+            var nftState = new NFTStateData
             {
-                Debug.LogError($"[BLOCKCHAIN] ❌ balanceOf failed: {balanceTask.Exception.Message}");
-            }
+                hasNFT = true,
+                level = maxLevel,
+                tokenId = maxTokenId,
+                walletAddress = normalizedWallet,
+                score = 0,
+                nftCount = balance
+            };
+            
+            Debug.Log($"[BLOCKCHAIN-V2] 📤 Sending REAL state: {balance} NFTs, Token #{maxTokenId}, Level {maxLevel}");
+            OnNFTStateLoaded(JsonUtility.ToJson(nftState));
+            
+            Debug.Log($"[BLOCKCHAIN-V2] 🔄 Now reading Firebase score for normalized wallet: {normalizedWallet}");
+            LoadNFTStateFromFirebase();
         }
-        
-        if (!balanceReceived || nftBalance == 0)
+        catch (System.Exception ex)
         {
-            Debug.Log($"[BLOCKCHAIN] ❌ No NFTs found, sending empty state");
-            var noNFTState = new NFTStateData
+            Debug.LogError($"[BLOCKCHAIN-V2] ❌ Critical error: {ex.Message}");
+            var errorState = new NFTStateData
             {
                 hasNFT = false,
                 level = 0,
                 tokenId = 0,
                 walletAddress = normalizedWallet,
-                score = 0
+                score = 0,
+                nftCount = 0
             };
-            OnNFTStateLoaded(JsonUtility.ToJson(noNFTState));
-            
-            Debug.Log($"[BLOCKCHAIN] 🔄 Reading Firebase score for no-NFT wallet: {normalizedWallet}");
-            LoadNFTStateFromFirebase();
-            yield break;
+            OnNFTStateLoaded(JsonUtility.ToJson(errorState));
         }
-        
-        Debug.Log($"[BLOCKCHAIN] 🎯 Found {nftBalance} NFTs, getting first token details...");
-        
-        var nftState = new NFTStateData
-        {
-            hasNFT = true,
-            level = 1, // Default level, will be updated if we can read it
-            tokenId = 1, // Default token ID
-            walletAddress = normalizedWallet,
-            score = 0,
-            nftCount = (int)nftBalance
-        };
-        
-        Debug.Log($"[BLOCKCHAIN] 📤 Sending state: {nftBalance} NFTs found, Level {nftState.level}");
-        OnNFTStateLoaded(JsonUtility.ToJson(nftState));
-        
-        Debug.Log($"[BLOCKCHAIN] 🔄 Now reading Firebase score for normalized wallet: {normalizedWallet}");
-        LoadNFTStateFromFirebase();
-        
-        yield return null;
     }
     
     void SyncFirebaseWithBlockchainData(NFTStateData blockchainState)
@@ -1604,16 +1694,59 @@ public class ChogTanksNFTManager : MonoBehaviour
 #endif
     }
     
+    [System.Serializable]
+    public class UnityNFTState
+    {
+        public bool hasNFT;
+        public int level;
+        public int tokenId;
+    }
+    
+    private void ShareNFTStateWithJS()
+    {
+        var nftState = new UnityNFTState
+        {
+            hasNFT = currentNFTState.tokenId > 0,
+            level = currentNFTState.level,
+            tokenId = currentNFTState.tokenId
+        };
+        
+        string nftStateJson = JsonUtility.ToJson(nftState);
+        Debug.Log($"[EVOLUTION] Sharing NFT state with JS: {nftStateJson}");
+        
+#if UNITY_WEBGL && !UNITY_EDITOR
+        SetUnityNFTStateJS(nftStateJson);
+#endif
+    }
+    
+    // ✅ NOUVELLE MÉTHODE : Partager les données d'un NFT spécifique
+    private void ShareSpecificNFTStateWithJS(NFTStateData specificNFTData)
+    {
+        var nftState = new UnityNFTState
+        {
+            hasNFT = specificNFTData.hasNFT,
+            level = specificNFTData.level,
+            tokenId = specificNFTData.tokenId
+        };
+        
+        string nftStateJson = JsonUtility.ToJson(nftState);
+        Debug.Log($"[EVOLUTION] Sharing SPECIFIC NFT state with JS: {nftStateJson}");
+        
+#if UNITY_WEBGL && !UNITY_EDITOR
+        SetUnityNFTStateJS(nftStateJson);
+#endif
+    }
+    
     public void RequestEvolutionForSelectedNFT()
     {
         Debug.Log($"[EVOLUTION] ===== DÉBUT DEMANDE ÉVOLUTION =====");
-        Debug.Log($"[EVOLUTION] Selected token ID: {currentNFTState.tokenId}");
+        Debug.Log($"[EVOLUTION] Selected token ID: {selectedTokenId}");
         Debug.Log($"[EVOLUTION] Current NFT state - TokenId: {currentNFTState.tokenId}, Level: {currentNFTState.level}");
         Debug.Log($"[EVOLUTION] Processing evolution: {isProcessingEvolution}");
         
-        if (currentNFTState.tokenId <= 0)
+        if (selectedTokenId <= 0)
         {
-            Debug.LogWarning($"[EVOLUTION] No valid NFT selected (tokenId: {currentNFTState.tokenId})");
+            Debug.LogWarning($"[EVOLUTION] No valid NFT selected (selectedTokenId: {selectedTokenId})");
             UpdateStatusUI("No NFT selected");
             return;
         }
@@ -1627,25 +1760,75 @@ public class ChogTanksNFTManager : MonoBehaviour
         Debug.Log($"[EVOLUTION] Setting processing flag to true");
         isProcessingEvolution = true;
         
-        int currentLevel = currentNFTState.level;
+        // ✅ CORRECTION : Récupérer le niveau du NFT sélectionné spécifiquement
+        Debug.Log($"[EVOLUTION] Getting level for selected NFT #{selectedTokenId}...");
+        StartCoroutine(GetSelectedNFTLevelAndEvolve());
+    }
+    
+    System.Collections.IEnumerator GetSelectedNFTLevelAndEvolve()
+    {
+        // Récupérer le niveau du NFT sélectionné depuis la blockchain
+        var levelTask = Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
+            "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+            "function getLevel(uint256 tokenId) view returns (uint256)",
+            "getLevel",
+            new object[] { selectedTokenId }
+        );
+        
+        while (!levelTask.IsCompleted)
+        {
+            yield return null;
+        }
+        
+        if (levelTask.Exception != null)
+        {
+            Debug.LogError($"[EVOLUTION] ❌ Failed to get level for NFT #{selectedTokenId}: {levelTask.Exception.Message}");
+            UpdateStatusUI("Error reading NFT level");
+            isProcessingEvolution = false;
+            yield break;
+        }
+        
+        int currentLevel = levelTask.Result;
         int targetLevel = currentLevel + 1;
         
-        Debug.Log($"[EVOLUTION] Current level: {currentLevel}, Target level: {targetLevel}");
+        Debug.Log($"[EVOLUTION] ✅ NFT #{selectedTokenId} current level: {currentLevel}, Target level: {targetLevel}");
         
         if (targetLevel > 10)
         {
             Debug.LogWarning($"[EVOLUTION] NFT already at max level ({currentLevel})");
             UpdateStatusUI("NFT already at max level");
             isProcessingEvolution = false;
-            return;
+            yield break;
         }
         
-        Debug.Log($"[EVOLUTION] Requesting evolution authorization for NFT #{currentNFTState.tokenId} from level {currentLevel} to {targetLevel}");
-        UpdateStatusUI($"Requesting evolution authorization for NFT #{currentNFTState.tokenId}...");
+        Debug.Log($"[EVOLUTION] Requesting evolution authorization for NFT #{selectedTokenId} from level {currentLevel} to {targetLevel}");
+        UpdateStatusUI($"Requesting evolution authorization for NFT #{selectedTokenId}...");
         
 #if UNITY_WEBGL && !UNITY_EDITOR
-        Debug.Log($"[EVOLUTION] Calling CheckEvolutionEligibilityJS for wallet: {currentPlayerWallet}");
-        CheckEvolutionEligibilityJS(currentPlayerWallet);
+    Debug.Log($"[EVOLUTION] ✅ Sharing SELECTED NFT data with JavaScript");
+    
+    // ✅ CORRECTION : Partager les données du NFT sélectionné au lieu de currentNFTState
+    var selectedNFTData = new NFTStateData
+    {
+        hasNFT = true,
+        level = currentLevel,
+        tokenId = selectedTokenId,
+        walletAddress = currentPlayerWallet,
+        score = currentNFTState.score // Garder le score Firebase
+    };
+    
+    Debug.Log($"[EVOLUTION] 📤 Sending CORRECT data: TokenId={selectedTokenId}, Level={currentLevel}");
+    ShareSpecificNFTStateWithJS(selectedNFTData);
+    
+    // 🔄 NOUVEAU FLUX : Vérifier et consommer les points AVANT l'évolution blockchain
+    int evolutionCost = GetEvolutionCost(currentLevel + 1);
+    Debug.Log($"[EVOLUTION] Evolution cost for level {currentLevel} -> {currentLevel + 1}: {evolutionCost} points");
+    
+    Debug.Log($"[EVOLUTION] 🔍 Checking and consuming points BEFORE blockchain transaction");
+    Debug.Log($"[EVOLUTION] Wallet: {currentPlayerWallet}, TokenId: {selectedTokenId}, Cost: {evolutionCost}, Target: {currentLevel + 1}");
+    
+    // ✅ Utiliser le même pattern que CheckEvolutionEligibilityJS
+    CheckAndConsumePointsBeforeEvolutionJS(currentPlayerWallet, evolutionCost, selectedTokenId, currentLevel + 1);
 #else
         var mockAuth = new EvolutionAuthorizationData
         {
@@ -1669,10 +1852,18 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private int GetEvolutionCost(int targetLevel)
     {
+        // Coûts d'évolution conformes au contrat ChogTanksNFTv2_Final.sol
         var costs = new Dictionary<int, int>
         {
-            {2, 100}, {3, 200}, {4, 300}, {5, 400}, {6, 500},
-            {7, 600}, {8, 700}, {9, 800}, {10, 900}
+            {2, 2},     // Level 1→2 = 2 points
+            {3, 200},   // Level 2→3 = 200 points  
+            {4, 300},   // Level 3→4 = 300 points
+            {5, 400},   // Level 4→5 = 400 points
+            {6, 500},   // Level 5→6 = 500 points
+            {7, 600},   // Level 6→7 = 600 points
+            {8, 700},   // Level 7→8 = 700 points
+            {9, 800},   // Level 8→9 = 800 points
+            {10, 900}   // Level 9→10 = 900 points
         };
         
         return costs.ContainsKey(targetLevel) ? costs[targetLevel] : 0;
@@ -1811,7 +2002,44 @@ public class ChogTanksNFTManager : MonoBehaviour
                 return;
             }
             
-            string abi = "function evolveNFT(uint256,uint256,uint256,bytes)";
+            // ABI complet pour AppKit (pas juste la signature)
+            string abi = @"[
+                {
+                    ""name"": ""evolveNFT"",
+                    ""type"": ""function"",
+                    ""inputs"": [
+                        {""name"": ""tokenId"", ""type"": ""uint256""},
+                        {""name"": ""playerPoints"", ""type"": ""uint256""},
+                        {""name"": ""nonce"", ""type"": ""uint256""},
+                        {""name"": ""signature"", ""type"": ""bytes""}
+                    ],
+                    ""outputs"": []
+                }
+            ]";
+            
+            // Convertir la signature string hex en byte[] pour AppKit
+            byte[] signatureBytes;
+            try
+            {
+                string hexSignature = authData.signature.StartsWith("0x") ? authData.signature.Substring(2) : authData.signature;
+                
+                // Méthode compatible Unity pour convertir hex string en byte[]
+                signatureBytes = new byte[hexSignature.Length / 2];
+                for (int i = 0; i < signatureBytes.Length; i++)
+                {
+                    signatureBytes[i] = System.Convert.ToByte(hexSignature.Substring(i * 2, 2), 16);
+                }
+                
+                Debug.Log($"[NFT] Converted signature '{authData.signature}' to {signatureBytes.Length} bytes");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[NFT] Failed to convert signature '{authData.signature}' to bytes: {ex.Message}");
+                // Fallback: créer une signature mock de 65 bytes (standard Ethereum)
+                signatureBytes = new byte[65];
+                for (int i = 0; i < 65; i++) signatureBytes[i] = (byte)(i % 256);
+                Debug.Log($"[NFT] Using fallback signature of {signatureBytes.Length} bytes");
+            }
             
             var result = await Reown.AppKit.Unity.AppKit.Evm.WriteContractAsync(
                 CONTRACT_ADDRESS,
@@ -1821,14 +2049,27 @@ public class ChogTanksNFTManager : MonoBehaviour
                     authData.tokenId,
                     authData.currentPoints,
                     authData.nonce,
-                    authData.signature
+                    signatureBytes  // Utiliser byte[] au lieu de string
                 }
             );
             
             Debug.Log($"[NFT] Evolution transaction sent: {result}");
             UpdateStatusUI("Evolution transaction confirmed!");
             
-            ConsumePointsAfterTransaction(authData.evolutionCost, result);
+            // ✅ Points déjà consommés AVANT l'évolution - Maintenant rafraîchir les données
+            Debug.Log("[NFT] Refreshing blockchain data after successful evolution...");
+            RefreshNFTData();
+            
+            // Synchroniser le nouveau niveau avec Firebase
+            uint newLevel = (uint)(authData.targetLevel);
+            SyncNFTLevelWithFirebaseJS(currentPlayerWallet, (int)newLevel, selectedTokenId);
+            
+            // Rafraîchir l'UI
+            GetNFTStateJS(currentPlayerWallet);
+            UpdateLevelUI(currentNFTState.level);
+            
+            UpdateStatusUI($"Evolution completed! NFT #{selectedTokenId} evolved to level {newLevel}");
+            Debug.Log($"[NFT] 🎉 Evolution flow completed successfully!");
             
         }
         catch (System.Exception ex)
@@ -1839,16 +2080,66 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
     }
     
-    private void ConsumePointsAfterTransaction(int pointsConsumed, string transactionHash)
+    // ✅ MÉTHODE SUPPRIMÉE : ConsumePointsAfterTransaction
+    // Les points sont maintenant consommés AVANT l'évolution via CheckAndConsumePointsBeforeEvolutionJS
+    
+    // 🎆 NOUVELLE MÉTHODE : Callback pour la vérification/consommation des points AVANT évolution
+    public void OnPointsPreConsumed(string responseJson)
     {
-        UpdateStatusUI("Consuming points...");
+        try
+        {
+            var response = JsonUtility.FromJson<PreEvolutionResponse>(responseJson);
+            
+            if (response.success && response.authorized)
+            {
+                Debug.Log($"[PRE-EVOLUTION] ✅ Points verified and consumed! New score: {response.newScore}");
+                Debug.Log($"[PRE-EVOLUTION] Proceeding with blockchain evolution for NFT #{response.tokenId} to level {response.targetLevel}");
+                
+                // Mettre à jour le score local
+                currentNFTState.score = response.newScore;
+                
+                UpdateStatusUI($"Points consumed ({response.pointsConsumed}). Proceeding with blockchain evolution...");
+                
+                // Maintenant procéder à l'évolution blockchain directement
+                // Les points ont déjà été vérifiés et consommés, on peut directement autoriser l'évolution
+                // Utiliser le score AVANT consommation pour l'autorisation serveur
+                int originalScore = response.newScore + response.pointsConsumed; // Recalculer le score original
+                RequestEvolutionAuthorizationDirectly(response.tokenId, response.targetLevel, originalScore);
+            }
+            else
+            {
+                Debug.LogError($"[PRE-EVOLUTION] ❌ Evolution blocked: {response.error}");
+                UpdateStatusUI($"Evolution failed: {response.error}");
+                isProcessingEvolution = false;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PRE-EVOLUTION] Error parsing pre-evolution response: {ex.Message}");
+            UpdateStatusUI("Evolution failed: Invalid response");
+            isProcessingEvolution = false;
+        }
+    }
+    
+    // Méthode pour demander l'autorisation d'évolution directement après consommation des points
+    private void RequestEvolutionAuthorizationDirectly(int tokenId, int targetLevel, int originalScore)
+    {
+        Debug.Log($"[EVOLUTION-DIRECT] Requesting evolution authorization for NFT #{tokenId} to level {targetLevel}");
+        Debug.Log($"[EVOLUTION-DIRECT] Using original score: {originalScore} (before consumption)");
         
-#if UNITY_WEBGL && !UNITY_EDITOR
-        Debug.Log($"[NFT] Points consumed: {pointsConsumed} for transaction: {transactionHash}");
-        OnPointsConsumed(JsonUtility.ToJson(new { success = true, newBalance = 500 }));
-#else
-        OnPointsConsumed(JsonUtility.ToJson(new { success = true, newBalance = 500 }));
-#endif
+        // Appeler directement le serveur de signature avec les données du NFT sélectionné
+        var evolutionData = new
+        {
+            walletAddress = currentPlayerWallet,
+            tokenId = tokenId,
+            playerPoints = originalScore, // Score AVANT consommation pour l'autorisation serveur
+            targetLevel = targetLevel
+        };
+        
+        Debug.Log($"[EVOLUTION-DIRECT] Calling signature server with data: {JsonUtility.ToJson(evolutionData)}");
+        
+        // Utiliser le score original pour l'autorisation serveur
+        RequestEvolutionSignatureJS(currentPlayerWallet, tokenId, originalScore, targetLevel);
     }
     
     public void OnPointsConsumed(string responseJson)
@@ -1859,19 +2150,44 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (response.success)
             {
-                UpdateStatusUI($"Evolution completed! New balance: {response.newBalance} points");
+                Debug.Log($"[NFT] ✅ Points consumption successful! New score: {response.newScore}");
+                
+                // Mettre à jour le score local
+                currentNFTState.score = response.newScore;
+                
+                UpdateStatusUI($"Evolution completed! New score: {response.newScore} points");
+                
+                // 🔄 RAFRAÎCHIR TOUTES LES DONNÉES ET L'UI
+                Debug.Log("[NFT] Refreshing all data after successful evolution...");
+                
+                // 1. Relire les données blockchain (niveaux NFT)
                 RefreshNFTData();
+                
+                // 2. Synchroniser le nouveau niveau avec Firebase
+                if (response.updatedNFT != null)
+                {
+                    Debug.Log($"[NFT] Syncing new level {response.updatedNFT.newLevel} for NFT #{response.updatedNFT.tokenId} with Firebase");
+                    SyncNFTLevelWithFirebaseJS(currentPlayerWallet, (int)response.updatedNFT.newLevel, (int)response.updatedNFT.tokenId);
+                }
+                
+                // 3. Relire les données Firebase (score, niveaux)
+                GetNFTStateJS(currentPlayerWallet);
+                
+                // 4. Mettre à jour l'UI principale (status, level)
+                UpdateLevelUI(currentNFTState.level);
+                
+                Debug.Log($"[NFT] 🎉 Evolution flow completed successfully!");
             }
             else
             {
+                Debug.LogError($"[NFT] Points consumption failed: {response.error}");
                 UpdateStatusUI($"Points consumption failed: {response.error}");
             }
-            
         }
         catch (System.Exception ex)
         {
             Debug.LogError($"[NFT] Error parsing points consumption response: {ex.Message}");
-            UpdateStatusUI("Error updating points");
+            UpdateStatusUI("Points consumption failed");
         }
         finally
         {

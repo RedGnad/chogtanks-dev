@@ -61,7 +61,9 @@ app.post('/api/evolve-authorization', async (req, res) => {
         }
 
         const evolutionCosts = {
-            2: 100, 3: 200, 4: 300, 5: 400, 6: 500,
+            2: 2,   // ✅ Niveau 1→2 coûte 2 points (comme dans le contrat)
+            3: 200, // Niveau 2→3 coûte 200 points
+            4: 300, 5: 400, 6: 500,
             7: 600, 8: 700, 9: 800, 10: 900
         };
         
@@ -97,19 +99,7 @@ app.post('/api/evolve-authorization', async (req, res) => {
     }
 });
 
-app.post('/api/consume-points', async (req, res) => {
-    try {
-        const { walletAddress, pointsToConsume, transactionHash } = req.body;
-        
-        console.log(`Consuming ${pointsToConsume} points for wallet ${walletAddress} after tx ${transactionHash}`);
-        
-        res.json({ success: true });
-        
-    } catch (error) {
-        console.error('Points consumption error:', error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
+// Endpoint /api/consume-points supprimé - consommation directe Firebase côté Unity
 
 app.listen(port, () => {
     console.log(`Signature server running on port ${port}`);

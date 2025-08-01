@@ -5,6 +5,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Runtime.InteropServices;
 
+
+
 [System.Serializable]
 public class PlayerNFTData
 {
@@ -33,6 +35,14 @@ public class AutoMintCheckResponse
 
 public class NFTDisplayPanel : MonoBehaviour
 {
+    // External JavaScript functions
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void DirectMintNFTJS(string walletAddress);
+#else
+    private static void DirectMintNFTJS(string walletAddress) { }
+#endif
+
     [Header("UI References")]
     public Transform nftContainer;
     public TextMeshProUGUI statusText;
@@ -62,6 +72,17 @@ public class NFTDisplayPanel : MonoBehaviour
     private void Start()
     {
         Debug.Log("[NFT-PANEL] NFTDisplayPanel Start() called");
+        
+        // Connecter au NFTManager existant dans la scène
+        nftManager = FindObjectOfType<ChogTanksNFTManager>();
+        if (nftManager != null)
+        {
+            Debug.Log("[NFT-PANEL] ✅ NFTManager trouvé et connecté");
+        }
+        else
+        {
+            Debug.LogWarning("[NFT-PANEL] ⚠️ NFTManager non trouvé dans la scène");
+        }
         
         // NETTOYER LES BOUTONS NFT EXISTANTS AU DÉMARRAGE
         CleanupAllSimpleNFTButtons();
@@ -441,10 +462,18 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private uint GetEvolutionCost(uint currentLevel)
     {
+        // ✅ CORRECTION : Coûts alignés sur le contrat ChogTanksNFTv2
         var costs = new Dictionary<uint, uint>
         {
-            {1, 100}, {2, 200}, {3, 300}, {4, 400}, {5, 500},
-            {6, 600}, {7, 700}, {8, 800}, {9, 900}
+            {1, 2},   // Level 1→2 = 2 points
+            {2, 100}, // Level 2→3 = 100 points
+            {3, 200}, // Level 3→4 = 200 points
+            {4, 300}, // Level 4→5 = 300 points
+            {5, 400}, // Level 5→6 = 400 points
+            {6, 500}, // Level 6→7 = 500 points
+            {7, 600}, // Level 7→8 = 600 points
+            {8, 700}, // Level 8→9 = 700 points
+            {9, 800}  // Level 9→10 = 800 points
         };
         
         return costs.ContainsKey(currentLevel) ? costs[currentLevel] : 0;
@@ -717,30 +746,35 @@ public class NFTDisplayPanel : MonoBehaviour
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"[AUTO-MINT] ❌ Error parsing Firebase response: {ex.Message}");
+            Debug.LogError($"[AUTO-MINT] Error parsing Firebase response: {ex.Message}");
         }
     }
     
     /// <summary>
-    /// Déclenche le mint automatique via ChogTanksNFTManager
+    /// Déclenche le mint automatique via appel direct
     /// </summary>
     private void TriggerAutoMint()
     {
-        if (nftManager == null)
+        string walletAddress = PlayerPrefs.GetString("walletAddress", "");
+        if (string.IsNullOrEmpty(walletAddress))
         {
-            Debug.LogError("[AUTO-MINT] ❌ NFTManager not found, cannot trigger auto-mint");
-            UpdateStatus("Error: NFT Manager not available");
+            Debug.LogError("[AUTO-MINT] No wallet address found");
+            UpdateStatus("Error: No wallet connected");
             return;
         }
         
-        Debug.Log($"[AUTO-MINT] 🚀 Triggering automatic mint via NFTManager.RequestMintNFT()");
+        Debug.Log($"[AUTO-MINT] Triggering automatic mint for wallet: {walletAddress}");
         
-        // 📝 NOTE: Le champ hasMintedNFT sera automatiquement mis à true dans Firebase
-        // par MarkMintSuccessJS() quand le mint réussira (dans OnMintTransactionSuccess)
-        Debug.Log($"[AUTO-MINT] 📝 hasMintedNFT will be set to true in Firebase upon successful mint");
+        // NOTE: Le champ hasMintedNFT sera automatiquement mis à true dans Firebase
+        // par MarkMintSuccessJS() quand le mint réussira
+        Debug.Log($"[AUTO-MINT] hasMintedNFT will be set to true in Firebase upon successful mint");
         
-        // Utiliser la fonction existante et fonctionnelle
-        nftManager.RequestMintNFT();
+        // Appel direct sans dépendance au NFTManager
+#if UNITY_WEBGL && !UNITY_EDITOR
+        DirectMintNFTJS(walletAddress);
+#else
+        Debug.Log("[AUTO-MINT] Direct mint call (Editor mode)");
+#endif
     }
     
     /// <summary>
@@ -973,12 +1007,26 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private void CustomizeSimpleButtonText(GameObject buttonObj, int nftIndex)
     {
+        // Récupérer le vrai tokenId du NFT au lieu d'utiliser l'index séquentiel
+        if (nftIndex <= 0 || nftIndex > playerNFTs.Count)
+        {
+            Debug.LogError($"[NFT-PANEL] ❌ Invalid nftIndex {nftIndex} for {playerNFTs.Count} NFTs");
+            return;
+        }
+        
+        var nft = playerNFTs[nftIndex - 1]; // Convertir index 1-based vers 0-based
+        uint realTokenId = nft.tokenId;
+        int nftLevel = (int)nft.level; // Cast explicite uint → int
+        
+        // Texte avec tokenId ET niveau pour faciliter le debug
+        string buttonText = $"NFT #{realTokenId}\nLvl {nftLevel}";
+        
         // Chercher TextMeshProUGUI dans le bouton
         var textComponents = buttonObj.GetComponentsInChildren<TextMeshProUGUI>();
         if (textComponents.Length > 0)
         {
-            textComponents[0].text = $"NFT #{nftIndex}";
-            Debug.Log($"[NFT-PANEL] 📝 Updated simple button text to 'NFT #{nftIndex}'");
+            textComponents[0].text = buttonText;
+            Debug.Log($"[NFT-PANEL] 📝 Updated simple button text to '{buttonText}' (tokenId + level)");
         }
         else
         {
@@ -986,8 +1034,8 @@ public class NFTDisplayPanel : MonoBehaviour
             var legacyText = buttonObj.GetComponentsInChildren<UnityEngine.UI.Text>();
             if (legacyText.Length > 0)
             {
-                legacyText[0].text = $"NFT #{nftIndex}";
-                Debug.Log($"[NFT-PANEL] 📝 Updated simple button legacy text to 'NFT #{nftIndex}'");
+                legacyText[0].text = buttonText;
+                Debug.Log($"[NFT-PANEL] 📝 Updated simple button legacy text to '{buttonText}' (tokenId + level)");
             }
         }
     }
@@ -1022,18 +1070,24 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private void OnSimpleNFTButtonClickedInPanel(int nftIndex)
     {
-        Debug.Log($"[NFT-PANEL] 🖱️ Simple NFT #{nftIndex} button clicked in panel");
+        // Récupérer le vrai tokenId du NFT cliqué
+        if (nftIndex <= 0 || nftIndex > playerNFTs.Count)
+        {
+            Debug.LogError($"[NFT-PANEL] ❌ Invalid nftIndex {nftIndex} for {playerNFTs.Count} NFTs");
+            return;
+        }
+        
+        var selectedNFT = playerNFTs[nftIndex - 1]; // Convertir index 1-based vers 0-based
+        uint realTokenId = selectedNFT.tokenId;
+        
+        Debug.Log($"[NFT-PANEL] 🖱️ Simple NFT #{realTokenId} button clicked in panel (tokenId={realTokenId}, level={selectedNFT.level})");
         
         // Action : sélectionner le NFT et mettre à jour le statut
-        UpdateStatus($"Selected NFT #{nftIndex} for evolution");
+        UpdateStatus($"Selected NFT #{realTokenId} (Level {selectedNFT.level}) for evolution");
         
-        // Optionnel : déclencher l'évolution directement
-        if (playerNFTs.Count >= nftIndex)
-        {
-            var selectedNFT = playerNFTs[nftIndex - 1];
-            Debug.Log($"[NFT-PANEL] 🎯 Triggering evolution for NFT #{selectedNFT.tokenId}");
-            EvolveNFT(selectedNFT.tokenId, selectedNFT.level + 1);
-        }
+        // Déclencher l'évolution directement pour CE tokenId spécifique
+        Debug.Log($"[NFT-PANEL] 🎯 Triggering evolution for NFT #{realTokenId} (Level {selectedNFT.level} → {selectedNFT.level + 1})");
+        EvolveNFT(realTokenId, selectedNFT.level + 1);
     }
     
     // ========== NETTOYAGE GLOBAL DES BOUTONS NFT ==========
