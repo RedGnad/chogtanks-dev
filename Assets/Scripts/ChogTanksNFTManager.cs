@@ -406,6 +406,17 @@ public class ChogTanksNFTManager : MonoBehaviour
     // REMOVED: DelayedFirebaseConfirmation() - was causing double counting
     // Now using only DelayedFirebaseRefresh() as single source of truth
     
+    System.Collections.IEnumerator DelayedBlockchainRefresh()
+    {
+        Debug.Log("[NFT] Waiting 3 seconds for evolution transaction confirmation...");
+        yield return new WaitForSeconds(3f);
+        
+        Debug.Log("[NFT] Refreshing complete blockchain state after evolution");
+        LoadNFTStateFromBlockchain(); // Refresh complet comme page reload
+        
+        isProcessingEvolution = false; // Reset evolution flag
+    }
+    
 
 
     public void RefreshWalletAddress()
@@ -2058,18 +2069,15 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             // ✅ Points déjà consommés AVANT l'évolution - Maintenant rafraîchir les données
             Debug.Log("[NFT] Refreshing blockchain data after successful evolution...");
-            RefreshNFTData();
             
-            // Synchroniser le nouveau niveau avec Firebase
+            // ✅ SOLUTION SIMPLE: Refresh complet blockchain (comme page reload)
             uint newLevel = (uint)(authData.targetLevel);
-            SyncNFTLevelWithFirebaseJS(currentPlayerWallet, (int)newLevel, selectedTokenId);
+            UpdateStatusUI($"Evolution completed! Refreshing NFT state...");
             
-            // Rafraîchir l'UI
-            GetNFTStateJS(currentPlayerWallet);
-            UpdateLevelUI(currentNFTState.level);
+            // Attendre un peu que la transaction soit confirmée
+            StartCoroutine(DelayedBlockchainRefresh());
             
-            UpdateStatusUI($"Evolution completed! NFT #{selectedTokenId} evolved to level {newLevel}");
-            Debug.Log($"[NFT] 🎉 Evolution flow completed successfully!");
+            Debug.Log($"[NFT] 🎉 Evolution flow completed - blockchain refresh initiated!");
             
         }
         catch (System.Exception ex)
