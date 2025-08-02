@@ -65075,6 +65075,8 @@ MonoBehaviour:
   statusText: {fileID: 1627379749}
   levelText: {fileID: 1641541546}
   scoreProgressText: {fileID: 114408522}
+  warmUpTriggerButton: {fileID: 422820924}
+  warmUpTargetButton: {fileID: 9346775}
   nftButtonContainer: {fileID: 2075605162}
   nftButtonPrefab: {fileID: 3406183576496804974, guid: 1cab58aaa41bf4272b57db85a6c5d106, type: 3}
   currentNFTState:
@@ -65764,7 +65766,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -21.423494, y: -163.50049}
+  m_AnchoredPosition: {x: -353, y: 110}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2075605163
@@ -66919,6 +66921,14 @@ PrefabInstance:
       propertyPath: simpleButtonContainer
       value: 
       objectReference: {fileID: 2075605162}
+    - target: {fileID: 787444145963948945, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 937371147347158894, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1625684812233631873, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -66999,6 +67009,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1897235104095151418, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3186848500368731905, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -67041,7 +67055,15 @@ PrefabInstance:
       objectReference: {fileID: 9346775}
     - target: {fileID: 4385759383935648636, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_Color.a
-      value: 0.33333334
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4835813324465897931, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -398
+      objectReference: {fileID: 0}
+    - target: {fileID: 4835813324465897931, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -297
       objectReference: {fileID: 0}
     - target: {fileID: 6303611370541638126, guid: 86bbe0312e43b41469093b90134e679f, type: 3}
       propertyPath: m_Name

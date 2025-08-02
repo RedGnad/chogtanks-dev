@@ -344,13 +344,20 @@ mergeInto(LibraryManager.library, {
             .set(
               {
                 nftLevel: nftLevelNumber,
+                level: nftLevelNumber, // 🎯 SYNCHRONISER level avec nftLevel
                 walletAddress: normalizedAddress,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                syncSource: "evolution_sync", // 🔍 Marquer comme synchronisation d'évolution
               },
               { merge: true }
             )
             .then(() => {
-              console.log(`[NFT] Niveau NFT mis à jour: ${nftLevelNumber}`);
+              console.log(
+                `[NFT] Niveau NFT ET level synchronisés: ${nftLevelNumber}`
+              );
+              console.log(
+                `[NFT] 🎯 SYNC: level=${nftLevelNumber}, nftLevel=${nftLevelNumber}`
+              );
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
                   "ChogTanksNFTManager",
@@ -486,14 +493,17 @@ mergeInto(LibraryManager.library, {
     try {
       const nftStateStr = UTF8ToString(nftStateJson);
       const nftState = JSON.parse(nftStateStr);
-      
+
       // Stocker l'état NFT Unity dans window pour que CheckEvolutionEligibilityJS puisse l'utiliser
       window.unityNFTState = nftState;
       console.log(`[NFT-STATE] Unity NFT state reçu:`, nftState);
-      
+
       return true;
     } catch (error) {
-      console.error("[NFT-STATE] Erreur lors du stockage de l'état NFT Unity:", error);
+      console.error(
+        "[NFT-STATE] Erreur lors du stockage de l'état NFT Unity:",
+        error
+      );
       return false;
     }
   },
@@ -508,23 +518,27 @@ mergeInto(LibraryManager.library, {
 
       const checkOnChainFirst = async () => {
         try {
-          console.log(`[EVOL] Utilisation des données Unity vérifiées au lieu de window.ethereum`);
-          
+          console.log(
+            `[EVOL] Utilisation des données Unity vérifiées au lieu de window.ethereum`
+          );
+
           // Récupérer les données NFT depuis Unity qui a déjà vérifié la blockchain avec AppKit
           const unityNFTState = window.unityNFTState || {
             hasNFT: false,
             level: 0,
-            tokenId: 0
+            tokenId: 0,
           };
-          
+
           let onChainLevel = 0;
           let foundTokenId = null;
           let foundContract = "0x68c582651d709f6e2b6113c01d69443f8d27e30d";
-          
+
           if (unityNFTState.hasNFT && unityNFTState.level > 0) {
             onChainLevel = unityNFTState.level;
             foundTokenId = unityNFTState.tokenId;
-            console.log(`[EVOL] Données Unity: Level=${onChainLevel}, TokenId=${foundTokenId}`);
+            console.log(
+              `[EVOL] Données Unity: Level=${onChainLevel}, TokenId=${foundTokenId}`
+            );
           } else {
             console.log(`[EVOL] Aucun NFT détecté par Unity`);
           }
@@ -592,8 +606,10 @@ mergeInto(LibraryManager.library, {
                 if (typeof unityInstance !== "undefined") {
                   if (isEligible) {
                     // Appeler le serveur de signature réel comme pour le mint
-                    console.log(`[EVOL] Calling signature server for evolution authorization...`);
-                    
+                    console.log(
+                      `[EVOL] Calling signature server for evolution authorization...`
+                    );
+
                     fetch("http://localhost:3001/api/evolve-authorization", {
                       method: "POST",
                       headers: {
@@ -603,59 +619,85 @@ mergeInto(LibraryManager.library, {
                         walletAddress: normalizedAddress,
                         tokenId: foundTokenId,
                         playerPoints: Number(currentScore),
-                        targetLevel: onChainLevel + 1
+                        targetLevel: onChainLevel + 1,
                       }),
                     })
-                    .then((response) => response.json())
-                    .then((data) => {
-                      console.log(`[EVOL] Server response:`, data);
-                      
-                      if (data.authorized) {
-                        const authData = {
+                      .then((response) => response.json())
+                      .then((data) => {
+                        console.log(`[EVOL] Server response:`, data);
+
+                        if (data.authorized) {
+                          const authData = {
+                            authorized: true,
+                            walletAddress: normalizedAddress,
+                            tokenId: foundTokenId || 0,
+                            currentPoints: Number(currentScore) || 0,
+                            evolutionCost: Number(requiredScore) || 0,
+                            targetLevel: onChainLevel + 1,
+                            nonce: data.nonce, // ✅ Vrai nonce du serveur
+                            signature: data.signature, // ✅ VRAIE signature du serveur
+                          };
+
+                          console.log(
+                            `[EVOL] Calling OnEvolutionAuthorized with real signature:`,
+                            authData
+                          );
+                          unityInstance.SendMessage(
+                            "ChogTanksNFTManager",
+                            "OnEvolutionAuthorized",
+                            JSON.stringify(authData)
+                          );
+                        } else {
+                          console.error(
+                            `[EVOL] Server denied authorization:`,
+                            data.error
+                          );
+                          unityInstance.SendMessage(
+                            "ChogTanksNFTManager",
+                            "OnEvolutionAuthorized",
+                            JSON.stringify({
+                              authorized: false,
+                              error:
+                                data.error ||
+                                "Server denied evolution authorization",
+                            })
+                          );
+                        }
+                      })
+                      .catch((error) => {
+                        console.error(`[EVOL] Server error:`, error);
+
+                        // Fallback to mock for development if server is down
+                        console.log(
+                          `[EVOL] Falling back to mock signature for development`
+                        );
+                        const mockAuth = {
                           authorized: true,
                           walletAddress: normalizedAddress,
                           tokenId: foundTokenId || 0,
                           currentPoints: Number(currentScore) || 0,
                           evolutionCost: Number(requiredScore) || 0,
                           targetLevel: onChainLevel + 1,
-                          nonce: data.nonce,        // ✅ Vrai nonce du serveur
-                          signature: data.signature // ✅ VRAIE signature du serveur
+                          nonce: Date.now(),
+                          signature: "0x1234567890abcdef", // Mock signature
                         };
-                        
-                        console.log(`[EVOL] Calling OnEvolutionAuthorized with real signature:`, authData);
-                        unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify(authData));
-                      } else {
-                        console.error(`[EVOL] Server denied authorization:`, data.error);
-                        unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify({
-                          authorized: false,
-                          error: data.error || "Server denied evolution authorization"
-                        }));
-                      }
-                    })
-                    .catch((error) => {
-                      console.error(`[EVOL] Server error:`, error);
-                      
-                      // Fallback to mock for development if server is down
-                      console.log(`[EVOL] Falling back to mock signature for development`);
-                      const mockAuth = {
-                        authorized: true,
-                        walletAddress: normalizedAddress,
-                        tokenId: foundTokenId || 0,
-                        currentPoints: Number(currentScore) || 0,
-                        evolutionCost: Number(requiredScore) || 0,
-                        targetLevel: onChainLevel + 1,
-                        nonce: Date.now(),
-                        signature: "0x1234567890abcdef" // Mock signature
-                      };
-                      
-                      unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify(mockAuth));
-                    });
+
+                        unityInstance.SendMessage(
+                          "ChogTanksNFTManager",
+                          "OnEvolutionAuthorized",
+                          JSON.stringify(mockAuth)
+                        );
+                      });
                   } else {
                     // Pas éligible
-                    unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify({
-                      authorized: false,
-                      error: `Insufficient points: ${currentScore}/${requiredScore}`
-                    }));
+                    unityInstance.SendMessage(
+                      "ChogTanksNFTManager",
+                      "OnEvolutionAuthorized",
+                      JSON.stringify({
+                        authorized: false,
+                        error: `Insufficient points: ${currentScore}/${requiredScore}`,
+                      })
+                    );
                   }
                 }
               } catch (firebaseError) {
@@ -1585,16 +1627,21 @@ mergeInto(LibraryManager.library, {
   // Remplacée par CheckAndConsumePointsBeforeEvolutionJS pour un flux optimisé
 
   // Méthode pour demander directement la signature d'évolution après consommation des points
-  RequestEvolutionSignatureJS: function (walletAddressPtr, tokenId, playerPoints, targetLevel) {
+  RequestEvolutionSignatureJS: function (
+    walletAddressPtr,
+    tokenId,
+    playerPoints,
+    targetLevel
+  ) {
     const walletAddress = UTF8ToString(walletAddressPtr);
     const normalizedAddress = walletAddress.toLowerCase().trim();
-    
+
     console.log(`[EVOL-DIRECT] Requesting signature for evolution:`);
     console.log(`[EVOL-DIRECT] Wallet: ${normalizedAddress}`);
     console.log(`[EVOL-DIRECT] TokenId: ${tokenId}`);
     console.log(`[EVOL-DIRECT] Player points: ${playerPoints}`);
     console.log(`[EVOL-DIRECT] Target level: ${targetLevel}`);
-    
+
     // Appeler directement le serveur de signature
     fetch("http://localhost:3001/api/evolve-authorization", {
       method: "POST",
@@ -1605,116 +1652,477 @@ mergeInto(LibraryManager.library, {
         walletAddress: normalizedAddress,
         tokenId: tokenId,
         playerPoints: Number(playerPoints),
-        targetLevel: targetLevel
+        targetLevel: targetLevel,
       }),
     })
-    .then((response) => response.json())
-    .then((data) => {
-      console.log(`[EVOL-DIRECT] Server response:`, data);
-      
-      if (data.authorized) {
-        const authData = {
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(`[EVOL-DIRECT] Server response:`, data);
+
+        if (data.authorized) {
+          const authData = {
+            authorized: true,
+            walletAddress: normalizedAddress,
+            tokenId: tokenId,
+            currentPoints: Number(playerPoints),
+            evolutionCost: data.evolutionCost || 0,
+            targetLevel: targetLevel,
+            nonce: data.nonce,
+            signature: data.signature,
+          };
+
+          console.log(
+            `[EVOL-DIRECT] ✅ Evolution authorized, sending to Unity:`,
+            authData
+          );
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnEvolutionAuthorized",
+            JSON.stringify(authData)
+          );
+        } else {
+          console.error(
+            `[EVOL-DIRECT] ❌ Server denied authorization:`,
+            data.error
+          );
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnEvolutionAuthorized",
+            JSON.stringify({
+              authorized: false,
+              error: data.error || "Server denied evolution authorization",
+            })
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(`[EVOL-DIRECT] ❌ Server error:`, error);
+
+        // Fallback to mock for development if server is down
+        console.log(
+          `[EVOL-DIRECT] Falling back to mock signature for development`
+        );
+        const mockAuth = {
           authorized: true,
           walletAddress: normalizedAddress,
           tokenId: tokenId,
           currentPoints: Number(playerPoints),
-          evolutionCost: data.evolutionCost || 0,
+          evolutionCost: 200, // Coût pour niveau 2→3
           targetLevel: targetLevel,
-          nonce: data.nonce,
-          signature: data.signature
+          nonce: Date.now(),
+          signature: "0x1234567890abcdef", // Mock signature
         };
-        
-        console.log(`[EVOL-DIRECT] ✅ Evolution authorized, sending to Unity:`, authData);
-        unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify(authData));
-      } else {
-        console.error(`[EVOL-DIRECT] ❌ Server denied authorization:`, data.error);
-        unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify({
-          authorized: false,
-          error: data.error || "Server denied evolution authorization"
-        }));
-      }
-    })
-    .catch((error) => {
-      console.error(`[EVOL-DIRECT] ❌ Server error:`, error);
-      
-      // Fallback to mock for development if server is down
-      console.log(`[EVOL-DIRECT] Falling back to mock signature for development`);
-      const mockAuth = {
-        authorized: true,
-        walletAddress: normalizedAddress,
-        tokenId: tokenId,
-        currentPoints: Number(playerPoints),
-        evolutionCost: 200, // Coût pour niveau 2→3
-        targetLevel: targetLevel,
-        nonce: Date.now(),
-        signature: "0x1234567890abcdef" // Mock signature
-      };
-      
-      console.log(`[EVOL-DIRECT] 🔧 Using mock authorization:`, mockAuth);
-      unityInstance.SendMessage("ChogTanksNFTManager", "OnEvolutionAuthorized", JSON.stringify(mockAuth));
-    });
+
+        console.log(`[EVOL-DIRECT] 🔧 Using mock authorization:`, mockAuth);
+        unityInstance.SendMessage(
+          "ChogTanksNFTManager",
+          "OnEvolutionAuthorized",
+          JSON.stringify(mockAuth)
+        );
+      });
   },
 
-  // 🔄 NOUVELLE MÉTHODE : Vérifier et consommer les points AVANT l'évolution blockchain
-  CheckAndConsumePointsBeforeEvolutionJS: function (walletAddressPtr, pointsRequired, tokenId, targetLevel) {
+  // � NOUVELLE FONCTION : Vérifier éligibilité SEULEMENT (sans consommation)
+  CheckEvolutionEligibilityOnlyJS: function (
+    walletAddressPtr,
+    pointsRequired,
+    tokenId,
+    targetLevel
+  ) {
     try {
       const walletAddress = UTF8ToString(walletAddressPtr);
       const normalizedAddress = walletAddress.toLowerCase().trim();
-      
+
+      console.log(`[EVOLUTION-CHECK] 🔍 Checking evolution eligibility ONLY:`);
+      console.log(`[EVOLUTION-CHECK] Wallet: ${normalizedAddress}`);
+      console.log(`[EVOLUTION-CHECK] Points required: ${pointsRequired}`);
+      console.log(`[EVOLUTION-CHECK] Token ID: ${tokenId}`);
+      console.log(`[EVOLUTION-CHECK] Target level: ${targetLevel}`);
+
+      if (typeof firebase === "undefined" || !firebase.apps.length) {
+        console.error("[EVOLUTION-CHECK] ❌ Firebase not initialized");
+        return false;
+      }
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const db = firebase.firestore();
+          const userDocRef = db
+            .collection("WalletScores")
+            .doc(normalizedAddress);
+
+          userDocRef
+            .get()
+            .then((docSnap) => {
+              if (docSnap.exists) {
+                const data = docSnap.data();
+                const currentScore = Number(data.score || 0);
+
+                console.log(
+                  `[EVOLUTION-CHECK] Current score: ${currentScore}, Required: ${pointsRequired}`
+                );
+
+                if (currentScore >= pointsRequired) {
+                  console.log(
+                    `[EVOLUTION-CHECK] ✅ Eligibility confirmed - proceeding to evolution`
+                  );
+
+                  // Call signature server for evolution authorization
+                  fetch("http://localhost:3001/api/evolve-authorization", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      walletAddress: normalizedAddress,
+                      tokenId: tokenId,
+                      playerPoints: currentScore,
+                      targetLevel: targetLevel,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((authData) => {
+                      console.log(
+                        `[EVOLUTION-CHECK] Server response:`,
+                        authData
+                      );
+
+                      if (authData.authorized) {
+                        const evolutionData = {
+                          authorized: true,
+                          walletAddress: normalizedAddress,
+                          score: currentScore,
+                          currentLevel: authData.currentLevel || 1,
+                          requiredScore: pointsRequired,
+                          evolutionCost:
+                            authData.evolutionCost || pointsRequired,
+                          targetLevel: targetLevel,
+                          nonce: authData.nonce,
+                          signature: authData.signature,
+                        };
+
+                        console.log(
+                          `[EVOLUTION-CHECK] ✅ Sending authorized evolution data to Unity`
+                        );
+                        unityInstance.SendMessage(
+                          "ChogTanksNFTManager",
+                          "OnEvolutionCheckComplete",
+                          JSON.stringify(evolutionData)
+                        );
+                      } else {
+                        console.error(
+                          `[EVOLUTION-CHECK] ❌ Server denied authorization:`,
+                          authData.error
+                        );
+                        unityInstance.SendMessage(
+                          "ChogTanksNFTManager",
+                          "OnEvolutionCheckComplete",
+                          JSON.stringify({
+                            authorized: false,
+                            error:
+                              authData.error ||
+                              "Server denied evolution authorization",
+                          })
+                        );
+                      }
+                    })
+                    .catch((error) => {
+                      console.error(
+                        `[EVOLUTION-CHECK] ❌ Server error:`,
+                        error
+                      );
+
+                      // Fallback to mock for development - use Unity NFT state
+                      const unityNFTState = window.unityNFTState || {
+                        level: 1,
+                        tokenId: tokenId,
+                      };
+                      const currentLevelFromUnity = unityNFTState.level || 1;
+
+                      const mockAuth = {
+                        authorized: true,
+                        walletAddress: normalizedAddress,
+                        score: currentScore,
+                        currentLevel: currentLevelFromUnity, // Use Unity level instead of hardcoded 1
+                        requiredScore: pointsRequired,
+                        evolutionCost: pointsRequired,
+                        targetLevel: targetLevel,
+                        nonce: Date.now(),
+                        signature: "0x1234567890abcdef",
+                      };
+
+                      console.log(
+                        `[EVOLUTION-CHECK] 🔧 Using mock authorization with Unity level ${currentLevelFromUnity} for development`
+                      );
+                      unityInstance.SendMessage(
+                        "ChogTanksNFTManager",
+                        "OnEvolutionCheckComplete",
+                        JSON.stringify(mockAuth)
+                      );
+                    });
+                } else {
+                  console.log(
+                    `[EVOLUTION-CHECK] ❌ Insufficient points: ${currentScore} < ${pointsRequired}`
+                  );
+                  unityInstance.SendMessage(
+                    "ChogTanksNFTManager",
+                    "OnEvolutionCheckComplete",
+                    JSON.stringify({
+                      authorized: false,
+                      walletAddress: normalizedAddress,
+                      score: currentScore,
+                      error: `Insufficient points. You have ${currentScore}, need ${pointsRequired}`,
+                    })
+                  );
+                }
+              } else {
+                console.error("[EVOLUTION-CHECK] ❌ No data found for wallet");
+                unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnEvolutionCheckComplete",
+                  JSON.stringify({
+                    authorized: false,
+                    error: "No player data found",
+                  })
+                );
+              }
+            })
+            .catch((error) => {
+              console.error("[EVOLUTION-CHECK] ❌ Database error:", error);
+              unityInstance.SendMessage(
+                "ChogTanksNFTManager",
+                "OnEvolutionCheckComplete",
+                JSON.stringify({
+                  authorized: false,
+                  error: "Database error",
+                })
+              );
+            });
+        } else {
+          console.error("[EVOLUTION-CHECK] User not authenticated");
+          unityInstance.SendMessage(
+            "ChogTanksNFTManager",
+            "OnEvolutionCheckComplete",
+            JSON.stringify({
+              authorized: false,
+              error: "User not authenticated",
+            })
+          );
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[EVOLUTION-CHECK] Error:", error);
+      return false;
+    }
+  },
+
+  // 💰 NOUVELLE FONCTION : Consommer les points APRÈS succès blockchain
+  ConsumePointsAfterSuccessJS: function (
+    walletAddressPtr,
+    pointsToConsume,
+    tokenId,
+    newLevel
+  ) {
+    try {
+      const walletAddress = UTF8ToString(walletAddressPtr);
+      const normalizedAddress = walletAddress.toLowerCase().trim();
+
+      console.log(
+        `[POINTS-CONSUME] 💰 Consuming points after blockchain success:`
+      );
+      console.log(`[POINTS-CONSUME] Wallet: ${normalizedAddress}`);
+      console.log(`[POINTS-CONSUME] Points to consume: ${pointsToConsume}`);
+      console.log(`[POINTS-CONSUME] Token ID: ${tokenId}`);
+      console.log(`[POINTS-CONSUME] New level: ${newLevel}`);
+
+      if (typeof firebase === "undefined" || !firebase.apps.length) {
+        console.error("[POINTS-CONSUME] ❌ Firebase not initialized");
+        return false;
+      }
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const db = firebase.firestore();
+          const userDocRef = db
+            .collection("WalletScores")
+            .doc(normalizedAddress);
+
+          db.runTransaction((transaction) => {
+            return transaction.get(userDocRef).then((docSnap) => {
+              if (docSnap.exists) {
+                const data = docSnap.data();
+                const currentScore = Number(data.score || 0);
+                const newScore = Math.max(0, currentScore - pointsToConsume);
+
+                console.log(
+                  `[POINTS-CONSUME] Score update: ${currentScore} - ${pointsToConsume} = ${newScore}`
+                );
+
+                // Update score and level atomically
+                transaction.update(userDocRef, {
+                  score: newScore,
+                  nftLevel: newLevel,
+                  tokenId: tokenId,
+                  lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                  lastEvolutionTimestamp:
+                    firebase.firestore.FieldValue.serverTimestamp(),
+                });
+
+                return { newScore, consumedPoints: pointsToConsume };
+              } else {
+                throw new Error("Player data not found");
+              }
+            });
+          })
+            .then((result) => {
+              console.log(
+                `[POINTS-CONSUME] ✅ Points consumed successfully: ${result.consumedPoints}`
+              );
+              console.log(`[POINTS-CONSUME] ✅ New score: ${result.newScore}`);
+
+              // Notify Unity of successful consumption
+              if (typeof unityInstance !== "undefined") {
+                unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnPointsConsumedAfterSuccess",
+                  JSON.stringify({
+                    success: true,
+                    consumedPoints: result.consumedPoints,
+                    newScore: result.newScore,
+                    walletAddress: normalizedAddress,
+                  })
+                );
+              }
+            })
+            .catch((error) => {
+              console.error("[POINTS-CONSUME] ❌ Transaction failed:", error);
+
+              // Notify Unity of consumption failure
+              if (typeof unityInstance !== "undefined") {
+                unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnPointsConsumedAfterSuccess",
+                  JSON.stringify({
+                    success: false,
+                    error: error.message,
+                    walletAddress: normalizedAddress,
+                  })
+                );
+              }
+            });
+        } else {
+          console.error("[POINTS-CONSUME] User not authenticated");
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[POINTS-CONSUME] Error:", error);
+      return false;
+    }
+  },
+
+  // �🔄 NOUVELLE MÉTHODE : Vérifier et consommer les points AVANT l'évolution blockchain
+  CheckAndConsumePointsBeforeEvolutionJS: function (
+    walletAddressPtr,
+    pointsRequired,
+    tokenId,
+    targetLevel
+  ) {
+    try {
+      const walletAddress = UTF8ToString(walletAddressPtr);
+      const normalizedAddress = walletAddress.toLowerCase().trim();
+
       console.log(`[PRE-EVOLUTION] 🔍 Checking points before evolution:`);
       console.log(`[PRE-EVOLUTION] Wallet: ${normalizedAddress}`);
       console.log(`[PRE-EVOLUTION] Points required: ${pointsRequired}`);
       console.log(`[PRE-EVOLUTION] Token ID: ${tokenId}`);
       console.log(`[PRE-EVOLUTION] Target level: ${targetLevel}`);
-      
+
       if (typeof firebase === "undefined" || !firebase.apps.length) {
         console.error("[PRE-EVOLUTION] ❌ Firebase not initialized");
         return;
       }
-      
+
       firebase.auth().onAuthStateChanged((user) => {
         if (user) {
           const db = firebase.firestore();
-          const userDocRef = db.collection("WalletScores").doc(normalizedAddress);
-          
-          userDocRef.get()
-          .then((docSnap) => {
-            let currentScore = 0;
-            if (docSnap.exists) {
-              currentScore = docSnap.data().score || 0;
-              console.log(`[PRE-EVOLUTION] 📊 Current score in Firebase: ${currentScore}`);
-            }
-            
-            // Vérifier si l'utilisateur a assez de points
-            if (currentScore >= pointsRequired) {
-              console.log(`[PRE-EVOLUTION] ✅ Sufficient points (${currentScore} >= ${pointsRequired})`);
-              
-              // Consommer les points MAINTENANT
-              const newScore = Math.max(0, currentScore - pointsRequired);
-              console.log(`[PRE-EVOLUTION] 💰 Consuming points: ${currentScore} - ${pointsRequired} = ${newScore}`);
-              
-              return userDocRef.update({
-                score: newScore,
-                lastPreEvolution: {
-                  tokenId: tokenId,
-                  pointsConsumed: pointsRequired,
-                  timestamp: Date.now(),
-                  previousScore: currentScore,
-                  newScore: newScore
-                }
-              }).then(() => {
-                console.log(`[PRE-EVOLUTION] ✅ Points consumed successfully`);
-                
-                // Maintenant autoriser l'évolution blockchain
+          const userDocRef = db
+            .collection("WalletScores")
+            .doc(normalizedAddress);
+
+          userDocRef
+            .get()
+            .then((docSnap) => {
+              let currentScore = 0;
+              if (docSnap.exists) {
+                currentScore = docSnap.data().score || 0;
+                console.log(
+                  `[PRE-EVOLUTION] 📊 Current score in Firebase: ${currentScore}`
+                );
+              }
+
+              // Vérifier si l'utilisateur a assez de points
+              if (currentScore >= pointsRequired) {
+                console.log(
+                  `[PRE-EVOLUTION] ✅ Sufficient points (${currentScore} >= ${pointsRequired})`
+                );
+
+                // Consommer les points MAINTENANT
+                const newScore = Math.max(0, currentScore - pointsRequired);
+                console.log(
+                  `[PRE-EVOLUTION] 💰 Consuming points: ${currentScore} - ${pointsRequired} = ${newScore}`
+                );
+
+                return userDocRef
+                  .update({
+                    score: newScore,
+                    lastPreEvolution: {
+                      tokenId: tokenId,
+                      pointsConsumed: pointsRequired,
+                      timestamp: Date.now(),
+                      previousScore: currentScore,
+                      newScore: newScore,
+                    },
+                  })
+                  .then(() => {
+                    console.log(
+                      `[PRE-EVOLUTION] ✅ Points consumed successfully`
+                    );
+
+                    // Maintenant autoriser l'évolution blockchain
+                    const result = {
+                      success: true,
+                      authorized: true,
+                      pointsConsumed: pointsRequired,
+                      newScore: newScore,
+                      tokenId: tokenId,
+                      targetLevel: targetLevel,
+                    };
+
+                    if (typeof unityInstance !== "undefined") {
+                      unityInstance.SendMessage(
+                        "ChogTanksNFTManager",
+                        "OnPointsPreConsumed",
+                        JSON.stringify(result)
+                      );
+                    }
+                  });
+              } else {
+                console.log(
+                  `[PRE-EVOLUTION] ❌ Insufficient points (${currentScore} < ${pointsRequired})`
+                );
+
                 const result = {
-                  success: true,
-                  authorized: true,
-                  pointsConsumed: pointsRequired,
-                  newScore: newScore,
-                  tokenId: tokenId,
-                  targetLevel: targetLevel
+                  success: false,
+                  authorized: false,
+                  error: `Insufficient points: ${currentScore}/${pointsRequired}`,
+                  currentScore: currentScore,
+                  pointsRequired: pointsRequired,
                 };
-                
+
                 if (typeof unityInstance !== "undefined") {
                   unityInstance.SendMessage(
                     "ChogTanksNFTManager",
@@ -1722,52 +2130,187 @@ mergeInto(LibraryManager.library, {
                     JSON.stringify(result)
                   );
                 }
-              });
-            } else {
-              console.log(`[PRE-EVOLUTION] ❌ Insufficient points (${currentScore} < ${pointsRequired})`);
-              
-              const result = {
-                success: false,
-                authorized: false,
-                error: `Insufficient points: ${currentScore}/${pointsRequired}`,
-                currentScore: currentScore,
-                pointsRequired: pointsRequired
-              };
-              
+              }
+            })
+            .catch((error) => {
+              console.error(`[PRE-EVOLUTION] Firebase error:`, error);
+
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
                   "ChogTanksNFTManager",
                   "OnPointsPreConsumed",
-                  JSON.stringify(result)
+                  JSON.stringify({
+                    success: false,
+                    authorized: false,
+                    error: error.message,
+                  })
                 );
               }
-            }
-          })
-          .catch((error) => {
-            console.error(`[PRE-EVOLUTION] Firebase error:`, error);
-            
-            if (typeof unityInstance !== "undefined") {
-              unityInstance.SendMessage(
-                "ChogTanksNFTManager",
-                "OnPointsPreConsumed",
-                JSON.stringify({ success: false, authorized: false, error: error.message })
-              );
-            }
-          });
+            });
         } else {
           console.error("[PRE-EVOLUTION] User not authenticated");
           if (typeof unityInstance !== "undefined") {
             unityInstance.SendMessage(
               "ChogTanksNFTManager",
               "OnPointsPreConsumed",
-              JSON.stringify({ success: false, authorized: false, error: "User not authenticated" })
+              JSON.stringify({
+                success: false,
+                authorized: false,
+                error: "User not authenticated",
+              })
             );
           }
         }
       });
-      
     } catch (error) {
       console.error("[PRE-EVOLUTION] Error:", error);
+      return false;
+    }
+  },
+
+  // 🎯 SIMPLE : Détecter les VRAIES transactions réussies indépendamment des erreurs RPC
+  SetupRealTransactionDetection: function () {
+    try {
+      console.log(
+        "[REAL-TX] 🎯 Setting up REAL blockchain transaction detection..."
+      );
+
+      // Méthode simple : Polling des receipts de transaction avec hash stocké
+      window.pendingTransactions = new Map(); // Stocker les transactions en attente
+
+      // Fonction pour vérifier le receipt d'une transaction
+      window.checkTransactionReceipt = async function (
+        txHash,
+        type = "unknown"
+      ) {
+        try {
+          console.log(
+            `[REAL-TX] 🔍 Checking receipt for transaction: ${txHash} (type: ${type})`
+          );
+
+          // Utiliser le provider disponible
+          let provider = null;
+          if (window.appKit && window.appKit.getProvider) {
+            provider = await window.appKit.getProvider();
+          } else if (window.ethereum) {
+            provider = window.ethereum;
+          }
+
+          if (!provider) {
+            console.error(
+              "[REAL-TX] ❌ No provider available for transaction check"
+            );
+            return false;
+          }
+
+          // Demander le receipt de transaction
+          const receipt = await provider.request({
+            method: "eth_getTransactionReceipt",
+            params: [txHash],
+          });
+
+          if (receipt) {
+            console.log(`[REAL-TX] 📋 Receipt found:`, receipt);
+
+            // Vérifier le statut (1 = success, 0 = failed)
+            const success = receipt.status === "0x1" || receipt.status === 1;
+
+            if (success) {
+              console.log(
+                `[REAL-TX] ✅ Transaction REALLY succeeded on blockchain: ${txHash}`
+              );
+
+              // Déclencher les événements Unity selon le type
+              if (type === "mint") {
+                console.log(`[REAL-TX] 🎆 Triggering OnMintTransactionSuccess`);
+                window.unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnRealMintSuccess",
+                  txHash
+                );
+              } else if (type === "evolve") {
+                console.log(
+                  `[REAL-TX] 🚀 Triggering OnEvolveTransactionSuccess`
+                );
+                // Pour l'évolution, on a besoin du niveau target aussi
+                const txData = window.pendingTransactions.get(txHash);
+                const targetLevel = txData ? txData.targetLevel : 2; // fallback
+                window.unityInstance.SendMessage(
+                  "ChogTanksNFTManager",
+                  "OnRealEvolveSuccess",
+                  JSON.stringify({
+                    hash: txHash,
+                    level: targetLevel,
+                  })
+                );
+              }
+
+              // Nettoyer les transactions en attente
+              window.pendingTransactions.delete(txHash);
+              return true;
+            } else {
+              console.log(
+                `[REAL-TX] ❌ Transaction REALLY failed on blockchain: ${txHash}`
+              );
+              window.pendingTransactions.delete(txHash);
+              return false;
+            }
+          } else {
+            console.log(`[REAL-TX] ⏳ Transaction still pending: ${txHash}`);
+            return null; // Encore en attente
+          }
+        } catch (error) {
+          console.error(
+            `[REAL-TX] ❌ Error checking transaction receipt:`,
+            error
+          );
+          return false;
+        }
+      };
+
+      // Fonction pour démarrer le monitoring d'une transaction
+      window.monitorTransaction = function (txHash, type, extraData = {}) {
+        console.log(
+          `[REAL-TX] 👀 Starting to monitor transaction: ${txHash} (${type})`
+        );
+
+        // Stocker les infos de la transaction
+        window.pendingTransactions.set(txHash, {
+          type: type,
+          startTime: Date.now(),
+          ...extraData,
+        });
+
+        // Polling toutes les 3 secondes pendant 5 minutes max
+        const maxAttempts = 100; // 5 minutes
+        let attempts = 0;
+
+        const checkInterval = setInterval(async () => {
+          attempts++;
+
+          const result = await window.checkTransactionReceipt(txHash, type);
+
+          if (result === true || result === false) {
+            // Transaction terminée (succès ou échec)
+            clearInterval(checkInterval);
+          } else if (attempts >= maxAttempts) {
+            // Timeout atteint
+            console.log(
+              `[REAL-TX] ⏰ Monitoring timeout for transaction: ${txHash}`
+            );
+            window.pendingTransactions.delete(txHash);
+            clearInterval(checkInterval);
+          }
+        }, 3000);
+      };
+
+      console.log("[REAL-TX] ✅ Real transaction detection setup complete");
+      return true;
+    } catch (error) {
+      console.error(
+        "[REAL-TX] ❌ Error setting up real transaction detection:",
+        error
+      );
       return false;
     }
   },

@@ -68,6 +68,8 @@ public class NFTDisplayPanel : MonoBehaviour
     }
     private ChogTanksNFTManager nftManager;
     private bool isRefreshing = false; // Protection contre les appels multiples
+    private float lastRefreshTime = 0f; // Protection anti-spam
+    private const float MIN_REFRESH_INTERVAL = 2f; // Minimum 2 secondes entre refreshs
 
     private void Start()
     {
@@ -121,6 +123,14 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public async void RefreshNFTList()
     {
+        // 🚨 PROTECTION ANTI-SPAM : Limiter la fréquence des refreshs
+        float currentTime = Time.time;
+        if (currentTime - lastRefreshTime < MIN_REFRESH_INTERVAL)
+        {
+            Debug.LogWarning($"[NFT-PANEL] RefreshNFTList called too soon (last: {currentTime - lastRefreshTime:F1}s ago), skipping to prevent spam");
+            return;
+        }
+        
         // TOUJOURS récupérer la dernière adresse wallet (comme un refresh de page)
         string latestWallet = PlayerPrefs.GetString("walletAddress", "");
         if (!string.IsNullOrEmpty(latestWallet))
@@ -145,6 +155,7 @@ public class NFTDisplayPanel : MonoBehaviour
         }
         
         isRefreshing = true;
+        lastRefreshTime = currentTime; // Marquer le timestamp
         
         try
         {
@@ -436,13 +447,26 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.Log($"[NFT-PANEL] Calling RequestEvolutionForSelectedNFT for token #{tokenId}");
             nftManager.RequestEvolutionForSelectedNFT();
             
-            Debug.Log($"[NFT-PANEL] Closing panel after evolution request");
-            ClosePanel();
+            // 🎯 GARDER LE PANEL OUVERT - plus de fermeture automatique
+            Debug.Log($"[NFT-PANEL] Evolution request sent, panel stays open for continuous use");
         }
         else
         {
             Debug.LogError($"[NFT-PANEL] NFTManager is null, cannot evolve NFT #{tokenId}");
         }
+    }
+    
+    // 🎯 MÉTHODE PUBLIQUE : Rafraîchir le panel après évolution réussie
+    public void RefreshAfterEvolution()
+    {
+        Debug.Log($"[NFT-PANEL] RefreshAfterEvolution called - simple status update only");
+        
+        // 🚨 ULTRA-SIMPLE : Juste mettre à jour le statut, PAS de refresh automatique
+        UpdateStatus("Evolution completed! Click Refresh to see updated levels.");
+        
+        // L'utilisateur devra cliquer manuellement sur Refresh pour voir les changements
+        // Cela évite complètement les boucles infinies
+        Debug.Log($"[NFT-PANEL] Evolution status updated - manual refresh required to see changes");
     }
     
     private void SetNFTImage(Image nftImage, uint level)
@@ -509,14 +533,25 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public void UpdateNFTLevel(int tokenId, int newLevel)
     {
+        Debug.Log($"[NFT-PANEL] UpdateNFTLevel called for token #{tokenId} to level {newLevel}");
+        
         var nftToUpdate = playerNFTs.Find(nft => nft.tokenId == tokenId);
         if (nftToUpdate != null)
         {
+            Debug.Log($"[NFT-PANEL] Updating NFT #{tokenId}: {nftToUpdate.level} → {newLevel}");
             nftToUpdate.level = (uint)newLevel;
             nftToUpdate.canEvolve = newLevel < 10;
             nftToUpdate.evolutionCost = GetEvolutionCost((uint)newLevel);
             
-            RefreshNFTList();
+            // 🚨 NE PAS DÉCLENCHER RefreshNFTList ici pour éviter la récursion
+            Debug.Log($"[NFT-PANEL] NFT #{tokenId} data updated locally (no refresh to avoid recursion)");
+            
+            // Mettre à jour seulement l'affichage sans refresh complet
+            UpdateStatus($"NFT #{tokenId} evolved to level {newLevel}");
+        }
+        else
+        {
+            Debug.LogWarning($"[NFT-PANEL] NFT #{tokenId} not found in playerNFTs list");
         }
     }
     
@@ -1092,7 +1127,7 @@ public class NFTDisplayPanel : MonoBehaviour
     
     // ========== NETTOYAGE GLOBAL DES BOUTONS NFT ==========
     
-    private void CleanupAllSimpleNFTButtons()
+    public void CleanupAllSimpleNFTButtons()
     {
         Debug.Log($"[NFT-PANEL] 🧹 CLEANUP: Searching for ALL simple NFT buttons in scene to clean up");
         
