@@ -219,6 +219,7 @@ GameObject:
   - component: {fileID: 6382994478283606291}
   - component: {fileID: 5813192510985837755}
   - component: {fileID: -1404778017265801083}
+  - component: {fileID: -4512819588629738671}
   m_Layer: 6
   m_Name: TankPlayer
   m_TagString: Player
@@ -838,6 +839,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tankSpriteRenderer: {fileID: 7580652867974833724}
+--- !u!114 &-4512819588629738671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4827492414350439138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ce31f8edea14f579e5f52401628f07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shieldDuration: 1.7
+  shieldCooldown: 7
+  shieldKey: 101
+  shieldSprite: {fileID: 21300000, guid: bd293dc32f4aaf94e8274f2fac2cdf89, type: 3}
+  pulseIntensity: 0.1
+  rotationSpeed: 180
 --- !u!1 &5254450433851690380
 GameObject:
   m_ObjectHideFlags: 0

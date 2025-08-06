@@ -20,7 +20,8 @@ public class ShellCollisionHandler : MonoBehaviourPun
     [SerializeField] private Sprite precisionSprite;
 
     private SpriteRenderer sr;
-    private float explosionDamage; 
+    private float explosionDamage;
+    private bool isPrecisionShot = false; 
 
     private void Awake()
     {
@@ -40,6 +41,7 @@ public class ShellCollisionHandler : MonoBehaviourPun
             sr.sprite = normalSprite;
 
         explosionDamage = isPrecision ? precisionDamage : normalDamage;
+        isPrecisionShot = isPrecision;
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -65,6 +67,14 @@ public class ShellCollisionHandler : MonoBehaviourPun
                               health.photonView.Owner.ActorNumber == photonView.Owner.ActorNumber;
             
             if (isSelfDamage) continue;
+            
+            // Vérifier le bouclier
+            TankShield tankShield = health.GetComponent<TankShield>();
+            if (tankShield != null && tankShield.IsShieldActive() && !isPrecisionShot)
+            {
+                Debug.Log($"Damage blocked by {tankOwner}'s shield!");
+                continue; // Le bouclier bloque les tirs normaux seulement
+            }
             
             int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;
             health.photonView.RPC("TakeDamageRPC", RpcTarget.All, explosionDamage, attackerId);

@@ -60,6 +60,8 @@ MonoBehaviour:
   - ChangeTankSprite
   - ShowKillNotificationRPC
   - ShowWinnerUI
+  - RPC_ActivateShield
+  - RPC_DeactivateShield
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
