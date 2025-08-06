@@ -1,0 +1,17 @@
+{
+  "name": "chogtanks-metadata-server",
+  "version": "1.0.0",
+  "description": "Metadata server for ChogTanks NFTs",
+  "main": "metadata-server.js",
+  "scripts": {
+    "start": "node metadata-server.js",
+    "dev": "nodemon metadata-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

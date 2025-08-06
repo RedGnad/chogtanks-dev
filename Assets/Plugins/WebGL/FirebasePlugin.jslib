@@ -269,7 +269,11 @@ mergeInto(LibraryManager.library, {
             .get()
             .then(function (doc) {
               let canMint = true;
-              if (doc.exists && Number(doc.data().nftLevel || 0) > 0) {
+              // 🔧 FIX: Vérifier 'level' en priorité, fallback sur 'nftLevel'
+              if (
+                doc.exists &&
+                Number(doc.data().level || doc.data().nftLevel || 0) > 0
+              ) {
                 canMint = false;
               }
               unityInstance.SendMessage(
@@ -420,12 +424,16 @@ mergeInto(LibraryManager.library, {
                   if (doc.exists) {
                     const data = doc.data();
                     console.log(
-                      `[NFT] Vérification après mise à jour: tokenId=${data.tokenId}, nftLevel=${data.nftLevel}`
+                      `[NFT] Vérification après mise à jour: tokenId=${
+                        data.tokenId
+                      }, level=${data.level || data.nftLevel}`
                     );
 
+                    // 🔧 FIX: Vérifier le champ 'level' en priorité
+                    const currentLevel = data.level || data.nftLevel || 0;
                     if (
                       data.tokenId !== tokenIdValue ||
-                      data.nftLevel !== levelValue
+                      currentLevel !== levelValue
                     ) {
                       console.warn(
                         `[NFT] ⚠️ Incohérence détectée, nouvel essai de mise à jour...`
@@ -434,7 +442,8 @@ mergeInto(LibraryManager.library, {
                       docRef.set(
                         {
                           tokenId: tokenIdValue,
-                          nftLevel: levelValue,
+                          level: levelValue, // 🔧 FIX: Utiliser 'level' au lieu de 'nftLevel'
+                          nftLevel: levelValue, // Maintenir compatibilité legacy
                           lastUpdated:
                             firebase.firestore.FieldValue.serverTimestamp(),
                         },
@@ -531,7 +540,7 @@ mergeInto(LibraryManager.library, {
 
           let onChainLevel = 0;
           let foundTokenId = null;
-          let foundContract = "0x68c582651d709f6e2b6113c01d69443f8d27e30d";
+          let foundContract = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
 
           if (unityNFTState.hasNFT && unityNFTState.level > 0) {
             onChainLevel = unityNFTState.level;
@@ -560,9 +569,10 @@ mergeInto(LibraryManager.library, {
                 if (doc.exists) {
                   const data = doc.data();
                   currentScore = Number(data.score || 0);
-                  firebaseLevel = Number(data.nftLevel || 0);
+                  // 🔧 FIX: Utiliser 'level' en priorité, fallback sur 'nftLevel'
+                  firebaseLevel = Number(data.level || data.nftLevel || 0);
                   console.log(
-                    `[EVOL-SYNC] Firebase: score=${currentScore}, level=${firebaseLevel}`
+                    `[EVOL-SYNC] Firebase: score=${currentScore}, level=${firebaseLevel} (using 'level' field)`
                   );
                 }
 
@@ -783,10 +793,11 @@ mergeInto(LibraryManager.library, {
               if (doc.exists) {
                 const data = doc.data();
                 console.log("[NFT][DEBUG] Document data:", data);
-                const nftLevel = Number(data.nftLevel || 0);
+                // 🔧 FIX: Utiliser 'level' en priorité, fallback sur 'nftLevel' pour compatibilité
+                const nftLevel = Number(data.level || data.nftLevel || 0);
                 const score = Number(data.score || 0);
                 console.log(
-                  `[NFT][DEBUG] Parsed - nftLevel: ${nftLevel}, score: ${score}`
+                  `[NFT][DEBUG] Parsed - level: ${nftLevel}, score: ${score} (using 'level' field)`
                 );
 
                 response = {
@@ -1089,7 +1100,7 @@ mergeInto(LibraryManager.library, {
         return false;
       }
 
-      const contractAddress = "0x68c582651d709f6e2b6113c01d69443f8d27e30d";
+      const contractAddress = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
 
       function padHex(value, length = 64) {
         return value.toString(16).padStart(length, "0");
@@ -1275,7 +1286,7 @@ mergeInto(LibraryManager.library, {
       const getAllNFTsFromBlockchain = async () => {
         try {
           const contractAddresses = [
-            "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+            "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
           ];
 
           let allNFTs = [];
@@ -1550,11 +1561,13 @@ mergeInto(LibraryManager.library, {
           const syncedData = {
             walletAddress: normalizedAddress, // 🔧 SIMPLE FIX: Use normalized address
             hasNFT: true,
-            level: level, // PRIORITÉ BLOCKCHAIN
+            level: level, // PRIORITÉ BLOCKCHAIN (champ moderne)
+            NFTlevel: level, // LEGACY COMPATIBILITY (ancien champ)
             tokenId: nftTokenId, // PRIORITÉ BLOCKCHAIN
             score: currentScore, // CONSERVÉ DE FIREBASE
             lastSyncTimestamp: Date.now(),
             syncSource: "blockchain", // Indiquer que cette sync vient de la blockchain
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
           };
 
           console.log(
@@ -1702,12 +1715,26 @@ mergeInto(LibraryManager.library, {
         console.log(
           `[EVOL-DIRECT] Falling back to mock signature for development`
         );
+
+        // Calculate correct evolution cost based on target level
+        const evolutionCosts = {
+          2: 2, // Level 1→2 = 2 points
+          3: 100, // Level 2→3 = 100 points (nouveau contrat)
+          4: 200, // Level 3→4 = 200 points (nouveau contrat)
+          5: 300, // Level 4→5 = 300 points (nouveau contrat)
+          6: 400, // Level 5→6 = 400 points (nouveau contrat)
+          7: 500, // Level 6→7 = 500 points (nouveau contrat)
+          8: 600, // Level 7→8 = 600 points (nouveau contrat)
+          9: 700, // Level 8→9 = 700 points (nouveau contrat)
+          10: 800, // Level 9→10 = 800 points (nouveau contrat)
+        };
+
         const mockAuth = {
           authorized: true,
           walletAddress: normalizedAddress,
           tokenId: tokenId,
           currentPoints: Number(playerPoints),
-          evolutionCost: 200, // Coût pour niveau 2→3
+          evolutionCost: evolutionCosts[targetLevel] || 0, // Coût dynamique
           targetLevel: targetLevel,
           nonce: Date.now(),
           signature: "0x1234567890abcdef", // Mock signature

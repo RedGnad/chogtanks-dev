@@ -39,6 +39,7 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
         if (nameText != null)
         {
             nameText.alignment = TextAlignmentOptions.Center;
+            nameText.fontSize = 50f;
         }
         
         UpdateTextPosition();

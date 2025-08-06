@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Runtime.InteropServices;
+using System.Linq;
 
 
 
@@ -459,14 +460,36 @@ public class NFTDisplayPanel : MonoBehaviour
     // 🎯 MÉTHODE PUBLIQUE : Rafraîchir le panel après évolution réussie
     public void RefreshAfterEvolution()
     {
-        Debug.Log($"[NFT-PANEL] RefreshAfterEvolution called - simple status update only");
+        Debug.Log($"[NFT-PANEL] RefreshAfterEvolution called - auto refresh with delay");
         
-        // 🚨 ULTRA-SIMPLE : Juste mettre à jour le statut, PAS de refresh automatique
-        UpdateStatus("Evolution completed! Click Refresh to see updated levels.");
+        // 🎯 SOLUTION SIMPLE : Refresh automatique avec délai court et protection
+        if (isRefreshing)
+        {
+            Debug.Log($"[NFT-PANEL] Already refreshing, skipping auto refresh");
+            return;
+        }
         
-        // L'utilisateur devra cliquer manuellement sur Refresh pour voir les changements
-        // Cela évite complètement les boucles infinies
-        Debug.Log($"[NFT-PANEL] Evolution status updated - manual refresh required to see changes");
+        UpdateStatus("Evolution completed! Updating display...");
+        
+        // Délai court pour laisser le temps à la blockchain de se synchroniser
+        StartCoroutine(DelayedAutoRefresh());
+    }
+    
+    private System.Collections.IEnumerator DelayedAutoRefresh()
+    {
+        // Attendre 2 secondes pour la synchronisation blockchain
+        yield return new WaitForSeconds(2f);
+        
+        Debug.Log($"[NFT-PANEL] Starting auto refresh after evolution");
+        RefreshNFTList();
+        
+        // Message de confirmation
+        yield return new WaitForSeconds(1f);
+        UpdateStatus("NFT display updated!");
+        
+        // Effacer le message après 3 secondes
+        yield return new WaitForSeconds(3f);
+        UpdateStatus("");
     }
     
     private void SetNFTImage(Image nftImage, uint level)
@@ -573,7 +596,7 @@ public class NFTDisplayPanel : MonoBehaviour
             
             var contractAddresses = new string[]
             {
-                "0x68c582651d709f6e2b6113c01d69443f8d27e30d"
+                "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618"
             };
             
             Debug.Log($"[NFT-LIST] Checking {contractAddresses.Length} contracts for NFTs");
@@ -705,6 +728,10 @@ public class NFTDisplayPanel : MonoBehaviour
             else
             {
                 Debug.Log($"[NFT-LIST] Displaying {allNFTs.Count} NFT items in UI");
+                
+                // 🎯 FIX: Synchroniser Firebase avec la réalité blockchain
+                SyncFirebaseWithBlockchainData(walletAddress, allNFTs);
+                
                 DisplayNFTItems();
                 UpdateStatus($"Found {allNFTs.Count} NFTs");
                 
@@ -719,6 +746,57 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.LogError($"[NFT-LIST] ❌ ERREUR CRITIQUE: {error.Message}");
             Debug.LogError($"[NFT-LIST] Stack trace: {error.StackTrace}");
             UpdateStatus("Error loading NFTs");
+        }
+    }
+    
+    /// <summary>
+    /// Synchronise Firebase avec les données réelles de la blockchain
+    /// Détecte les transferts entrants et met à jour Firebase si nécessaire
+    /// </summary>
+    private void SyncFirebaseWithBlockchainData(string walletAddress, List<NFTDisplayItem> blockchainNFTs)
+    {
+        if (blockchainNFTs == null || blockchainNFTs.Count == 0)
+        {
+            Debug.Log($"[FIREBASE-SYNC] No NFTs to sync for wallet {walletAddress}");
+            return;
+        }
+        
+        // Trouver le NFT avec le plus haut niveau (comme fait le système principal)
+        var highestNFT = blockchainNFTs.OrderByDescending(nft => nft.level).First();
+        
+        Debug.Log($"[FIREBASE-SYNC] 🔍 Blockchain reality for wallet {walletAddress}:");
+        Debug.Log($"[FIREBASE-SYNC] - Highest NFT: Token #{highestNFT.tokenId}, Level {highestNFT.level}");
+        Debug.Log($"[FIREBASE-SYNC] - Total NFTs: {blockchainNFTs.Count}");
+        
+        // 🎯 Forcer la synchronisation Firebase avec ces données réelles
+        if (nftManager != null)
+        {
+            Debug.Log($"[FIREBASE-SYNC] 🔄 Forcing Firebase sync via NFTManager...");
+            
+            // Utiliser la méthode existante de synchronisation
+#if UNITY_WEBGL && !UNITY_EDITOR
+            ChogTanksNFTManager.SyncNFTLevelWithFirebaseJS(walletAddress, (int)highestNFT.level, (int)highestNFT.tokenId);
+#else
+            Debug.Log($"[FIREBASE-SYNC] Editor mode: would sync Level {highestNFT.level}, Token {highestNFT.tokenId}");
+#endif
+            
+            // Aussi mettre à jour l'état local du NFTManager si possible
+            try
+            {
+                nftManager.currentNFTState.level = (int)highestNFT.level;
+                nftManager.currentNFTState.tokenId = (int)highestNFT.tokenId;
+                nftManager.currentNFTState.hasNFT = true;
+                
+                Debug.Log($"[FIREBASE-SYNC] ✅ Local NFTManager state updated to match blockchain");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[FIREBASE-SYNC] Could not update local NFTManager state: {ex.Message}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[FIREBASE-SYNC] NFTManager not found, cannot sync Firebase");
         }
     }
     

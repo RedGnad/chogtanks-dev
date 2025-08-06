@@ -36,7 +36,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 350, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9173279058578637949
 CanvasRenderer:
@@ -807,7 +807,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nameText: {fileID: 2281634363343905539}
   nameCanvas: {fileID: 4563181086445258538}
-  heightOffset: 17
+  heightOffset: 32
   localPlayerColor: {r: 1, g: 1, b: 1, a: 1}
   otherPlayerColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &5813192510985837755

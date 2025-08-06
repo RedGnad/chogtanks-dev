@@ -109,7 +109,7 @@ public class PointsConsumptionResponse
 public class ChogTanksNFTManager : MonoBehaviour
 {
     [Header("Contract Settings")]
-    private const string CONTRACT_ADDRESS = "0x68c582651d709f6e2b6113c01d69443f8d27e30d";
+    private const string CONTRACT_ADDRESS = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
     
     // Events for UI updates
     public static System.Action<bool, int> OnNFTStateChanged; 
@@ -173,14 +173,16 @@ public class ChogTanksNFTManager : MonoBehaviour
     [DllImport("__Internal")]
     public static extern void CheckHasMintedNFTJS(string walletAddress);
     
+    // 🚨 DEPRECATED: Use SyncNFTLevelWithFirebaseJS instead to maintain consistency
     [DllImport("__Internal")]
     private static extern void UpdateNFTLevelJS(string walletAddress, int newLevel);
     
     [DllImport("__Internal")]
     private static extern void ReadNFTFromBlockchainJS(string walletAddress, string callbackMethod);
     
+    // 🎯 PRIMARY: Use this function for all Firebase NFT level updates
     [DllImport("__Internal")]
-    private static extern void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId);
+    public static extern void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId);
     
     [DllImport("__Internal")]
     private static extern void CheckEvolutionEligibilityOnlyJS(string walletAddress, int pointsRequired, int tokenId, int targetLevel);
@@ -199,10 +201,12 @@ public class ChogTanksNFTManager : MonoBehaviour
     private static void CanMintNFTJS(string walletAddress, string callbackMethod) { }
     
     private static void MarkMintSuccessJS(string walletAddress) { }
-    private static void CheckHasMintedNFTJS(string walletAddress) { }
+    public static void CheckHasMintedNFTJS(string walletAddress) { }
+    // 🚨 DEPRECATED: Use SyncNFTLevelWithFirebaseJS instead
     private static void UpdateNFTLevelJS(string walletAddress, int newLevel) { }
     private static void ReadNFTFromBlockchainJS(string walletAddress, string callbackMethod) { }
-    private static void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId) { }
+    // 🎯 PRIMARY: Use this for all Firebase NFT level updates
+    public static void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId) { }
     private static void CheckEvolutionEligibilityOnlyJS(string walletAddress, int pointsRequired, int tokenId, int targetLevel) { }
     private static void ConsumePointsAfterSuccessJS(string walletAddress, int pointsToConsume, int tokenId, int newLevel) { }
     private static void RequestEvolutionSignatureJS(string walletAddress, int tokenId, int playerPoints, int targetLevel) { }
@@ -387,10 +391,46 @@ public class ChogTanksNFTManager : MonoBehaviour
     public void ShowLevelUI()
     {
         string walletAddress = PlayerPrefs.GetString("walletAddress", "");
-        bool hasWallet = !string.IsNullOrEmpty(walletAddress);
+        bool walletInPrefs = !string.IsNullOrEmpty(walletAddress);
         bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
         
-        Debug.Log($"[UI-LEVEL] ShowLevelUI check: hasWallet={hasWallet}, signApproved={signApproved}");
+        // 🎯 FIX: Vérifier aussi l'état réel d'AppKit pour les reconnexions de session
+        bool appKitConnected = false;
+        string appKitAddress = "";
+        
+        try
+        {
+            appKitConnected = Reown.AppKit.Unity.AppKit.IsAccountConnected;
+            if (appKitConnected && Reown.AppKit.Unity.AppKit.Account != null)
+            {
+                appKitAddress = Reown.AppKit.Unity.AppKit.Account.Address;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[UI-LEVEL] Error checking AppKit state: {ex.Message}");
+        }
+        
+        // 🔄 Si AppKit est connecté mais PlayerPrefs vide, resynchroniser
+        if (appKitConnected && !string.IsNullOrEmpty(appKitAddress) && string.IsNullOrEmpty(walletAddress))
+        {
+            Debug.Log($"[UI-LEVEL] 🔄 Session reconnection detected - syncing PlayerPrefs with AppKit");
+            PlayerPrefs.SetString("walletAddress", appKitAddress);
+            PlayerPrefs.Save();
+            walletAddress = appKitAddress;
+            walletInPrefs = true;
+            
+            // Déclencher aussi la synchronisation du currentPlayerWallet
+            currentPlayerWallet = appKitAddress;
+        }
+        
+        bool hasWallet = walletInPrefs || appKitConnected;
+        
+        Debug.Log($"[UI-LEVEL] ShowLevelUI check:");
+        Debug.Log($"[UI-LEVEL] - PlayerPrefs wallet: '{walletAddress}' (hasValue: {walletInPrefs})");
+        Debug.Log($"[UI-LEVEL] - AppKit connected: {appKitConnected} (address: '{appKitAddress}')");
+        Debug.Log($"[UI-LEVEL] - Combined hasWallet: {hasWallet}");
+        Debug.Log($"[UI-LEVEL] - Sign approved: {signApproved}");
         
         // ✅ CONDITION STRICTE: Wallet ET signature requis
         if (hasWallet && signApproved)
@@ -411,6 +451,14 @@ public class ChogTanksNFTManager : MonoBehaviour
         {
             Debug.Log($"[UI-LEVEL] ❌ UI hidden - wallet: {hasWallet}, signature: {signApproved}");
             
+            // 🎯 AMÉLIORATION: Si wallet connecté mais pas de signature, proposer de signer automatiquement
+            if (hasWallet && !signApproved)
+            {
+                Debug.Log($"[UI-LEVEL] 🔔 Wallet connected but no signature - could trigger auto-sign flow");
+                // Optionnel: Déclencher automatiquement la signature pour les reconnexions
+                // StartCoroutine(DelayedAutoSignRequest());
+            }
+            
             // Garder les UI cachées si signature pas faite
             if (levelText != null)
             {
@@ -421,6 +469,30 @@ public class ChogTanksNFTManager : MonoBehaviour
             {
                 scoreProgressText.gameObject.SetActive(false);
             }
+        }
+    }
+
+    /// <summary>
+    /// Méthode optionnelle pour déclencher automatiquement la signature lors des reconnexions
+    /// </summary>
+    private System.Collections.IEnumerator DelayedAutoSignRequest()
+    {
+        // Attendre un peu pour que l'UI se stabilise
+        yield return new WaitForSeconds(1f);
+        
+        Debug.Log($"[UI-LEVEL] 🔄 Auto-requesting signature for reconnected wallet");
+        
+        // Trouver et déclencher le bouton de signature automatiquement
+        var nftVerifyUI = FindObjectOfType<NFTVerifyUI>();
+        if (nftVerifyUI != null)
+        {
+            Debug.Log($"[UI-LEVEL] ✅ Found NFTVerifyUI, triggering auto-verification");
+            // Optionnel: Déclencher automatiquement la vérification
+            // nftVerifyUI.VerifyNFTOwnership(); // À décommenter si vous voulez l'auto-signature
+        }
+        else
+        {
+            Debug.LogWarning($"[UI-LEVEL] ⚠️ NFTVerifyUI not found for auto-signature");
         }
     }
 
@@ -509,6 +581,34 @@ public class ChogTanksNFTManager : MonoBehaviour
         if (Reown.AppKit.Unity.AppKit.IsInitialized)
         {
             Debug.Log($"[NFT-DEBUG] AppKit initialized, proceeding with reconnection for wallet: {currentPlayerWallet}");
+            
+            // 🎯 FIX: Resynchroniser les PlayerPrefs avec l'état réel d'AppKit
+            if (Reown.AppKit.Unity.AppKit.IsAccountConnected && Reown.AppKit.Unity.AppKit.Account != null)
+            {
+                string appKitAddress = Reown.AppKit.Unity.AppKit.Account.Address;
+                Debug.Log($"[NFT-DEBUG] 🔄 AppKit reports wallet: {appKitAddress}");
+                
+                if (!string.IsNullOrEmpty(appKitAddress))
+                {
+                    // Resynchroniser PlayerPrefs avec AppKit
+                    PlayerPrefs.SetString("walletAddress", appKitAddress);
+                    PlayerPrefs.Save();
+                    currentPlayerWallet = appKitAddress;
+                    
+                    Debug.Log($"[NFT-DEBUG] ✅ PlayerPrefs synchronized with AppKit address: {appKitAddress}");
+                    
+                    // Forcer la mise à jour de l'UI après synchronisation
+                    ShowLevelUI();
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[NFT-DEBUG] AppKit initialized but no account connected, clearing PlayerPrefs");
+                PlayerPrefs.DeleteKey("walletAddress");
+                PlayerPrefs.Save();
+                currentPlayerWallet = "";
+            }
+            
             LoadNFTStateFromBlockchain();
         }
         else
@@ -694,7 +794,7 @@ public class ChogTanksNFTManager : MonoBehaviour
             string balanceAbi = "function balanceOf(address) view returns (uint256)";
             
             var balance = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+                "",
                 balanceAbi,
                 "balanceOf",
                 new object[] { normalizedWallet }
@@ -732,7 +832,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                     Debug.Log($"[BLOCKCHAIN-V2] Getting token at index {i}/{balance-1}");
                     
                     var tokenId = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                        "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+                        "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
                         tokenByIndexAbi,
                         "tokenOfOwnerByIndex",
                         new object[] { normalizedWallet, i }
@@ -749,7 +849,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                         try
                         {
                             level = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                                "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+                                "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
                                 getLevelAbi,
                                 "getLevel",
                                 new object[] { tokenId }
@@ -1618,8 +1718,14 @@ public class ChogTanksNFTManager : MonoBehaviour
             return;
         }
         
+        Debug.Log($"[NFT-FIREBASE] 🔄 UpdateNFTLevelInFirebase called with level {newLevel}");
+        Debug.Log($"[NFT-FIREBASE] 🔄 Using selectedTokenId: {selectedTokenId}");
+        
 #if UNITY_WEBGL && !UNITY_EDITOR
-        UpdateNFTLevelJS(currentPlayerWallet, newLevel);
+        // 🎯 FIX: Utiliser SyncNFTLevelWithFirebaseJS au lieu de UpdateNFTLevelJS 
+        // pour maintenir la cohérence avec les autres mises à jour
+        SyncNFTLevelWithFirebaseJS(currentPlayerWallet, newLevel, selectedTokenId);
+        Debug.Log($"[NFT-FIREBASE] ✅ Called SyncNFTLevelWithFirebaseJS for wallet {currentPlayerWallet}, level {newLevel}, token {selectedTokenId}");
 #else
         OnNFTLevelUpdated($"{newLevel}");
 #endif
@@ -1995,7 +2101,7 @@ public class ChogTanksNFTManager : MonoBehaviour
     {
         // Récupérer le niveau du NFT sélectionné depuis la blockchain
         var levelTask = Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-            "0x68c582651d709f6e2b6113c01d69443f8d27e30d",
+            "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
             "function getLevel(uint256 tokenId) view returns (uint256)",
             "getLevel",
             new object[] { selectedTokenId }
@@ -2082,18 +2188,18 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private int GetEvolutionCost(int targetLevel)
     {
-        // Coûts d'évolution conformes au contrat ChogTanksNFTv2_Final.sol
+        // Coûts d'évolution conformes au nouveau contrat ChogTanks.sol
         var costs = new Dictionary<int, int>
         {
             {2, 2},     // Level 1→2 = 2 points
-            {3, 200},   // Level 2→3 = 200 points  
-            {4, 300},   // Level 3→4 = 300 points
-            {5, 400},   // Level 4→5 = 400 points
-            {6, 500},   // Level 5→6 = 500 points
-            {7, 600},   // Level 6→7 = 600 points
-            {8, 700},   // Level 7→8 = 700 points
-            {9, 800},   // Level 8→9 = 800 points
-            {10, 900}   // Level 9→10 = 900 points
+            {3, 100},   // Level 2→3 = 100 points (réduit de 200→100)
+            {4, 200},   // Level 3→4 = 200 points (réduit de 300→200)
+            {5, 300},   // Level 4→5 = 300 points (réduit de 400→300)
+            {6, 400},   // Level 5→6 = 400 points (réduit de 500→400)
+            {7, 500},   // Level 6→7 = 500 points (réduit de 600→500)
+            {8, 600},   // Level 7→8 = 600 points (réduit de 700→600)
+            {9, 700},   // Level 8→9 = 700 points (réduit de 800→700)
+            {10, 800}   // Level 9→10 = 800 points (réduit de 900→800)
         };
         
         return costs.ContainsKey(targetLevel) ? costs[targetLevel] : 0;

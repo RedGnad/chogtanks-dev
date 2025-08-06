@@ -62,9 +62,9 @@ app.post('/api/evolve-authorization', async (req, res) => {
 
         const evolutionCosts = {
             2: 2,   // ✅ Niveau 1→2 coûte 2 points (comme dans le contrat)
-            3: 200, // Niveau 2→3 coûte 200 points
-            4: 300, 5: 400, 6: 500,
-            7: 600, 8: 700, 9: 800, 10: 900
+            3: 100, // Niveau 2→3 coûte 100 points (nouveau contrat ChogTanks.sol)
+            4: 200, 5: 300, 6: 400,  // Réduction de 100 points sur chaque niveau
+            7: 500, 8: 600, 9: 700, 10: 800
         };
         
         const requiredPoints = evolutionCosts[targetLevel];

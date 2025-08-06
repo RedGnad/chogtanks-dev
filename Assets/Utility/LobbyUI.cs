@@ -30,6 +30,9 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     [Header("Match UI")]
     public TMP_Text timerText;
     public TMP_Text roomStatusText;
+    
+    [Header("Loading Panel")]
+    public GameObject loadingPanel;
 
     private PhotonLauncher launcher;
 
@@ -60,6 +63,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             goButton.interactable = false;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
             if (goText != null) goText.text = "WAIT";
+        }
+
+        // Afficher le panel de loading pendant WAIT
+        if (loadingPanel != null)
+        {
+            loadingPanel.SetActive(true);
         }
 
         if (playerNameInput != null)
@@ -177,6 +186,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     public void OnPhotonReady()
     {
+        // Cacher le panel de loading quand on passe en BRAWL
+        if (loadingPanel != null)
+        {
+            loadingPanel.SetActive(false);
+        }
+        
         if (!string.IsNullOrEmpty(PhotonNetwork.NickName))
         {
             createRoomButton.interactable = true;
