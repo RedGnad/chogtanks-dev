@@ -536,7 +536,7 @@ mergeInto(LibraryManager.library, {
 
           let onChainLevel = 0;
           let foundTokenId = null;
-          let foundContract = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
+          let foundContract = "0x07045605a0d70b12f3688a438db706bc1eda7e8c";
 
           if (unityNFTState.hasNFT && unityNFTState.level > 0) {
             onChainLevel = unityNFTState.level;
@@ -1087,7 +1087,7 @@ mergeInto(LibraryManager.library, {
         return false;
       }
 
-      const contractAddress = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
+      const contractAddress = "0x07045605a0d70b12f3688a438db706bc1eda7e8c";
 
       function padHex(value, length = 64) {
         return value.toString(16).padStart(length, "0");
@@ -1273,7 +1273,7 @@ mergeInto(LibraryManager.library, {
       const getAllNFTsFromBlockchain = async () => {
         try {
           const contractAddresses = [
-            "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
+            "0x07045605a0d70b12f3688a438db706bc1eda7e8c",
           ];
 
           let allNFTs = [];

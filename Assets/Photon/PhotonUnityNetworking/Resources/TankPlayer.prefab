@@ -417,12 +417,9 @@ MonoBehaviour:
   groundCheckDistance: 1
   groundCheck: {fileID: 4018829606093349745, guid: cb1580937bf554031ae61f8ccb0c6cdd, type: 3}
   groundCheckRadius: 0.2
-  fireNormalSFX: {fileID: -2245585564760006448}
-  firePrecisionSFX: {fileID: 8229438089800172548}
-  chargeReadySFX: {fileID: 3464573982248915720}
-  chargeTimeThreshold: 0.6
+  chargeTimeThreshold: 0.55
   precisionShellSpeedMultiplier: 2.2
-  precisionRecoilMultiplier: 0.14
+  precisionRecoilMultiplier: 0.15
 --- !u!114 &-5709777738724518169
 MonoBehaviour:
   m_ObjectHideFlags: 0

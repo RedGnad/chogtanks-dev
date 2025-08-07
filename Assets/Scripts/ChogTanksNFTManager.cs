@@ -109,7 +109,7 @@ public class PointsConsumptionResponse
 public class ChogTanksNFTManager : MonoBehaviour
 {
     [Header("Contract Settings")]
-    private const string CONTRACT_ADDRESS = "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618";
+    private const string CONTRACT_ADDRESS = "0x07045605a0d70b12f3688a438db706bc1eda7e8c";
     
     // Events for UI updates
     public static System.Action<bool, int> OnNFTStateChanged; 
@@ -743,7 +743,7 @@ public class ChogTanksNFTManager : MonoBehaviour
             string balanceAbi = "function balanceOf(address) view returns (uint256)";
             
             var balance = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                "",
+                CONTRACT_ADDRESS,
                 balanceAbi,
                 "balanceOf",
                 new object[] { normalizedWallet }
@@ -780,7 +780,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                     Debug.Log($"[BLOCKCHAIN-V2] Getting token at index {i}/{balance-1}");
                     
                     var tokenId = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                        "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
+                        CONTRACT_ADDRESS,
                         tokenByIndexAbi,
                         "tokenOfOwnerByIndex",
                         new object[] { normalizedWallet, i }
@@ -797,7 +797,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                         try
                         {
                             level = await Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-                                "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
+                                CONTRACT_ADDRESS,
                                 getLevelAbi,
                                 "getLevel",
                                 new object[] { tokenId }
@@ -1995,7 +1995,7 @@ public class ChogTanksNFTManager : MonoBehaviour
     System.Collections.IEnumerator GetSelectedNFTLevelAndEvolve()
     {
         var levelTask = Reown.AppKit.Unity.AppKit.Evm.ReadContractAsync<int>(
-            "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618",
+            CONTRACT_ADDRESS,
             "function getLevel(uint256 tokenId) view returns (uint256)",
             "getLevel",
             new object[] { selectedTokenId }
@@ -2532,7 +2532,8 @@ public class ChogTanksNFTManager : MonoBehaviour
             button = buttonObj.AddComponent<UnityEngine.UI.Button>();
         }
         
-        CustomizeButtonText(buttonObj, nftIndex);
+        int nftLevel = GetNFTLevelForToken(nftIndex);
+        CustomizeButtonText(buttonObj, nftIndex, nftLevel);
         
         PositionButton(buttonObj, nftIndex);
         
@@ -2542,7 +2543,7 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         nftButtons.Add(button);
         
-        Debug.Log($"[NFT-BUTTONS] ✅ Simple NFT button #{nftIndex} created and configured");
+        Debug.Log($"[NFT-BUTTONS] ✅ Simple NFT button #{nftIndex} created with level {nftLevel}");
     }
     
     private GameObject CreateBasicNFTButton(int nftIndex)
@@ -2591,6 +2592,29 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
     }
     
+    private void CustomizeButtonText(GameObject buttonObj, int nftIndex, int nftLevel)
+    {
+        var textComponents = buttonObj.GetComponentsInChildren<TextMeshProUGUI>();
+        if (textComponents.Length > 0)
+        {
+            textComponents[0].text = $"NFT #{nftIndex}\nLevel {nftLevel}";
+        }
+        else
+        {
+            var legacyText = buttonObj.GetComponentsInChildren<UnityEngine.UI.Text>();
+            if (legacyText.Length > 0)
+            {
+                legacyText[0].text = $"NFT #{nftIndex}\nLevel {nftLevel}";
+            }
+        }
+    }
+    
+    private int GetNFTLevelForToken(int tokenId)
+    {
+        return Mathf.Max(1, currentNFTState.level);
+    }
+    
+
     private void PositionButton(GameObject buttonObj, int nftIndex)
     {
         var rectTransform = buttonObj.GetComponent<RectTransform>();

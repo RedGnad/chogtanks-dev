@@ -294,7 +294,7 @@ contract ChogTanks is ERC721, ERC721Enumerable, Ownable {
         
         return string(
             abi.encodePacked(
-                "https://df1284899722.ngrok-free.app/metadata/level",
+                "https://api.chogtanks.com/metadata/level",
                 level.toString(),
                 "/",
                 tokenId.toString(),

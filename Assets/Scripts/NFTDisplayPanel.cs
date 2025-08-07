@@ -54,6 +54,11 @@ public class NFTDisplayPanel : MonoBehaviour
     public GameObject simpleButtonPrefab;
     private List<UnityEngine.UI.Button> simpleNFTButtons = new List<UnityEngine.UI.Button>();
     
+    [Header("NFT Level Images")]
+    public Sprite[] nftLevelSprites = new Sprite[10];
+    public Vector2 levelImageSize = new Vector2(40, 40);
+    public float levelImageOffset = 50f;
+    
     [Header("NFT Item Prefab (Simple)")]
     public GameObject nftItemPrefab;
     
@@ -553,7 +558,7 @@ public class NFTDisplayPanel : MonoBehaviour
             
             var contractAddresses = new string[]
             {
-                "0x7120e31dc75c63ce20d377a0b74fadd8b0d59618"
+                "0x07045605a0d70b12f3688a438db706bc1eda7e8c"
             };
             
             Debug.Log($"[NFT-LIST] Checking {contractAddresses.Length} contracts for NFTs");
@@ -987,6 +992,20 @@ public class NFTDisplayPanel : MonoBehaviour
         
         CustomizeSimpleButtonText(buttonObj, nftIndex);
         
+        // Ajouter l'image de niveau
+        Debug.Log($"[NFT-PANEL-DEBUG] Checking level image: nftIndex={nftIndex}, playerNFTs.Count={playerNFTs.Count}");
+        if (nftIndex <= playerNFTs.Count)
+        {
+            var nft = playerNFTs[nftIndex - 1];
+            int nftLevel = (int)nft.level;
+            Debug.Log($"[NFT-PANEL-DEBUG] About to create level image for NFT #{nft.tokenId} level {nftLevel}");
+            CreateLevelImageForButton(buttonObj, nftLevel);
+        }
+        else
+        {
+            Debug.LogWarning($"[NFT-PANEL-DEBUG] Cannot create level image: nftIndex {nftIndex} > playerNFTs.Count {playerNFTs.Count}");
+        }
+        
         PositionSimpleButton(buttonObj, nftIndex);
         
         int tokenIndex = nftIndex;
@@ -1066,6 +1085,44 @@ public class NFTDisplayPanel : MonoBehaviour
             
             Debug.Log($"[NFT-PANEL] 📍 Positioned simple NFT #{nftIndex} at {rectTransform.anchoredPosition} in panel");
         }
+    }
+    
+    private void CreateLevelImageForButton(GameObject buttonObj, int nftLevel)
+    {
+        Debug.Log($"[NFT-PANEL-LEVEL-IMAGE] 🎯 CreateLevelImageForButton called for level {nftLevel}");
+        
+        if (nftLevel < 1 || nftLevel > 10) 
+        {
+            Debug.LogWarning($"[NFT-PANEL-LEVEL-IMAGE] Level {nftLevel} out of range, clamping to 1");
+            nftLevel = 1;
+        }
+        
+        Debug.Log($"[NFT-PANEL-LEVEL-IMAGE] Checking sprites: nftLevelSprites={(nftLevelSprites != null ? "NOT NULL" : "NULL")}, Length={nftLevelSprites?.Length}");
+        
+        if (nftLevelSprites == null || nftLevelSprites.Length < nftLevel || nftLevelSprites[nftLevel - 1] == null) 
+        {
+            Debug.LogWarning($"[NFT-PANEL-LEVEL-IMAGE] No sprite for level {nftLevel} - sprites null: {nftLevelSprites == null}, length: {nftLevelSprites?.Length}, sprite at index {nftLevel-1}: {(nftLevelSprites != null && nftLevelSprites.Length > nftLevel-1 ? (nftLevelSprites[nftLevel-1] != null ? "EXISTS" : "NULL") : "OUT_OF_BOUNDS")}");
+            return;
+        }
+        
+        GameObject levelImageObj = new GameObject($"LevelImage_Level{nftLevel}");
+        levelImageObj.transform.SetParent(buttonObj.transform, false);
+        
+        var levelImage = levelImageObj.AddComponent<UnityEngine.UI.Image>();
+        levelImage.sprite = nftLevelSprites[nftLevel - 1];
+        levelImage.preserveAspect = true;
+        levelImage.color = Color.white;
+        
+        var levelImageRect = levelImageObj.GetComponent<RectTransform>();
+        levelImageRect.sizeDelta = levelImageSize;
+        levelImageRect.anchoredPosition = new Vector2(0, levelImageOffset);
+        levelImageRect.anchorMin = new Vector2(0.5f, 0.5f);
+        levelImageRect.anchorMax = new Vector2(0.5f, 0.5f);
+        
+        // Force to front
+        levelImageObj.transform.SetAsLastSibling();
+        
+        Debug.Log($"[NFT-PANEL-LEVEL-IMAGE] ✅ Created level {nftLevel} image for button '{buttonObj.name}' at position {levelImageRect.anchoredPosition}");
     }
     
     private void ClearSimpleNFTButtons()

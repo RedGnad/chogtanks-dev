@@ -45,9 +45,13 @@ public class TankShield : MonoBehaviourPun
     {
         if (isShieldActive) return;
         
-        
         isShieldActive = true;
         canUseShield = false;
+        
+        if (SFXManager.Instance != null)
+        {
+            SFXManager.Instance.PlayShieldActivation();
+        }
         
         
         currentShieldVisual = new GameObject("Shield");

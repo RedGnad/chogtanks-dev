@@ -6,116 +6,108 @@ const port = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json());
 
+// 🎯 Configuration IPFS pour vos images NFT
+const IPFS_CID = "bafybeicbpotmazbf2u2hu6s6pdufdj5en7hdrqy4yldtqa4yoie2kq4ssy";
+
+// Fonction pour générer l'URL des images basée sur vos noms de fichiers
+const getImageUrl = (level) => {
+    if (level >= 1 && level <= 9) {
+        return `ipfs://${IPFS_CID}/molazi-metadata-${level}.png`;
+    }
+    // Fallback pour le niveau 10 (réutilise l'image du niveau 9)
+    return `ipfs://${IPFS_CID}/molazi-metadata-9.png`;
+};
+
 const getMetadata = (level, tokenId) => {
     const levelData = {
         1: {
             name: `ChogTank #${tokenId} - Rookie`,
-            description: "A basic tank ready for battle. This is just the beginning of your journey.",
-            image: "https://via.placeholder.com/400x400/4CAF50/FFFFFF?text=Level+1",
+            description: "A basic tank ready for battle.",
+            image: getImageUrl(1), // ✅ molazi-metadata-1.png
             attributes: [
                 { "trait_type": "Level", "value": 1 },
                 { "trait_type": "Rarity", "value": "Common" },
-                { "trait_type": "Power", "value": 10 },
-                { "trait_type": "Defense", "value": 5 }
             ]
         },
         2: {
-            name: `ChogTank #${tokenId} - Veteran`,
-            description: "An upgraded tank with enhanced capabilities.",
-            image: "https://via.placeholder.com/400x400/2196F3/FFFFFF?text=Level+2",
+            name: `ChogTank #${tokenId} - Soldier`,
+            description: "An upgraded tank ready for the brawl.",
+            image: getImageUrl(2), // ✅ molazi-metadata-2.png
             attributes: [
                 { "trait_type": "Level", "value": 2 },
                 { "trait_type": "Rarity", "value": "Common" },
-                { "trait_type": "Power", "value": 20 },
-                { "trait_type": "Defense", "value": 15 }
             ]
         },
         3: {
             name: `ChogTank #${tokenId} - Elite`,
             description: "A powerful tank with advanced weaponry.",
-            image: "https://via.placeholder.com/400x400/FF9800/FFFFFF?text=Level+3",
+            image: getImageUrl(3), // ✅ molazi-metadata-3.png
             attributes: [
                 { "trait_type": "Level", "value": 3 },
                 { "trait_type": "Rarity", "value": "Uncommon" },
-                { "trait_type": "Power", "value": 35 },
-                { "trait_type": "Defense", "value": 25 }
             ]
         },
         4: {
-            name: `ChogTank #${tokenId} - Champion`,
+            name: `ChogTank #${tokenId} - General`,
             description: "A formidable tank feared on the battlefield.",
-            image: "https://via.placeholder.com/400x400/9C27B0/FFFFFF?text=Level+4",
+            image: getImageUrl(4), // ✅ molazi-metadata-4.png
             attributes: [
                 { "trait_type": "Level", "value": 4 },
                 { "trait_type": "Rarity", "value": "Rare" },
-                { "trait_type": "Power", "value": 55 },
-                { "trait_type": "Defense", "value": 40 }
             ]
         },
         5: {
             name: `ChogTank #${tokenId} - Master`,
             description: "A master-class tank with superior technology.",
-            image: "https://via.placeholder.com/400x400/E91E63/FFFFFF?text=Level+5",
+            image: getImageUrl(5), // ✅ molazi-metadata-5.png
             attributes: [
                 { "trait_type": "Level", "value": 5 },
-                { "trait_type": "Rarity", "value": "Epic" },
-                { "trait_type": "Power", "value": 80 },
-                { "trait_type": "Defense", "value": 60 }
+                { "trait_type": "Rarity", "value": "Ultrarare" },
             ]
         },
         6: {
-            name: `ChogTank #${tokenId} - Legendary`,
-            description: "A legendary tank spoken of in whispers.",
-            image: "https://via.placeholder.com/400x400/F44336/FFFFFF?text=Level+6",
+            name: `ChogTank #${tokenId} - Champion`,
+            description: "A champion tank spoken of in whispers.",
+            image: getImageUrl(6), // ✅ molazi-metadata-6.png
             attributes: [
                 { "trait_type": "Level", "value": 6 },
-                { "trait_type": "Rarity", "value": "Legendary" },
-                { "trait_type": "Power", "value": 110 },
-                { "trait_type": "Defense", "value": 85 }
+                { "trait_type": "Rarity", "value": "Epic" },
             ]
         },
         7: {
-            name: `ChogTank #${tokenId} - Mythic`,
-            description: "A mythic tank of unparalleled power.",
-            image: "https://via.placeholder.com/400x400/795548/FFFFFF?text=Level+7",
+            name: `ChogTank #${tokenId} - Legendary`,
+            description: "A legendary tank of unparalleled power.",
+            image: getImageUrl(7), // ✅ molazi-metadata-7.png
             attributes: [
                 { "trait_type": "Level", "value": 7 },
-                { "trait_type": "Rarity", "value": "Mythic" },
-                { "trait_type": "Power", "value": 145 },
-                { "trait_type": "Defense", "value": 115 }
+                { "trait_type": "Rarity", "value": "Legendary" },
             ]
         },
         8: {
-            name: `ChogTank #${tokenId} - Divine`,
-            description: "A divine tank blessed by the gods of war.",
-            image: "https://via.placeholder.com/400x400/607D8B/FFFFFF?text=Level+8",
+            name: `ChogTank #${tokenId} - Mythic`,
+            description: "A mythic tank blessed by the gods of war.",
+            image: getImageUrl(8), // ✅ molazi-metadata-8.png
             attributes: [
                 { "trait_type": "Level", "value": 8 },
-                { "trait_type": "Rarity", "value": "Divine" },
-                { "trait_type": "Power", "value": 185 },
-                { "trait_type": "Defense", "value": 150 }
+                { "trait_type": "Rarity", "value": "Mythic" },
             ]
         },
         9: {
             name: `ChogTank #${tokenId} - Cosmic`,
             description: "A cosmic entity that transcends earthly warfare.",
-            image: "https://via.placeholder.com/400x400/3F51B5/FFFFFF?text=Level+9",
+            image: getImageUrl(9), // ✅ molazi-metadata-9.png
             attributes: [
                 { "trait_type": "Level", "value": 9 },
                 { "trait_type": "Rarity", "value": "Cosmic" },
-                { "trait_type": "Power", "value": 230 },
-                { "trait_type": "Defense", "value": 190 }
             ]
         },
         10: {
             name: `ChogTank #${tokenId} - Transcendent`,
             description: "The ultimate evolution. A tank that has transcended all limitations.",
-            image: "https://via.placeholder.com/400x400/000000/FFD700?text=MAX+LEVEL",
+            image: getImageUrl(10), // ✅ molazi-metadata-9.png (réutilise niveau 9)
             attributes: [
                 { "trait_type": "Level", "value": 10 },
                 { "trait_type": "Rarity", "value": "Transcendent" },
-                { "trait_type": "Power", "value": 300 },
-                { "trait_type": "Defense", "value": 250 },
                 { "trait_type": "Special", "value": "Max Level Achieved" }
             ]
         }

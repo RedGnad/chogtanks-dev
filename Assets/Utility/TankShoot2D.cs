@@ -22,9 +22,9 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
     [SerializeField] private float groundCheckRadius = 0.3f;
 
     [Header("SFX")]
-    [SerializeField] private AudioSource fireNormalSFX;
-    [SerializeField] private AudioSource firePrecisionSFX;
-    [SerializeField] private AudioSource chargeReadySFX;
+    // [SerializeField] private AudioSource fireNormalSFX;
+    // [SerializeField] private AudioSource firePrecisionSFX;
+    // [SerializeField] private AudioSource chargeReadySFX;
 
     [Header("Tir chargé")]
     [SerializeField] private float chargeTimeThreshold = 0.66f;
@@ -115,8 +115,7 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
             float heldTime = Time.time - chargeStartTime;
             if (heldTime >= chargeTimeThreshold)
             {
-                if (chargeReadySFX != null)
-                    chargeReadySFX.Play();
+                SFXManager.Instance.PlaySFX("chargeReady");
                 chargeSFXPlayed = true;
             }
         }
@@ -138,11 +137,11 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
 
         if (isPrecision)
         {
-            if (firePrecisionSFX != null) firePrecisionSFX.Play();
+            SFXManager.Instance.PlaySFX("firePrecision");
         }
         else
         {
-            if (fireNormalSFX != null) fireNormalSFX.Play();
+            SFXManager.Instance.PlaySFX("fireNormal");
         }
 
         float recoilMultiplier = isPrecision ? precisionRecoilMultiplier : 1f;
