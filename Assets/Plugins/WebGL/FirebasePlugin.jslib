@@ -269,7 +269,6 @@ mergeInto(LibraryManager.library, {
             .get()
             .then(function (doc) {
               let canMint = true;
-              // 🔧 FIX: Vérifier 'level' en priorité, fallback sur 'nftLevel'
               if (
                 doc.exists &&
                 Number(doc.data().level || doc.data().nftLevel || 0) > 0
@@ -429,7 +428,6 @@ mergeInto(LibraryManager.library, {
                       }, level=${data.level || data.nftLevel}`
                     );
 
-                    // 🔧 FIX: Vérifier le champ 'level' en priorité
                     const currentLevel = data.level || data.nftLevel || 0;
                     if (
                       data.tokenId !== tokenIdValue ||
@@ -442,8 +440,8 @@ mergeInto(LibraryManager.library, {
                       docRef.set(
                         {
                           tokenId: tokenIdValue,
-                          level: levelValue, // 🔧 FIX: Utiliser 'level' au lieu de 'nftLevel'
-                          nftLevel: levelValue, // Maintenir compatibilité legacy
+                          level: levelValue,
+                          nftLevel: levelValue,
                           lastUpdated:
                             firebase.firestore.FieldValue.serverTimestamp(),
                         },
@@ -503,7 +501,6 @@ mergeInto(LibraryManager.library, {
       const nftStateStr = UTF8ToString(nftStateJson);
       const nftState = JSON.parse(nftStateStr);
 
-      // Stocker l'état NFT Unity dans window pour que CheckEvolutionEligibilityJS puisse l'utiliser
       window.unityNFTState = nftState;
       console.log(`[NFT-STATE] Unity NFT state reçu:`, nftState);
 
@@ -531,7 +528,6 @@ mergeInto(LibraryManager.library, {
             `[EVOL] Utilisation des données Unity vérifiées au lieu de window.ethereum`
           );
 
-          // Récupérer les données NFT depuis Unity qui a déjà vérifié la blockchain avec AppKit
           const unityNFTState = window.unityNFTState || {
             hasNFT: false,
             level: 0,
@@ -569,7 +565,6 @@ mergeInto(LibraryManager.library, {
                 if (doc.exists) {
                   const data = doc.data();
                   currentScore = Number(data.score || 0);
-                  // 🔧 FIX: Utiliser 'level' en priorité, fallback sur 'nftLevel'
                   firebaseLevel = Number(data.level || data.nftLevel || 0);
                   console.log(
                     `[EVOL-SYNC] Firebase: score=${currentScore}, level=${firebaseLevel} (using 'level' field)`
@@ -615,7 +610,6 @@ mergeInto(LibraryManager.library, {
 
                 if (typeof unityInstance !== "undefined") {
                   if (isEligible) {
-                    // Appeler le serveur de signature réel comme pour le mint
                     console.log(
                       `[EVOL] Calling signature server for evolution authorization...`
                     );
@@ -644,8 +638,8 @@ mergeInto(LibraryManager.library, {
                             currentPoints: Number(currentScore) || 0,
                             evolutionCost: Number(requiredScore) || 0,
                             targetLevel: onChainLevel + 1,
-                            nonce: data.nonce, // ✅ Vrai nonce du serveur
-                            signature: data.signature, // ✅ VRAIE signature du serveur
+                            nonce: data.nonce,
+                            signature: data.signature,
                           };
 
                           console.log(
@@ -677,7 +671,6 @@ mergeInto(LibraryManager.library, {
                       .catch((error) => {
                         console.error(`[EVOL] Server error:`, error);
 
-                        // Fallback to mock for development if server is down
                         console.log(
                           `[EVOL] Falling back to mock signature for development`
                         );
@@ -689,7 +682,7 @@ mergeInto(LibraryManager.library, {
                           evolutionCost: Number(requiredScore) || 0,
                           targetLevel: onChainLevel + 1,
                           nonce: Date.now(),
-                          signature: "0x1234567890abcdef", // Mock signature
+                          signature: "0x1234567890abcdef",
                         };
 
                         unityInstance.SendMessage(
@@ -699,7 +692,6 @@ mergeInto(LibraryManager.library, {
                         );
                       });
                   } else {
-                    // Pas éligible
                     unityInstance.SendMessage(
                       "ChogTanksNFTManager",
                       "OnEvolutionAuthorized",
@@ -793,7 +785,6 @@ mergeInto(LibraryManager.library, {
               if (doc.exists) {
                 const data = doc.data();
                 console.log("[NFT][DEBUG] Document data:", data);
-                // 🔧 FIX: Utiliser 'level' en priorité, fallback sur 'nftLevel' pour compatibilité
                 const nftLevel = Number(data.level || data.nftLevel || 0);
                 const score = Number(data.score || 0);
                 console.log(
@@ -913,7 +904,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // 🎆 NOUVELLE FONCTION: Marquer le mint comme réussi dans Firebase
   MarkMintSuccessJS: function (walletAddress) {
     try {
       const address = UTF8ToString(walletAddress);
@@ -963,7 +953,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // 🔍 NOUVELLE FONCTION: Lire le champ hasMintedNFT depuis Firebase pour l'auto-mint
   CheckHasMintedNFTJS: function (walletAddress) {
     try {
       const address = UTF8ToString(walletAddress);
@@ -998,7 +987,6 @@ mergeInto(LibraryManager.library, {
             );
           }
 
-          // Retourner le résultat à Unity
           const result = {
             walletAddress: normalizedAddress,
             hasMintedNFT: hasMinted,
@@ -1021,7 +1009,6 @@ mergeInto(LibraryManager.library, {
             error
           );
 
-          // En cas d'erreur, considérer comme "pas encore minté" pour sécurité
           const fallbackResult = {
             walletAddress: normalizedAddress,
             hasMintedNFT: false,
@@ -1407,7 +1394,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // Fonction simplifiée pour mint direct (test)
   DirectMintNFTJS: function (walletAddress) {
     try {
       const address = UTF8ToString(walletAddress);
@@ -1418,7 +1404,6 @@ mergeInto(LibraryManager.library, {
         return false;
       }
 
-      // Call signature server for real authorization
       console.log(`[DIRECT-MINT] Calling signature server...`);
 
       fetch("http://localhost:3001/api/mint-authorization", {
@@ -1473,7 +1458,6 @@ mergeInto(LibraryManager.library, {
         .catch((error) => {
           console.error(`[DIRECT-MINT] Server error:`, error);
 
-          // Fallback to mock for development if server is down
           console.log(
             `[DIRECT-MINT] Falling back to mock signature for development`
           );
@@ -1500,7 +1484,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // NOUVELLE FONCTION : Synchroniser le niveau NFT blockchain avec Firebase
   SyncNFTLevelWithFirebaseJS: function (
     walletAddress,
     blockchainLevel,
@@ -1521,7 +1504,6 @@ mergeInto(LibraryManager.library, {
 
       const syncNFTLevel = async () => {
         try {
-          // Étape 1 : Récupérer les données actuelles de Firebase (pour les points)
           console.log(
             `[FIREBASE-SYNC] 📊 Fetching current Firebase data for score...`
           );
@@ -1537,7 +1519,6 @@ mergeInto(LibraryManager.library, {
               `[FIREBASE-SYNC] 📊 Found existing score in Firebase: ${currentScore}`
             );
 
-            // Vérifier si le niveau a changé
             const firebaseLevel = data.level || 0;
             if (firebaseLevel !== level) {
               console.log(
@@ -1557,16 +1538,15 @@ mergeInto(LibraryManager.library, {
             );
           }
 
-          // Étape 2 : Mettre à jour Firebase avec les données blockchain + score existant
           const syncedData = {
-            walletAddress: normalizedAddress, // 🔧 SIMPLE FIX: Use normalized address
+            walletAddress: normalizedAddress,
             hasNFT: true,
-            level: level, // PRIORITÉ BLOCKCHAIN (champ moderne)
-            NFTlevel: level, // LEGACY COMPATIBILITY (ancien champ)
-            tokenId: nftTokenId, // PRIORITÉ BLOCKCHAIN
-            score: currentScore, // CONSERVÉ DE FIREBASE
+            level: level,
+            NFTlevel: level,
+            tokenId: nftTokenId,
+            score: currentScore,
             lastSyncTimestamp: Date.now(),
-            syncSource: "blockchain", // Indiquer que cette sync vient de la blockchain
+            syncSource: "blockchain",
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
           };
 
@@ -1581,12 +1561,11 @@ mergeInto(LibraryManager.library, {
             `[FIREBASE-SYNC] ✅ Firebase successfully synchronized with blockchain data`
           );
 
-          // Étape 3 : Retourner les données synchronisées à Unity
           const finalState = {
             hasNFT: true,
             level: level,
             tokenId: nftTokenId,
-            walletAddress: normalizedAddress, // 🔧 SIMPLE FIX: Use normalized address
+            walletAddress: normalizedAddress,
             score: currentScore,
           };
 
@@ -1603,13 +1582,12 @@ mergeInto(LibraryManager.library, {
         } catch (error) {
           console.error(`[FIREBASE-SYNC] ❌ Sync failed:`, error);
 
-          // En cas d'erreur, retourner les données blockchain avec score par défaut
           const fallbackState = {
             hasNFT: true,
             level: level,
             tokenId: nftTokenId,
-            walletAddress: normalizedAddress, // 🔧 SIMPLE FIX: Use normalized address
-            score: 100, // Score par défaut
+            walletAddress: normalizedAddress,
+            score: 100,
           };
 
           console.log(
@@ -1636,10 +1614,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // ✅ MÉTHODE SUPPRIMÉE : ConsumePointsDirectlyJS (redondante)
-  // Remplacée par CheckAndConsumePointsBeforeEvolutionJS pour un flux optimisé
-
-  // Méthode pour demander directement la signature d'évolution après consommation des points
   RequestEvolutionSignatureJS: function (
     walletAddressPtr,
     tokenId,
@@ -1655,7 +1629,6 @@ mergeInto(LibraryManager.library, {
     console.log(`[EVOL-DIRECT] Player points: ${playerPoints}`);
     console.log(`[EVOL-DIRECT] Target level: ${targetLevel}`);
 
-    // Appeler directement le serveur de signature
     fetch("http://localhost:3001/api/evolve-authorization", {
       method: "POST",
       headers: {
@@ -1711,22 +1684,20 @@ mergeInto(LibraryManager.library, {
       .catch((error) => {
         console.error(`[EVOL-DIRECT] ❌ Server error:`, error);
 
-        // Fallback to mock for development if server is down
         console.log(
           `[EVOL-DIRECT] Falling back to mock signature for development`
         );
 
-        // Calculate correct evolution cost based on target level
         const evolutionCosts = {
-          2: 2, // Level 1→2 = 2 points
-          3: 100, // Level 2→3 = 100 points (nouveau contrat)
-          4: 200, // Level 3→4 = 200 points (nouveau contrat)
-          5: 300, // Level 4→5 = 300 points (nouveau contrat)
-          6: 400, // Level 5→6 = 400 points (nouveau contrat)
-          7: 500, // Level 6→7 = 500 points (nouveau contrat)
-          8: 600, // Level 7→8 = 600 points (nouveau contrat)
-          9: 700, // Level 8→9 = 700 points (nouveau contrat)
-          10: 800, // Level 9→10 = 800 points (nouveau contrat)
+          2: 2,
+          3: 100,
+          4: 200,
+          5: 300,
+          6: 400,
+          7: 500,
+          8: 600,
+          9: 700,
+          10: 800,
         };
 
         const mockAuth = {
@@ -1734,10 +1705,10 @@ mergeInto(LibraryManager.library, {
           walletAddress: normalizedAddress,
           tokenId: tokenId,
           currentPoints: Number(playerPoints),
-          evolutionCost: evolutionCosts[targetLevel] || 0, // Coût dynamique
+          evolutionCost: evolutionCosts[targetLevel] || 0,
           targetLevel: targetLevel,
           nonce: Date.now(),
-          signature: "0x1234567890abcdef", // Mock signature
+          signature: "0x1234567890abcdef",
         };
 
         console.log(`[EVOL-DIRECT] 🔧 Using mock authorization:`, mockAuth);
@@ -1749,7 +1720,6 @@ mergeInto(LibraryManager.library, {
       });
   },
 
-  // � NOUVELLE FONCTION : Vérifier éligibilité SEULEMENT (sans consommation)
   CheckEvolutionEligibilityOnlyJS: function (
     walletAddressPtr,
     pointsRequired,
@@ -1794,7 +1764,6 @@ mergeInto(LibraryManager.library, {
                     `[EVOLUTION-CHECK] ✅ Eligibility confirmed - proceeding to evolution`
                   );
 
-                  // Call signature server for evolution authorization
                   fetch("http://localhost:3001/api/evolve-authorization", {
                     method: "POST",
                     headers: {
@@ -1859,7 +1828,6 @@ mergeInto(LibraryManager.library, {
                         error
                       );
 
-                      // Fallback to mock for development - use Unity NFT state
                       const unityNFTState = window.unityNFTState || {
                         level: 1,
                         tokenId: tokenId,
@@ -1945,7 +1913,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // 💰 NOUVELLE FONCTION : Consommer les points APRÈS succès blockchain
   ConsumePointsAfterSuccessJS: function (
     walletAddressPtr,
     pointsToConsume,
@@ -1987,7 +1954,6 @@ mergeInto(LibraryManager.library, {
                   `[POINTS-CONSUME] Score update: ${currentScore} - ${pointsToConsume} = ${newScore}`
                 );
 
-                // Update score and level atomically
                 transaction.update(userDocRef, {
                   score: newScore,
                   nftLevel: newLevel,
@@ -2009,7 +1975,6 @@ mergeInto(LibraryManager.library, {
               );
               console.log(`[POINTS-CONSUME] ✅ New score: ${result.newScore}`);
 
-              // Notify Unity of successful consumption
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
                   "ChogTanksNFTManager",
@@ -2026,7 +1991,6 @@ mergeInto(LibraryManager.library, {
             .catch((error) => {
               console.error("[POINTS-CONSUME] ❌ Transaction failed:", error);
 
-              // Notify Unity of consumption failure
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
                   "ChogTanksNFTManager",
@@ -2051,7 +2015,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // �🔄 NOUVELLE MÉTHODE : Vérifier et consommer les points AVANT l'évolution blockchain
   CheckAndConsumePointsBeforeEvolutionJS: function (
     walletAddressPtr,
     pointsRequired,
@@ -2091,13 +2054,11 @@ mergeInto(LibraryManager.library, {
                 );
               }
 
-              // Vérifier si l'utilisateur a assez de points
               if (currentScore >= pointsRequired) {
                 console.log(
                   `[PRE-EVOLUTION] ✅ Sufficient points (${currentScore} >= ${pointsRequired})`
                 );
 
-                // Consommer les points MAINTENANT
                 const newScore = Math.max(0, currentScore - pointsRequired);
                 console.log(
                   `[PRE-EVOLUTION] 💰 Consuming points: ${currentScore} - ${pointsRequired} = ${newScore}`
@@ -2119,7 +2080,6 @@ mergeInto(LibraryManager.library, {
                       `[PRE-EVOLUTION] ✅ Points consumed successfully`
                     );
 
-                    // Maintenant autoriser l'évolution blockchain
                     const result = {
                       success: true,
                       authorized: true,
@@ -2195,17 +2155,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // 🎯 SIMPLE : Détecter les VRAIES transactions réussies indépendamment des erreurs RPC
   SetupRealTransactionDetection: function () {
     try {
       console.log(
         "[REAL-TX] 🎯 Setting up REAL blockchain transaction detection..."
       );
 
-      // Méthode simple : Polling des receipts de transaction avec hash stocké
-      window.pendingTransactions = new Map(); // Stocker les transactions en attente
+      window.pendingTransactions = new Map();
 
-      // Fonction pour vérifier le receipt d'une transaction
       window.checkTransactionReceipt = async function (
         txHash,
         type = "unknown"
@@ -2215,7 +2172,6 @@ mergeInto(LibraryManager.library, {
             `[REAL-TX] 🔍 Checking receipt for transaction: ${txHash} (type: ${type})`
           );
 
-          // Utiliser le provider disponible
           let provider = null;
           if (window.appKit && window.appKit.getProvider) {
             provider = await window.appKit.getProvider();
@@ -2230,7 +2186,6 @@ mergeInto(LibraryManager.library, {
             return false;
           }
 
-          // Demander le receipt de transaction
           const receipt = await provider.request({
             method: "eth_getTransactionReceipt",
             params: [txHash],
@@ -2239,7 +2194,6 @@ mergeInto(LibraryManager.library, {
           if (receipt) {
             console.log(`[REAL-TX] 📋 Receipt found:`, receipt);
 
-            // Vérifier le statut (1 = success, 0 = failed)
             const success = receipt.status === "0x1" || receipt.status === 1;
 
             if (success) {
@@ -2247,7 +2201,6 @@ mergeInto(LibraryManager.library, {
                 `[REAL-TX] ✅ Transaction REALLY succeeded on blockchain: ${txHash}`
               );
 
-              // Déclencher les événements Unity selon le type
               if (type === "mint") {
                 console.log(`[REAL-TX] 🎆 Triggering OnMintTransactionSuccess`);
                 window.unityInstance.SendMessage(
@@ -2259,9 +2212,8 @@ mergeInto(LibraryManager.library, {
                 console.log(
                   `[REAL-TX] 🚀 Triggering OnEvolveTransactionSuccess`
                 );
-                // Pour l'évolution, on a besoin du niveau target aussi
                 const txData = window.pendingTransactions.get(txHash);
-                const targetLevel = txData ? txData.targetLevel : 2; // fallback
+                const targetLevel = txData ? txData.targetLevel : 2;
                 window.unityInstance.SendMessage(
                   "ChogTanksNFTManager",
                   "OnRealEvolveSuccess",
@@ -2272,7 +2224,6 @@ mergeInto(LibraryManager.library, {
                 );
               }
 
-              // Nettoyer les transactions en attente
               window.pendingTransactions.delete(txHash);
               return true;
             } else {
@@ -2284,7 +2235,7 @@ mergeInto(LibraryManager.library, {
             }
           } else {
             console.log(`[REAL-TX] ⏳ Transaction still pending: ${txHash}`);
-            return null; // Encore en attente
+            return null;
           }
         } catch (error) {
           console.error(
@@ -2295,21 +2246,18 @@ mergeInto(LibraryManager.library, {
         }
       };
 
-      // Fonction pour démarrer le monitoring d'une transaction
       window.monitorTransaction = function (txHash, type, extraData = {}) {
         console.log(
           `[REAL-TX] 👀 Starting to monitor transaction: ${txHash} (${type})`
         );
 
-        // Stocker les infos de la transaction
         window.pendingTransactions.set(txHash, {
           type: type,
           startTime: Date.now(),
           ...extraData,
         });
 
-        // Polling toutes les 3 secondes pendant 5 minutes max
-        const maxAttempts = 100; // 5 minutes
+        const maxAttempts = 100;
         let attempts = 0;
 
         const checkInterval = setInterval(async () => {
@@ -2318,10 +2266,8 @@ mergeInto(LibraryManager.library, {
           const result = await window.checkTransactionReceipt(txHash, type);
 
           if (result === true || result === false) {
-            // Transaction terminée (succès ou échec)
             clearInterval(checkInterval);
           } else if (attempts >= maxAttempts) {
-            // Timeout atteint
             console.log(
               `[REAL-TX] ⏰ Monitoring timeout for transaction: ${txHash}`
             );

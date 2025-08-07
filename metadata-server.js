@@ -3,11 +3,9 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3002;
 
-// Enable CORS for all origins
 app.use(cors());
 app.use(express.json());
 
-// Metadata template for each level
 const getMetadata = (level, tokenId) => {
     const levelData = {
         1: {
@@ -126,7 +124,6 @@ const getMetadata = (level, tokenId) => {
     return levelData[level] || levelData[1]; // Default to level 1 if not found
 };
 
-// Handle metadata requests
 app.get('/metadata/level:level/:tokenId.json', (req, res) => {
     const level = parseInt(req.params.level);
     const tokenId = parseInt(req.params.tokenId);
@@ -143,7 +140,6 @@ app.get('/metadata/level:level/:tokenId.json', (req, res) => {
     
     const metadata = getMetadata(level, tokenId);
     
-    // Add OpenSea compatibility
     metadata.external_url = `https://chogtanks.com/nft/${tokenId}`;
     metadata.background_color = "1a1a1a";
     
@@ -151,7 +147,6 @@ app.get('/metadata/level:level/:tokenId.json', (req, res) => {
     res.json(metadata);
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok', 
@@ -160,7 +155,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
     res.json({
         message: 'ChogTanks Metadata Server',

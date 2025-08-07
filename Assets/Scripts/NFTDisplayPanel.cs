@@ -36,7 +36,7 @@ public class AutoMintCheckResponse
 
 public class NFTDisplayPanel : MonoBehaviour
 {
-    // External JavaScript functions
+    
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern void DirectMintNFTJS(string walletAddress);
@@ -50,9 +50,7 @@ public class NFTDisplayPanel : MonoBehaviour
     public Button refreshButton;
     
     [Header("Simple NFT Buttons (Inside Panel)")]
-    [Tooltip("Container for simple NFT buttons inside the panel")]
     public Transform simpleButtonContainer;
-    [Tooltip("Optional: Prefab for simple NFT buttons")]
     public GameObject simpleButtonPrefab;
     private List<UnityEngine.UI.Button> simpleNFTButtons = new List<UnityEngine.UI.Button>();
     
@@ -68,15 +66,14 @@ public class NFTDisplayPanel : MonoBehaviour
         currentWalletAddress = newWalletAddress;
     }
     private ChogTanksNFTManager nftManager;
-    private bool isRefreshing = false; // Protection contre les appels multiples
-    private float lastRefreshTime = 0f; // Protection anti-spam
-    private const float MIN_REFRESH_INTERVAL = 2f; // Minimum 2 secondes entre refreshs
+    private bool isRefreshing = false; 
+    private float lastRefreshTime = 0f; 
+    private const float MIN_REFRESH_INTERVAL = 2f; 
 
     private void Start()
     {
         Debug.Log("[NFT-PANEL] NFTDisplayPanel Start() called");
         
-        // Connecter au NFTManager existant dans la scène
         nftManager = FindObjectOfType<ChogTanksNFTManager>();
         if (nftManager != null)
         {
@@ -87,13 +84,11 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.LogWarning("[NFT-PANEL] ⚠️ NFTManager non trouvé dans la scène");
         }
         
-        // NETTOYER LES BOUTONS NFT EXISTANTS AU DÉMARRAGE
         CleanupAllSimpleNFTButtons();
         
         if (refreshButton != null)
         {
             refreshButton.onClick.AddListener(RefreshNFTList);
-            Debug.Log("[NFT-PANEL] Refresh button listener added");
         }
         else
         {
@@ -105,15 +100,12 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public void ShowPanel(string walletAddress)
     {
-        Debug.Log($"[NFT-PANEL] ShowPanel called with wallet: {walletAddress}");
         
         currentWalletAddress = walletAddress;
         gameObject.SetActive(true);
         
-        // NETTOYER LES ANCIENS BOUTONS NFT AVANT D'AFFICHER LE PANEL
         CleanupAllSimpleNFTButtons();
         
-        // Auto-refresh when panel is shown
         RefreshNFTList();
     }
     
@@ -124,7 +116,6 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public async void RefreshNFTList()
     {
-        // 🚨 PROTECTION ANTI-SPAM : Limiter la fréquence des refreshs
         float currentTime = Time.time;
         if (currentTime - lastRefreshTime < MIN_REFRESH_INTERVAL)
         {
@@ -132,7 +123,6 @@ public class NFTDisplayPanel : MonoBehaviour
             return;
         }
         
-        // TOUJOURS récupérer la dernière adresse wallet (comme un refresh de page)
         string latestWallet = PlayerPrefs.GetString("walletAddress", "");
         if (!string.IsNullOrEmpty(latestWallet))
         {
@@ -148,7 +138,6 @@ public class NFTDisplayPanel : MonoBehaviour
             return;
         }
         
-        // Protection contre les appels multiples simultanés
         if (isRefreshing)
         {
             Debug.Log("[NFT-PANEL] RefreshNFTList already in progress, skipping duplicate call");
@@ -156,17 +145,15 @@ public class NFTDisplayPanel : MonoBehaviour
         }
         
         isRefreshing = true;
-        lastRefreshTime = currentTime; // Marquer le timestamp
+        lastRefreshTime = currentTime; 
         
         try
         {
             Debug.Log("[NFT-PANEL] Clearing existing NFT list and loading new data");
             
-            // Réinitialiser le status text pour le nouveau wallet
             UpdateStatus("Loading NFTs...");
             Debug.Log($"[NFT-PANEL] Status reset for wallet: {currentWalletAddress}");
             
-            // Nettoyer les boutons NFT simples pour assurer la cohérence avec le nouveau wallet
             ClearSimpleNFTButtons();
             
             ClearNFTList();
@@ -222,7 +209,6 @@ public class NFTDisplayPanel : MonoBehaviour
     {
         Debug.Log($"[NFT-PANEL] 🎯 DisplayNFTItems called with {playerNFTs.Count} NFTs");
         
-        // 🔍 DEBUG CRITIQUE: Vérifier l'état de playerNFTs
         if (playerNFTs == null)
         {
             Debug.LogError("[NFT-PANEL] ❌ CRITICAL: playerNFTs is NULL!");
@@ -235,19 +221,16 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.Log($"[NFT-PANEL] 🔍 playerNFTs[{i}]: Token #{playerNFTs[i].tokenId}, Level {playerNFTs[i].level}");
         }
         
-        // � VALIDATION CRITIQUE DU CONTAINER
         Debug.Log($"[NFT-PANEL] 🔍 === CONTAINER VALIDATION ===");
         Debug.Log($"[NFT-PANEL] Container name: {nftContainer.name}");
         Debug.Log($"[NFT-PANEL] Container children BEFORE clear: {nftContainer.childCount}");
         
-        // Lister tous les enfants existants
         for (int i = 0; i < nftContainer.childCount; i++)
         {
             var child = nftContainer.GetChild(i);
             Debug.LogWarning($"[NFT-PANEL] ⚠️ BLOCKING ELEMENT FOUND: '{child.name}' - This will be REMOVED!");
         }
         
-        // �🔍 DIAGNOSTIC COMPLET
         if (!DiagnoseDisplaySetup())
         {
             Debug.LogError("[NFT-PANEL] ❌ Display setup invalid, using fallback method");
@@ -257,18 +240,15 @@ public class NFTDisplayPanel : MonoBehaviour
         
         Debug.Log($"[NFT-PANEL] Container children before creation: {nftContainer.childCount}");
         
-        // 🧹 NETTOYER LES ANCIENS ÉLÉMENTS (CRITIQUE!)
         Debug.Log($"[NFT-PANEL] 🧹 === CLEARING CONTAINER COMPLETELY ===");
         ClearNFTList();
         
-        // Vérification après nettoyage
         Debug.Log($"[NFT-PANEL] Container children AFTER clear: {nftContainer.childCount}");
         if (nftContainer.childCount > 0)
         {
             Debug.LogError($"[NFT-PANEL] ❌ CRITICAL: Container still has {nftContainer.childCount} children after clear!");
             Debug.LogError($"[NFT-PANEL] ❌ Manual elements in Inspector are BLOCKING dynamic content!");
             
-            // Force clear tout
             for (int i = nftContainer.childCount - 1; i >= 0; i--)
             {
                 var child = nftContainer.GetChild(i);
@@ -296,10 +276,8 @@ public class NFTDisplayPanel : MonoBehaviour
         
         Debug.Log($"[NFT-PANEL] 🎉 FINAL RESULT: {itemsCreated}/{playerNFTs.Count} NFT items created. Container children: {nftContainer.childCount}");
         
-        // 🔍 VÉRIFICATION FINALE
         VerifyCreatedItems();
         
-        // 🚨 DIAGNOSTIC FINAL CRITIQUE
         Debug.Log($"[NFT-PANEL] 🔍 === FINAL CONTAINER STATE ===");
         for (int i = 0; i < nftContainer.childCount; i++)
         {
@@ -329,23 +307,19 @@ public class NFTDisplayPanel : MonoBehaviour
         GameObject nftItem = Instantiate(nftItemPrefab, nftContainer);
         nftItem.name = $"NFTItem_Token{nft.tokenId}_Level{nft.level}";
         
-        // � FORCER L'AFFICHAGE AU PREMIER PLAN IMMÉDIATEMENT
         nftItem.SetActive(true);
-        nftItem.transform.SetAsLastSibling(); // Premier plan dans le container
+        nftItem.transform.SetAsLastSibling(); 
         
         Debug.Log($"[NFT-PANEL] ✅ GameObject created: {nftItem.name}, Active: {nftItem.activeInHierarchy}");
         
-        // 🎯 CHOISIR CLAIREMENT LES ÉLÉMENTS À AFFICHER
         Debug.Log($"[NFT-PANEL] 🔍 Configuring display elements...");
         
-        // Chercher les composants principaux
         var nftImage = nftItem.transform.Find("NFTImage")?.GetComponent<Image>();
         var levelText = nftItem.transform.Find("LevelText")?.GetComponent<TextMeshProUGUI>();
         var evolveButton = nftItem.transform.Find("EvolveButton")?.GetComponent<Button>();
         
         Debug.Log($"[NFT-PANEL] � Elements found - Image: {(nftImage != null ? "✅" : "❌")}, Text: {(levelText != null ? "✅" : "❌")}, Button: {(evolveButton != null ? "✅" : "❌")}");
         
-        // 🎨 CONFIGURER L'IMAGE NFT
         if (nftImage != null)
         {
             SetNFTImage(nftImage, nft.level);
@@ -357,7 +331,6 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.LogWarning($"[NFT-PANEL] ⚠️ NFTImage not found - element will have no image");
         }
         
-        // 📝 CONFIGURER LE TEXTE DE NIVEAU
         if (levelText != null)
         {
             levelText.text = $"TANK #{nft.tokenId}\nLevel {nft.level}";
@@ -371,7 +344,6 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.LogWarning($"[NFT-PANEL] ⚠️ LevelText not found - element will have no text");
         }
         
-        // 🔘 CONFIGURER LE BOUTON D'ÉVOLUTION
         if (evolveButton != null)
         {
             evolveButton.gameObject.SetActive(true);
@@ -402,11 +374,9 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.LogWarning($"[NFT-PANEL] ⚠️ EvolveButton not found - element will have no button");
         }
         
-        // 🎯 FORCER LA TAILLE ET POSITION POUR VISIBILITÉ
         var rectTransform = nftItem.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
-            // 🚨 WEBGL FIX: Position absolue et taille forcée
             #if UNITY_WEBGL && !UNITY_EDITOR
             Vector2 webglPosition = new Vector2(50, 400 - (nftContainer.childCount * 100)); // Position absolue visible
             Vector2 webglSize = new Vector2(350, 80); // Taille plus grande pour WebGL
@@ -419,7 +389,6 @@ public class NFTDisplayPanel : MonoBehaviour
             
             Debug.Log($"[NFT-PANEL] 🚨 WEBGL FIX: Element positioned at ABSOLUTE {webglPosition} with size {webglSize}");
             #else
-            // Position normale pour Editor
             rectTransform.anchoredPosition = new Vector2(0, -(nftContainer.childCount * 160));
             rectTransform.sizeDelta = new Vector2(200, 150);
             Debug.Log($"[NFT-PANEL] ✅ Element positioned at (0, {-(nftContainer.childCount * 160)}) with size 200x150");
@@ -430,7 +399,6 @@ public class NFTDisplayPanel : MonoBehaviour
         Debug.Log($"[NFT-PANEL] 📍 Position: {rectTransform.anchoredPosition}, Size: {rectTransform.sizeDelta}, Active: {nftItem.activeInHierarchy}");
         Debug.Log($"[NFT-PANEL] 🔢 Container now has {nftContainer.childCount} children");
         
-        // 🚨 WEBGL FIX: Forcer le refresh du Canvas après chaque création
         #if UNITY_WEBGL && !UNITY_EDITOR
         StartCoroutine(ForceWebGLCanvasRefresh());
         #endif
@@ -448,7 +416,6 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.Log($"[NFT-PANEL] Calling RequestEvolutionForSelectedNFT for token #{tokenId}");
             nftManager.RequestEvolutionForSelectedNFT();
             
-            // 🎯 GARDER LE PANEL OUVERT - plus de fermeture automatique
             Debug.Log($"[NFT-PANEL] Evolution request sent, panel stays open for continuous use");
         }
         else
@@ -457,12 +424,10 @@ public class NFTDisplayPanel : MonoBehaviour
         }
     }
     
-    // 🎯 MÉTHODE PUBLIQUE : Rafraîchir le panel après évolution réussie
     public void RefreshAfterEvolution()
     {
         Debug.Log($"[NFT-PANEL] RefreshAfterEvolution called - auto refresh with delay");
         
-        // 🎯 SOLUTION SIMPLE : Refresh automatique avec délai court et protection
         if (isRefreshing)
         {
             Debug.Log($"[NFT-PANEL] Already refreshing, skipping auto refresh");
@@ -471,23 +436,19 @@ public class NFTDisplayPanel : MonoBehaviour
         
         UpdateStatus("Evolution completed! Updating display...");
         
-        // Délai court pour laisser le temps à la blockchain de se synchroniser
         StartCoroutine(DelayedAutoRefresh());
     }
     
     private System.Collections.IEnumerator DelayedAutoRefresh()
     {
-        // Attendre 2 secondes pour la synchronisation blockchain
         yield return new WaitForSeconds(2f);
         
         Debug.Log($"[NFT-PANEL] Starting auto refresh after evolution");
         RefreshNFTList();
         
-        // Message de confirmation
         yield return new WaitForSeconds(1f);
         UpdateStatus("NFT display updated!");
         
-        // Effacer le message après 3 secondes
         yield return new WaitForSeconds(3f);
         UpdateStatus("");
     }
@@ -509,18 +470,17 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private uint GetEvolutionCost(uint currentLevel)
     {
-        // ✅ CORRECTION : Coûts alignés sur le contrat ChogTanksNFTv2
         var costs = new Dictionary<uint, uint>
         {
-            {1, 2},   // Level 1→2 = 2 points
-            {2, 100}, // Level 2→3 = 100 points
-            {3, 200}, // Level 3→4 = 200 points
-            {4, 300}, // Level 4→5 = 300 points
-            {5, 400}, // Level 5→6 = 400 points
-            {6, 500}, // Level 6→7 = 500 points
-            {7, 600}, // Level 7→8 = 600 points
-            {8, 700}, // Level 8→9 = 700 points
-            {9, 800}  // Level 9→10 = 800 points
+            {1, 2},
+            {2, 100},
+            {3, 200},
+            {4, 300},
+            {5, 400},
+            {6, 500},
+            {7, 600},
+            {8, 700},
+            {9, 800}
         };
         
         return costs.ContainsKey(currentLevel) ? costs[currentLevel] : 0;
@@ -534,7 +494,6 @@ public class NFTDisplayPanel : MonoBehaviour
         {
             Transform child = nftContainer.GetChild(i);
             
-            // PROTECTION: Ne pas détruire les boutons NFT simples
             if (child.name.StartsWith("SimpleNFT_Button_"))
             {
                 Debug.Log($"[NFT-PANEL] 🔒 PROTECTING simple NFT button: {child.name}");
@@ -566,10 +525,8 @@ public class NFTDisplayPanel : MonoBehaviour
             nftToUpdate.canEvolve = newLevel < 10;
             nftToUpdate.evolutionCost = GetEvolutionCost((uint)newLevel);
             
-            // 🚨 NE PAS DÉCLENCHER RefreshNFTList ici pour éviter la récursion
             Debug.Log($"[NFT-PANEL] NFT #{tokenId} data updated locally (no refresh to avoid recursion)");
             
-            // Mettre à jour seulement l'affichage sans refresh complet
             UpdateStatus($"NFT #{tokenId} evolved to level {newLevel}");
         }
         else
@@ -650,7 +607,7 @@ public class NFTDisplayPanel : MonoBehaviour
                                 {
                                     Debug.Log($"[NFT-LIST] Reading level for token #{tokenId}");
                                     
-                                    int level = 1; // Default level for NFTs without getLevel function
+                                    int level = 1; 
                                     
                                     try
                                     {
@@ -720,7 +677,6 @@ public class NFTDisplayPanel : MonoBehaviour
             {
                 Debug.Log($"[NFT-LIST] No NFTs found for wallet {walletAddress}");
                 
-                // 🎯 AUTO-MINT LOGIC: Si 0 NFT + jamais minté → mint automatique
                 Debug.Log($"[NFT-LIST] 🎆 AUTO-MINT: No NFTs found, checking Firebase for mint history...");
                 UpdateStatus("No NFTs found - Checking mint history...");
                 CheckAutoMintEligibility(walletAddress);
@@ -729,13 +685,11 @@ public class NFTDisplayPanel : MonoBehaviour
             {
                 Debug.Log($"[NFT-LIST] Displaying {allNFTs.Count} NFT items in UI");
                 
-                // 🎯 FIX: Synchroniser Firebase avec la réalité blockchain
                 SyncFirebaseWithBlockchainData(walletAddress, allNFTs);
                 
                 DisplayNFTItems();
                 UpdateStatus($"Found {allNFTs.Count} NFTs");
                 
-                // CRÉER LES BOUTONS NFT SIMPLES DANS LE PANEL
                 CreateSimpleNFTButtonsInPanel(allNFTs.Count);
             }
             
@@ -749,10 +703,6 @@ public class NFTDisplayPanel : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Synchronise Firebase avec les données réelles de la blockchain
-    /// Détecte les transferts entrants et met à jour Firebase si nécessaire
-    /// </summary>
     private void SyncFirebaseWithBlockchainData(string walletAddress, List<NFTDisplayItem> blockchainNFTs)
     {
         if (blockchainNFTs == null || blockchainNFTs.Count == 0)
@@ -761,26 +711,22 @@ public class NFTDisplayPanel : MonoBehaviour
             return;
         }
         
-        // Trouver le NFT avec le plus haut niveau (comme fait le système principal)
         var highestNFT = blockchainNFTs.OrderByDescending(nft => nft.level).First();
         
         Debug.Log($"[FIREBASE-SYNC] 🔍 Blockchain reality for wallet {walletAddress}:");
         Debug.Log($"[FIREBASE-SYNC] - Highest NFT: Token #{highestNFT.tokenId}, Level {highestNFT.level}");
         Debug.Log($"[FIREBASE-SYNC] - Total NFTs: {blockchainNFTs.Count}");
         
-        // 🎯 Forcer la synchronisation Firebase avec ces données réelles
         if (nftManager != null)
         {
             Debug.Log($"[FIREBASE-SYNC] 🔄 Forcing Firebase sync via NFTManager...");
             
-            // Utiliser la méthode existante de synchronisation
 #if UNITY_WEBGL && !UNITY_EDITOR
             ChogTanksNFTManager.SyncNFTLevelWithFirebaseJS(walletAddress, (int)highestNFT.level, (int)highestNFT.tokenId);
 #else
             Debug.Log($"[FIREBASE-SYNC] Editor mode: would sync Level {highestNFT.level}, Token {highestNFT.tokenId}");
 #endif
             
-            // Aussi mettre à jour l'état local du NFTManager si possible
             try
             {
                 nftManager.currentNFTState.level = (int)highestNFT.level;
@@ -800,10 +746,6 @@ public class NFTDisplayPanel : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Détermine si le wallet n'a jamais minté de NFT (première fois)
-    /// Utilise Firebase hasMintedNFT au lieu de PlayerPrefs
-    /// </summary>
     private void CheckAutoMintEligibility(string walletAddress)
     {
         if (string.IsNullOrEmpty(walletAddress))
@@ -814,11 +756,9 @@ public class NFTDisplayPanel : MonoBehaviour
             
         Debug.Log($"[AUTO-MINT] 🔍 Checking mint history for {walletAddress} via Firebase");
         
-        // ✅ NOUVEAU : Utiliser la fonction Firebase pour vérifier hasMintedNFT
 #if UNITY_WEBGL && !UNITY_EDITOR
         ChogTanksNFTManager.CheckHasMintedNFTJS(walletAddress);
 #else
-        // Pour l'éditeur, simuler une réponse
         var simulatedResult = new {
             walletAddress = walletAddress.ToLowerInvariant(),
             hasMintedNFT = false,
@@ -828,9 +768,6 @@ public class NFTDisplayPanel : MonoBehaviour
 #endif
     }
     
-    /// <summary>
-    /// Callback pour recevoir la réponse de CheckHasMintedNFTJS
-    /// </summary>
     public void OnHasMintedNFTChecked(string jsonResponse)
     {
         try
@@ -863,9 +800,6 @@ public class NFTDisplayPanel : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Déclenche le mint automatique via appel direct
-    /// </summary>
     private void TriggerAutoMint()
     {
         string walletAddress = PlayerPrefs.GetString("walletAddress", "");
@@ -878,11 +812,8 @@ public class NFTDisplayPanel : MonoBehaviour
         
         Debug.Log($"[AUTO-MINT] Triggering automatic mint for wallet: {walletAddress}");
         
-        // NOTE: Le champ hasMintedNFT sera automatiquement mis à true dans Firebase
-        // par MarkMintSuccessJS() quand le mint réussira
         Debug.Log($"[AUTO-MINT] hasMintedNFT will be set to true in Firebase upon successful mint");
         
-        // Appel direct sans dépendance au NFTManager
 #if UNITY_WEBGL && !UNITY_EDITOR
         DirectMintNFTJS(walletAddress);
 #else
@@ -890,16 +821,12 @@ public class NFTDisplayPanel : MonoBehaviour
 #endif
     }
     
-    /// <summary>
-    /// Diagnostic complet de la configuration d'affichage
-    /// </summary>
     private bool DiagnoseDisplaySetup()
     {
         Debug.Log($"[NFT-PANEL] 🔍 === DIAGNOSTIC DISPLAY SETUP ===");
         
         bool isValid = true;
         
-        // Vérifier le container
         if (nftContainer == null)
         {
             Debug.LogError("[NFT-PANEL] ❌ nftContainer is NULL - assign it in Inspector!");
@@ -912,7 +839,6 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.Log($"[NFT-PANEL] Container active: {nftContainer.gameObject.activeInHierarchy}");
         }
         
-        // Vérifier le prefab
         if (nftItemPrefab == null)
         {
             Debug.LogError("[NFT-PANEL] ❌ nftItemPrefab is NULL - assign it in Inspector!");
@@ -923,7 +849,6 @@ public class NFTDisplayPanel : MonoBehaviour
             Debug.Log($"[NFT-PANEL] ✅ nftItemPrefab found: {nftItemPrefab.name}");
             Debug.Log($"[NFT-PANEL] Prefab active: {nftItemPrefab.activeInHierarchy}");
             
-            // Vérifier les composants du prefab
             var rectTransform = nftItemPrefab.GetComponent<RectTransform>();
             if (rectTransform != null)
             {
@@ -939,9 +864,6 @@ public class NFTDisplayPanel : MonoBehaviour
         return isValid;
     }
     
-    /// <summary>
-    /// Méthode de fallback si l'affichage normal échoue
-    /// </summary>
     private void DisplayNFTItemsFallback()
     {
         Debug.Log($"[NFT-PANEL] 🆘 FALLBACK: Creating simple text display for {playerNFTs.Count} NFTs");
@@ -964,9 +886,6 @@ public class NFTDisplayPanel : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Vérification finale des éléments créés
-    /// </summary>
     private void VerifyCreatedItems()
     {
         Debug.Log($"[NFT-PANEL] 🔍 === VERIFICATION FINALE ===");
@@ -987,7 +906,6 @@ public class NFTDisplayPanel : MonoBehaviour
             {
                 Debug.Log($"[NFT-PANEL] Child {i}: {child.name}, Active: {child.gameObject.activeInHierarchy}, Position: {child.localPosition}");
                 
-                // Vérifier la visibilité
                 var rectTransform = child.GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {
@@ -1016,8 +934,6 @@ public class NFTDisplayPanel : MonoBehaviour
         Canvas.ForceUpdateCanvases();
     }
     
-    // ========== BOUTONS NFT SIMPLES DANS LE PANEL ==========
-    
     private void CreateSimpleNFTButtonsInPanel(int nftCount)
     {
         Debug.Log($"[NFT-PANEL] 🎯 Creating {nftCount} simple NFT buttons inside panel");
@@ -1027,7 +943,6 @@ public class NFTDisplayPanel : MonoBehaviour
         if (simpleButtonContainer == null)
         {
             Debug.LogWarning("[NFT-PANEL] ⚠️ simpleButtonContainer is null - using nftContainer as fallback");
-            // Utiliser nftContainer comme fallback si simpleButtonContainer n'est pas assigné
             if (nftContainer != null)
             {
                 CreateSimpleButtonsInContainer(nftContainer, nftCount);
@@ -1052,12 +967,11 @@ public class NFTDisplayPanel : MonoBehaviour
     {
         GameObject buttonObj = null;
         
-        // Utiliser le prefab si disponible, sinon créer un bouton basique
         if (simpleButtonPrefab != null)
         {
             Debug.Log($"[NFT-PANEL] 🎨 Using prefab for simple NFT #{nftIndex}");
             buttonObj = Instantiate(simpleButtonPrefab, container);
-            buttonObj.name = $"SimpleNFT_Button_{nftIndex}"; // NOM IMPORTANT pour la protection
+            buttonObj.name = $"SimpleNFT_Button_{nftIndex}";
         }
         else
         {
@@ -1065,20 +979,16 @@ public class NFTDisplayPanel : MonoBehaviour
             buttonObj = CreateBasicSimpleButton(container, nftIndex);
         }
         
-        // Configurer le bouton
         var button = buttonObj.GetComponent<UnityEngine.UI.Button>();
         if (button == null)
         {
             button = buttonObj.AddComponent<UnityEngine.UI.Button>();
         }
         
-        // Personnaliser le texte
         CustomizeSimpleButtonText(buttonObj, nftIndex);
         
-        // Positionner le bouton dans le panel
         PositionSimpleButton(buttonObj, nftIndex);
         
-        // Ajouter l'action de clic
         int tokenIndex = nftIndex;
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() => OnSimpleNFTButtonClickedInPanel(tokenIndex));
@@ -1090,15 +1000,13 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private GameObject CreateBasicSimpleButton(Transform container, int nftIndex)
     {
-        GameObject buttonObj = new GameObject($"SimpleNFT_Button_{nftIndex}"); // NOM IMPORTANT
+        GameObject buttonObj = new GameObject($"SimpleNFT_Button_{nftIndex}");
         buttonObj.transform.SetParent(container, false);
         
-        // Ajouter les composants de base
         var button = buttonObj.AddComponent<UnityEngine.UI.Button>();
         var image = buttonObj.AddComponent<UnityEngine.UI.Image>();
-        image.color = new Color(0.2f, 0.8f, 0.2f, 0.9f); // Vert vif pour distinguer
+        image.color = new Color(0.2f, 0.8f, 0.2f, 0.9f); 
         
-        // Créer le texte
         GameObject textObj = new GameObject("Text");
         textObj.transform.SetParent(buttonObj.transform, false);
         
@@ -1108,7 +1016,6 @@ public class NFTDisplayPanel : MonoBehaviour
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
         
-        // Configurer le RectTransform du texte
         var textRect = textObj.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
@@ -1120,21 +1027,18 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private void CustomizeSimpleButtonText(GameObject buttonObj, int nftIndex)
     {
-        // Récupérer le vrai tokenId du NFT au lieu d'utiliser l'index séquentiel
         if (nftIndex <= 0 || nftIndex > playerNFTs.Count)
         {
             Debug.LogError($"[NFT-PANEL] ❌ Invalid nftIndex {nftIndex} for {playerNFTs.Count} NFTs");
             return;
         }
         
-        var nft = playerNFTs[nftIndex - 1]; // Convertir index 1-based vers 0-based
+        var nft = playerNFTs[nftIndex - 1];
         uint realTokenId = nft.tokenId;
-        int nftLevel = (int)nft.level; // Cast explicite uint → int
+        int nftLevel = (int)nft.level;
         
-        // Texte avec tokenId ET niveau pour faciliter le debug
         string buttonText = $"NFT #{realTokenId}\nLvl {nftLevel}";
         
-        // Chercher TextMeshProUGUI dans le bouton
         var textComponents = buttonObj.GetComponentsInChildren<TextMeshProUGUI>();
         if (textComponents.Length > 0)
         {
@@ -1143,7 +1047,6 @@ public class NFTDisplayPanel : MonoBehaviour
         }
         else
         {
-            // Fallback pour Text legacy
             var legacyText = buttonObj.GetComponentsInChildren<UnityEngine.UI.Text>();
             if (legacyText.Length > 0)
             {
@@ -1158,9 +1061,8 @@ public class NFTDisplayPanel : MonoBehaviour
         var rectTransform = buttonObj.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
-            // Position dans le panel - layout horizontal avec espacement amélioré
-            rectTransform.sizeDelta = new Vector2(120, 40); // Taille normale
-            rectTransform.anchoredPosition = new Vector2((nftIndex - 1) * 280, -50); // Espacement augmenté
+            rectTransform.sizeDelta = new Vector2(120, 40); 
+            rectTransform.anchoredPosition = new Vector2((nftIndex - 1) * 280, -50);
             
             Debug.Log($"[NFT-PANEL] 📍 Positioned simple NFT #{nftIndex} at {rectTransform.anchoredPosition} in panel");
         }
@@ -1183,36 +1085,29 @@ public class NFTDisplayPanel : MonoBehaviour
     
     private void OnSimpleNFTButtonClickedInPanel(int nftIndex)
     {
-        // Récupérer le vrai tokenId du NFT cliqué
         if (nftIndex <= 0 || nftIndex > playerNFTs.Count)
         {
             Debug.LogError($"[NFT-PANEL] ❌ Invalid nftIndex {nftIndex} for {playerNFTs.Count} NFTs");
             return;
         }
         
-        var selectedNFT = playerNFTs[nftIndex - 1]; // Convertir index 1-based vers 0-based
+        var selectedNFT = playerNFTs[nftIndex - 1];
         uint realTokenId = selectedNFT.tokenId;
         
         Debug.Log($"[NFT-PANEL] 🖱️ Simple NFT #{realTokenId} button clicked in panel (tokenId={realTokenId}, level={selectedNFT.level})");
         
-        // Action : sélectionner le NFT et mettre à jour le statut
         UpdateStatus($"Selected NFT #{realTokenId} (Level {selectedNFT.level}) for evolution");
         
-        // Déclencher l'évolution directement pour CE tokenId spécifique
         Debug.Log($"[NFT-PANEL] 🎯 Triggering evolution for NFT #{realTokenId} (Level {selectedNFT.level} → {selectedNFT.level + 1})");
         EvolveNFT(realTokenId, selectedNFT.level + 1);
     }
-    
-    // ========== NETTOYAGE GLOBAL DES BOUTONS NFT ==========
     
     public void CleanupAllSimpleNFTButtons()
     {
         Debug.Log($"[NFT-PANEL] 🧹 CLEANUP: Searching for ALL simple NFT buttons in scene to clean up");
         
-        // Nettoyer les boutons dans notre liste
         ClearSimpleNFTButtons();
         
-        // Chercher et nettoyer TOUS les boutons NFT dans la scène (déchets)
         var allButtons = FindObjectsOfType<UnityEngine.UI.Button>(true);
         int cleanedCount = 0;
         
@@ -1236,7 +1131,6 @@ public class NFTDisplayPanel : MonoBehaviour
     {
         Debug.Log($"[NFT-PANEL] HidePanel called - cleaning up NFT buttons");
         
-        // Nettoyer les boutons quand le panel se ferme
         ClearSimpleNFTButtons();
         
         gameObject.SetActive(false);

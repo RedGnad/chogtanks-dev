@@ -32,29 +32,30 @@ public class KillNotificationManager : MonoBehaviourPunCallbacks
             Destroy(this.gameObject);
             return;
         }
-        
+
         _instance = this;
         DontDestroyOnLoad(this.gameObject);
-        
-        if (killNotificationText == null)
-        {
-            LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
-            if (lobbyUI != null)
-                killNotificationText = lobbyUI.killFeedText;
-        }
-        
+
+        CacheLobbyUIReference();
+
         if (killNotificationText != null)
             killNotificationText.gameObject.SetActive(false);
     }
-    
-    private void Start()
+
+    private void CacheLobbyUIReference()
     {
-        if (killNotificationText == null && cachedLobbyUI == null)
+        if (cachedLobbyUI == null)
         {
             cachedLobbyUI = FindObjectOfType<LobbyUI>();
-            if (cachedLobbyUI != null)
-                killNotificationText = cachedLobbyUI.killFeedText;
         }
+        
+        if (killNotificationText == null && cachedLobbyUI != null)
+        {
+            killNotificationText = cachedLobbyUI.killFeedText;
+        }
+    }    private void Start()
+    {
+        CacheLobbyUIReference();
     }
     
     public void SetKillNotificationText(TMP_Text text)
@@ -112,9 +113,7 @@ public class KillNotificationManager : MonoBehaviourPunCallbacks
         
         if (killNotificationText == null)
         {
-            LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
-            if (lobbyUI != null)
-                killNotificationText = lobbyUI.killFeedText;
+            CacheLobbyUIReference();
         }
         
         while (notificationQueue.Count > 0)

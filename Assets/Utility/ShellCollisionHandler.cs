@@ -19,16 +19,34 @@ public class ShellCollisionHandler : MonoBehaviourPun
     [SerializeField] private Sprite normalSprite;
     [SerializeField] private Sprite precisionSprite;
 
+    [Header("Trail Settings")]
+    [SerializeField] private TrailRenderer trailRenderer;
+    [SerializeField] private Color normalTrailColor = Color.blue;
+    [SerializeField] private Color precisionTrailColor = Color.red;
+    [SerializeField] private float normalTrailWidth = 0.1f;
+    [SerializeField] private float precisionTrailWidth = 0.2f;
+    [SerializeField] private float normalTrailTime = 0.3f;
+    [SerializeField] private float precisionTrailTime = 0.6f;
+
     private SpriteRenderer sr;
     private float explosionDamage;
-    private bool isPrecisionShot = false; 
+    private bool isPrecisionShot = false;
+    
+    private int shooterActorNumber = -1;
+    private float spawnTime; 
 
     private void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
+        if (trailRenderer == null) trailRenderer = GetComponent<TrailRenderer>();
+        
+        spawnTime = Time.time;
+        
         if (normalSprite != null && sr != null)
             sr.sprite = normalSprite;
-        explosionDamage = normalDamage; // Par défaut
+            
+        SetupTrail(false);
+        explosionDamage = normalDamage; 
     }
 
     [PunRPC]
@@ -42,11 +60,51 @@ public class ShellCollisionHandler : MonoBehaviourPun
 
         explosionDamage = isPrecision ? precisionDamage : normalDamage;
         isPrecisionShot = isPrecision;
+        
+        SetupTrail(isPrecision);
+    }
+    
+    [PunRPC]
+    public void SetShooter(int actorNumber)
+    {
+        shooterActorNumber = actorNumber;
+    }
+    
+    private void SetupTrail(bool isPrecision)
+    {
+        if (trailRenderer == null) return;
+        
+        if (isPrecision)
+        {
+            trailRenderer.startColor = precisionTrailColor;
+            trailRenderer.endColor = new Color(precisionTrailColor.r, precisionTrailColor.g, precisionTrailColor.b, 0f);
+            trailRenderer.startWidth = precisionTrailWidth;
+            trailRenderer.endWidth = precisionTrailWidth * 0.3f;
+            trailRenderer.time = precisionTrailTime;
+        }
+        else
+        {
+            trailRenderer.startColor = normalTrailColor;
+            trailRenderer.endColor = new Color(normalTrailColor.r, normalTrailColor.g, normalTrailColor.b, 0f);
+            trailRenderer.startWidth = normalTrailWidth;
+            trailRenderer.endWidth = normalTrailWidth * 0.3f;
+            trailRenderer.time = normalTrailTime;
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (!photonView.IsMine) return;
+
+        if (Time.time - spawnTime < 0.3f && shooterActorNumber != -1)
+        {
+            TankHealth2D health = collision.collider.GetComponentInParent<TankHealth2D>();
+            if (health != null && health.photonView.Owner != null && 
+                health.photonView.Owner.ActorNumber == shooterActorNumber)
+            {
+                return; 
+            }
+        }
 
         int layerMaskCollision = 1 << collision.gameObject.layer;
         bool isValid = (layerMaskCollision & collisionLayers) != 0;
@@ -68,12 +126,10 @@ public class ShellCollisionHandler : MonoBehaviourPun
             
             if (isSelfDamage) continue;
             
-            // Vérifier le bouclier
             TankShield tankShield = health.GetComponent<TankShield>();
             if (tankShield != null && tankShield.IsShieldActive() && !isPrecisionShot)
             {
-                Debug.Log($"Damage blocked by {tankOwner}'s shield!");
-                continue; // Le bouclier bloque les tirs normaux seulement
+                continue; 
             }
             
             int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;

@@ -112,13 +112,11 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
 
     private System.Collections.IEnumerator ReturnToLobbyAfterDelay(int seconds)
     {
-        // Empêcher tout respawn dès maintenant, avant même le countdown
         if (GameManager.Instance != null)
         {
             GameManager.Instance.SetGameOver();
         }
         
-        Debug.Log($"[PHOTON] Retour lobby dans {seconds} secondes...");
         yield return new WaitForSeconds(seconds);
         
         LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();

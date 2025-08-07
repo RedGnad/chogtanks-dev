@@ -3,7 +3,7 @@ using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 
-[DefaultExecutionOrder(-1000)] // Priorité MAXIMALE pour s'exécuter avant tous les autres scripts
+[DefaultExecutionOrder(-1000)] 
 public class TankComponentAdder : MonoBehaviourPunCallbacks
 {
     [SerializeField] private GameObject gameOverUIPrefab;
@@ -90,7 +90,7 @@ public class TankComponentAdder : MonoBehaviourPunCallbacks
                 }
             }
             
-            yield return new WaitForSeconds(0.2f); // Vérification plus fréquente (5 fois par seconde)
+            yield return new WaitForSeconds(1.0f); 
         }
     }
     

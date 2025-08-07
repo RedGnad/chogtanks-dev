@@ -61,9 +61,9 @@ app.post('/api/evolve-authorization', async (req, res) => {
         }
 
         const evolutionCosts = {
-            2: 2,   // ✅ Niveau 1→2 coûte 2 points (comme dans le contrat)
-            3: 100, // Niveau 2→3 coûte 100 points (nouveau contrat ChogTanks.sol)
-            4: 200, 5: 300, 6: 400,  // Réduction de 100 points sur chaque niveau
+            2: 2,   
+            3: 100, 
+            4: 200, 5: 300, 6: 400,  
             7: 500, 8: 600, 9: 700, 10: 800
         };
         
@@ -99,7 +99,7 @@ app.post('/api/evolve-authorization', async (req, res) => {
     }
 });
 
-// Endpoint /api/consume-points supprimé - consommation directe Firebase côté Unity
+
 
 app.listen(port, () => {
     console.log(`Signature server running on port ${port}`);

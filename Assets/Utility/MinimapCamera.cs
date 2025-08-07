@@ -35,7 +35,7 @@ public class MinimapCamera : MonoBehaviour
     
     private void Start()
     {
-        InvokeRepeating(nameof(CheckForTanks), 0f, 0.5f);
+        InvokeRepeating(nameof(CheckForTanks), 0f, 2.0f); 
     }
     
     private void CheckForTanks()
@@ -78,7 +78,7 @@ public class MinimapCamera : MonoBehaviour
         playerTarget = null;
         
         CancelInvoke(nameof(FindPlayerTarget));
-        InvokeRepeating(nameof(FindPlayerTarget), 0f, 0.2f);
+        InvokeRepeating(nameof(FindPlayerTarget), 0f, 1.0f); 
     }
     
     private void ExitGameMode()

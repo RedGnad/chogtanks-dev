@@ -35,6 +35,9 @@ public class TankMovement2D : Photon.Pun.MonoBehaviourPunCallbacks
     private int explosionLockFrames = 0;
     
     private float lastAlignmentTime = 0f;
+    
+    private float lastWallCheckTime = 0f;
+    private const float WALL_CHECK_INTERVAL = 0.1f; 
 
     private void Awake()
     {
@@ -96,8 +99,10 @@ public class TankMovement2D : Photon.Pun.MonoBehaviourPunCallbacks
         }
 
         bool wallCheckNeeded = groundContactCount == 0 && Mathf.Abs(horizontalInput) > 0f;
-        if (wallCheckNeeded)
+        
+        if (wallCheckNeeded && Time.time - lastWallCheckTime >= WALL_CHECK_INTERVAL)
         {
+            lastWallCheckTime = Time.time;
             Vector2 wallDir = horizontalInput >= 0 ? Vector2.right : Vector2.left;
             isWallSliding = Physics2D.Raycast(
                 wallCheck.position,
@@ -106,7 +111,7 @@ public class TankMovement2D : Photon.Pun.MonoBehaviourPunCallbacks
                 groundLayer
             );
         }
-        else
+        else if (!wallCheckNeeded)
         {
             isWallSliding = false;
         }
@@ -142,7 +147,10 @@ public class TankMovement2D : Photon.Pun.MonoBehaviourPunCallbacks
         if (visualTransform != null && 
             (!useMobileOptimizations || Time.time - lastAlignmentTime >= mobileRaycastFrequency))
         {
-            AlignToSlope();
+            if (Mathf.Abs(rb.velocity.x) > 0.1f || groundContactCount > 0)
+            {
+                AlignToSlope();
+            }
             lastAlignmentTime = Time.time;
         }
     }

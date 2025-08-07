@@ -141,8 +141,12 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     {
         while (true)
         {
-            yield return new WaitForSeconds(5f); 
-            SetPlayerName();
+            yield return new WaitForSeconds(60f); 
+            
+            if (photonView.IsMine)
+            {
+                SetPlayerName();
+            }
         }
     }
     

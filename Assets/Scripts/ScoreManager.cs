@@ -114,7 +114,7 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         
         if (LobbyUI.Instance != null)
         {
-            LobbyUI.Instance.UpdateRoomStatus("Ongoing Match");
+            LobbyUI.Instance.UpdateRoomStatus("Ongoing Match                       ");
             
             if (waitingForSync)
             {

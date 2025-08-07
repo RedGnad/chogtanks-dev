@@ -47,12 +47,12 @@ public class CameraFollow : MonoBehaviour
         transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);
     }
 
-        private void FindPlayerInstance()
+    private void FindPlayerInstance()
     {
         PhotonView[] photonViews = FindObjectsOfType<PhotonView>();
         foreach (PhotonView pv in photonViews)
         { 
-            if (pv.IsMine && pv.CompareTag("Player"))
+            if (pv != null && pv.IsMine && pv.CompareTag("Player"))
             {
                 target = pv.transform;
                 return;

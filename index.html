@@ -1,3 +1,4 @@
+Chogtanks index
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -24,15 +25,12 @@
         appId: "1:362253578630:web:4f63c34258e0d32cbd3c07"
       };
       
-      // Initialiser Firebase
       const app = firebase.initializeApp(firebaseConfig);
       console.log("Firebase initialisé avec succès");
       
-      // Initialiser Auth et Firestore
       const auth = firebase.auth();
       const db = firebase.firestore();
       
-      // S'authentifier automatiquement de manière anonyme
       auth.signInAnonymously()
         .then(() => {
           console.log("Authentification anonyme réussie");

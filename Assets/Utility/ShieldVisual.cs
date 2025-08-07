@@ -12,7 +12,6 @@ public class ShieldVisual : MonoBehaviour
     
     void Start()
     {
-        // Compatibilité UI et SpriteRenderer
         rectTransform = GetComponent<RectTransform>();
         if (rectTransform != null)
         {
@@ -26,12 +25,15 @@ public class ShieldVisual : MonoBehaviour
     
     void Update()
     {
-        // Rotation absolue (indépendante du parent)
+        if (!gameObject.activeInHierarchy) return;
+        
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer != null && !renderer.isVisible) return;
+        
         Vector3 currentEuler = transform.eulerAngles;
         currentEuler.z += rotationSpeed * Time.deltaTime;
         transform.eulerAngles = currentEuler;
         
-        // Effet de pulsation
         float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseIntensity;
         Vector3 newScale = baseScale * pulse;
         

@@ -664,6 +664,7 @@ MonoBehaviour:
   gameOverText: {fileID: 3935312224065266756}
   winText: {fileID: 8842919532015263930}
   winnerText: {fileID: 3081429534161661956}
+  winnerTextBig: {fileID: 7003187100485945703, guid: 56349795e4c1344888b472acb05837c9, type: 3}
   countdownText: {fileID: 4764388773232822871}
 --- !u!1 &7850116015144074227
 GameObject:

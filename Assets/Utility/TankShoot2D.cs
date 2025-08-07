@@ -1,5 +1,6 @@
 using Photon.Pun;
 using UnityEngine;
+using UnityEngine.EventSystems; 
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
@@ -20,15 +21,13 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckRadius = 0.3f;
 
-    // SFX
     [Header("SFX")]
     [SerializeField] private AudioSource fireNormalSFX;
     [SerializeField] private AudioSource firePrecisionSFX;
     [SerializeField] private AudioSource chargeReadySFX;
 
-    // Ajout pour tir chargé
     [Header("Tir chargé")]
-    [SerializeField] private float chargeTimeThreshold = 1.0f;
+    [SerializeField] private float chargeTimeThreshold = 0.66f;
     [SerializeField] private float precisionShellSpeedMultiplier = 2f;
     [SerializeField] private float precisionRecoilMultiplier = 0.15f;
     private bool isCharging = false;
@@ -92,9 +91,17 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
         float angle = Mathf.Atan2(shootDir.y, shootDir.x) * Mathf.Rad2Deg;
         cannonPivot.rotation = Quaternion.Euler(0f, 0f, angle);
 
-        bool firePressed = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space);
-        bool fireHeld = Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space);
+        bool isClickingOnButton = IsPointerOverButton();
+        
+        bool firePressed = !isClickingOnButton && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space));
+        bool fireHeld = !isClickingOnButton && (Input.GetMouseButton(0) || Input.GetKey(KeyCode.Space));
         bool fireReleased = Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.Space);
+
+        if (isClickingOnButton && isCharging)
+        {
+            isCharging = false;
+            chargeSFXPlayed = false;
+        }
 
         if (firePressed && !isCharging)
         {
@@ -181,17 +188,72 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
 
         float shellSpeedFinal = isPrecision ? shellSpeed * precisionShellSpeedMultiplier : shellSpeed;
 
-        Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.2f);
+        Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.65f);
         spawnPos.z = 0f;
         GameObject shell = PhotonNetwork.Instantiate(shellPrefab.name, spawnPos, Quaternion.Euler(0f, 0f, angle), 0);
         Rigidbody2D shellRb = shell.GetComponent<Rigidbody2D>();
-        shellRb.linearVelocity = shootDir * shellSpeedFinal;
-
+        shellRb.linearVelocity = shootDir * shellSpeedFinal; 
+        
         var shellHandler = shell.GetComponent<ShellCollisionHandler>();
         if (shellHandler != null)
         {
             shellHandler.photonView.RPC("SetPrecision", RpcTarget.AllBuffered, isPrecision);
+            shellHandler.photonView.RPC("SetShooter", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
         }
 
+    }
+    
+    private bool IsPointerOverButton()
+    {
+        if (EventSystem.current == null)
+            return false;
+            
+        GameObject hoveredObject = null;
+        
+        if (Application.isMobilePlatform)
+        {
+            if (Input.touchCount > 0)
+            {
+                Touch touch = Input.GetTouch(0);
+                var eventData = new PointerEventData(EventSystem.current);
+                eventData.position = touch.position;
+                
+                var results = new System.Collections.Generic.List<RaycastResult>();
+                EventSystem.current.RaycastAll(eventData, results);
+                
+                if (results.Count > 0)
+                {
+                    hoveredObject = results[0].gameObject;
+                }
+            }
+        }
+        else
+        {
+            var eventData = new PointerEventData(EventSystem.current);
+            eventData.position = Input.mousePosition;
+            
+            var results = new System.Collections.Generic.List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, results);
+            
+            if (results.Count > 0)
+            {
+                hoveredObject = results[0].gameObject;
+            }
+        }
+        
+        if (hoveredObject != null)
+        {
+            Transform current = hoveredObject.transform;
+            while (current != null)
+            {
+                if (current.GetComponent<UnityEngine.UI.Button>() != null)
+                {
+                    return true; 
+                }
+                current = current.parent;
+            }
+        }
+        
+        return false;
     }
 }
