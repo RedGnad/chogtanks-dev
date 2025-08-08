@@ -27,11 +27,17 @@ namespace Sample
 
         private void Awake()
         {
-            NotificationContainer = _uiDocument.rootVisualElement.Q<VisualElement>("NotificationContainer");
-            _messageLabel = _uiDocument.rootVisualElement.Q<Label>("NotificationText");
-            _buttonHide = _uiDocument.rootVisualElement.Q<Button>("NotificationButton");
+            if (_uiDocument != null && _uiDocument.rootVisualElement != null)
+            {
+                NotificationContainer = _uiDocument.rootVisualElement.Q<VisualElement>("NotificationContainer");
+                _messageLabel = _uiDocument.rootVisualElement.Q<Label>("NotificationText");
+                _buttonHide = _uiDocument.rootVisualElement.Q<Button>("NotificationButton");
 
-            _buttonHide.clicked += OnButtonHide;
+                if (_buttonHide != null)
+                {
+                    _buttonHide.clicked += OnButtonHide;
+                }
+            }
         }
 
         public static void ShowMessage(string message)

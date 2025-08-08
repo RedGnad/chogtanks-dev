@@ -557,6 +557,7 @@ GameObject:
   - component: {fileID: 8377328813880985992}
   - component: {fileID: 2740429416975068293}
   - component: {fileID: 4830745540689729234}
+  - component: {fileID: 4768346615237699189}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: GameOverUI
@@ -664,8 +665,26 @@ MonoBehaviour:
   gameOverText: {fileID: 3935312224065266756}
   winText: {fileID: 8842919532015263930}
   winnerText: {fileID: 3081429534161661956}
-  winnerTextBig: {fileID: 7003187100485945703, guid: 56349795e4c1344888b472acb05837c9, type: 3}
   countdownText: {fileID: 4764388773232822871}
+--- !u!114 &4768346615237699189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6637210335011685887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 3499226949
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4830745540689729234}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &7850116015144074227
 GameObject:
   m_ObjectHideFlags: 0

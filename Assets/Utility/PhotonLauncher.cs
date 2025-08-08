@@ -181,17 +181,76 @@ public class PhotonLauncher : NetworkBehaviour
         return new string(code);
     }
 
-    public void CreatePrivateRoom()
+    public async void CreatePrivateRoom()
     {
         roomName = GenerateRoomCode();
-        // RoomOptions - removed for Fusion options = new // RoomOptions - removed for Fusion { MaxPlayers = maxPlayers, IsVisible = true, IsOpen = true };
-        // Fusion room creation handled differently
+        Debug.Log($"[PHOTON] Creating private room with code: {roomName}");
+        
+        // Créer une session Fusion avec le code comme nom de room
+        var runner = FindObjectOfType<NetworkRunner>();
+        if (runner != null)
+        {
+            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            var sceneInfo = new NetworkSceneInfo();
+            if (scene.IsValid) 
+            {
+                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            }
+            
+            var result = await runner.StartGame(new StartGameArgs()
+            {
+                GameMode = GameMode.Host,
+                SessionName = roomName,
+                Scene = sceneInfo,
+                PlayerCount = 4 // Max 4 joueurs
+            });
+            
+            if (result.Ok)
+            {
+                Debug.Log($"[PHOTON] Private room created successfully: {roomName}");
+                OnJoinedRoomFusion(runner);
+            }
+            else
+            {
+                Debug.LogError($"[PHOTON] Failed to create private room: {result.ErrorMessage}");
+            }
+        }
     }
 
-    public void JoinRoomByCode(string code)
+    public async void JoinRoomByCode(string code)
     {
         roomName = code.ToUpper();
-        // Fusion room joining handled differently
+        Debug.Log($"[PHOTON] Joining room with code: {roomName}");
+        
+        // Rejoindre une session Fusion avec le code
+        var runner = FindObjectOfType<NetworkRunner>();
+        if (runner != null)
+        {
+            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            var sceneInfo = new NetworkSceneInfo();
+            if (scene.IsValid) 
+            {
+                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            }
+            
+            var result = await runner.StartGame(new StartGameArgs()
+            {
+                GameMode = GameMode.Client,
+                SessionName = roomName,
+                Scene = sceneInfo
+            });
+            
+            if (result.Ok)
+            {
+                Debug.Log($"[PHOTON] Joined room successfully: {roomName}");
+                OnJoinedRoomFusion(runner);
+            }
+            else
+            {
+                Debug.LogError($"[PHOTON] Failed to join room: {result.ErrorMessage}");
+                OnJoinRoomFailedFusion(0, result.ErrorMessage);
+            }
+        }
     }
 
     public void SetPlayerName(string playerName)
@@ -314,7 +373,7 @@ public class PhotonLauncher : NetworkBehaviour
     }
 
     // OnJoinedRoom removed for Fusion
-    public void OnJoinedRoomFusion()
+    public void OnJoinedRoomFusion(NetworkRunner runner)
     {
         if (lobbyUI == null) lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
@@ -332,14 +391,96 @@ public class PhotonLauncher : NetworkBehaviour
             ScoreManager.Instance.ResetManager();
         }
         
-        var spawner = FindObjectOfType<PhotonTankSpawner>();
-        if (spawner != null)
+        // Spawn tank directly using the provided NetworkRunner
+        SpawnTankFusion(runner);
+    }
+
+    private void SpawnTankFusion(NetworkRunner runner)
+    {
+        Debug.Log("[PhotonLauncher] SpawnTankFusion() called");
+        
+        if (runner == null)
         {
-            spawner.SpawnTank();
+            Debug.LogError("[PhotonLauncher] NetworkRunner is null, cannot spawn tank");
+            return;
+        }
+        
+        Debug.Log($"[PhotonLauncher] NetworkRunner found: True, IsRunning: {runner.IsRunning}, IsServer: {runner.IsServer}, GameMode: {runner.GameMode}");
+        
+        if (!runner.IsRunning)
+        {
+            Debug.LogWarning("[PhotonLauncher] NetworkRunner is not running, cannot spawn tank");
+            return;
+        }
+        
+        if (!runner.IsServer)
+        {
+            Debug.LogWarning("[PhotonLauncher] NetworkRunner is not server, cannot spawn tank");
+            return;
+        }
+        
+        // Vérifier si le match est terminé avant de spawner un tank
+        if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
+        {
+            Debug.Log("[PhotonLauncher] Match ended, not spawning tank");
+            return;
+        }
+        
+        if (GameManager.Instance != null && GameManager.Instance.isGameOver)
+        {
+            Debug.Log("[PhotonLauncher] Game over, not spawning tank");
+            return;
+        }
+        
+        // Trouver les spawn points
+        Vector2 spawnPos = Vector2.zero;
+        var spawnPoints = GameObject.FindGameObjectsWithTag("Respawn");
+        
+        if (spawnPoints != null && spawnPoints.Length > 0)
+        {
+            int spawnIdx = UnityEngine.Random.Range(0, spawnPoints.Length);
+            spawnPos = spawnPoints[spawnIdx].transform.position;
+            
+            // Ajouter un petit offset aléatoire
+            float offsetX = UnityEngine.Random.Range(-0.5f, 0.5f);
+            float offsetY = UnityEngine.Random.Range(-0.5f, 0.5f);
+            spawnPos += new Vector2(offsetX, offsetY);
         }
         else
         {
-            Debug.LogError("[PhotonLauncher] PhotonTankSpawner non trouvé dans la scène !");
+            Debug.LogWarning("[PhotonLauncher] No spawn points found, using default position");
+        }
+
+        // Charger le prefab tank depuis Resources
+        GameObject tankPrefab = Resources.Load<GameObject>("TankPlayer");
+        if (tankPrefab == null)
+        {
+            Debug.LogError("[PhotonLauncher] TankPlayer prefab not found in Resources!");
+            return;
+        }
+        
+        // Spawner le tank via Fusion
+        Debug.Log($"[PhotonLauncher] Spawning tank at position {spawnPos} for player {runner.LocalPlayer}");
+        var tankNetworkObject = runner.Spawn(tankPrefab.GetComponent<NetworkObject>(), spawnPos, Quaternion.identity, runner.LocalPlayer);
+        
+        if (tankNetworkObject != null)
+        {
+            Debug.Log("✅ [PhotonLauncher] Tank spawned successfully!");
+            GameObject tank = tankNetworkObject.gameObject;
+            
+            var nameDisplay = tank.GetComponent<PlayerNameDisplay>();
+            if (nameDisplay != null)
+            {
+                Debug.Log("[PhotonLauncher] PlayerNameDisplay found and configured for " + runner.LocalPlayer.ToString());
+            }
+            else
+            {
+                Debug.LogWarning("[PhotonLauncher] PlayerNameDisplay not found on tank prefab");
+            }
+        }
+        else
+        {
+            Debug.LogError("[PhotonLauncher] Failed to spawn tank!");
         }
     }
 
@@ -375,18 +516,59 @@ public class PhotonLauncher : NetworkBehaviour
         }
     }
 
-    public void JoinRandomPublicRoom()
+    public async void JoinRandomPublicRoom()
     {
-        string publicRoomName = "PublicRoom";
-        roomName = publicRoomName; 
-        // RoomOptions - removed for Fusion
-        // options = new RoomOptions
-        // {
-        //     MaxPlayers = maxPlayers,
-        //     IsVisible = true,
-        //     IsOpen = true
-        // };
-        // Fusion join or create room handled differently
+        string roomName = "PublicRoom_" + UnityEngine.Random.Range(1000, 9999);
+        Debug.Log($"[PHOTON] Joining/Creating public room: {roomName}");
+        
+        // Use existing NetworkRunner (prepared by BasicSpawner but not started)
+        var existingRunner = FindObjectOfType<NetworkRunner>();
+        if (existingRunner != null)
+        {
+            Debug.Log("[PHOTON] Using existing NetworkRunner for public room");
+            
+            // If already in a session, leave it first
+            if (existingRunner.IsRunning && (existingRunner.IsServer || existingRunner.IsClient))
+            {
+                Debug.Log("[PHOTON] Leaving current session to join public room...");
+                await existingRunner.Shutdown();
+                
+                // Wait a bit for clean shutdown
+                await System.Threading.Tasks.Task.Delay(500);
+            }
+            
+            // Start new session with existing runner
+            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+            var sceneInfo = new NetworkSceneInfo();
+            if (scene.IsValid) 
+            {
+                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            }
+            
+            var result = await existingRunner.StartGame(new StartGameArgs()
+            {
+                GameMode = GameMode.AutoHostOrClient,
+                SessionName = roomName,
+                Scene = sceneInfo,
+                PlayerCount = 4
+            });
+            
+            if (result.Ok && existingRunner.IsRunning)
+            {
+                Debug.Log($"[PHOTON] Joined/Created public room successfully");
+                OnJoinedRoomFusion(existingRunner);
+            }
+            else
+            {
+                Debug.LogError($"[PHOTON] Failed to join/create public room: {result.ErrorMessage ?? "NetworkRunner not running"}");
+                OnJoinRoomFailedFusion(0, result.ErrorMessage ?? "NetworkRunner not running");
+            }
+        }
+        else
+        {
+            Debug.LogError("[PHOTON] No NetworkRunner found or not running");
+            OnJoinRoomFailedFusion(0, "No NetworkRunner found");
+        }
     }
 
     // OnRoomListUpdate removed for Fusion

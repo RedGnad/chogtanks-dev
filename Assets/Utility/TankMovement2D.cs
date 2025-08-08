@@ -57,10 +57,48 @@ public class TankMovement2D : NetworkBehaviour
             rb.bodyType = RigidbodyType2D.Dynamic;
             rb.constraints = RigidbodyConstraints2D.None;
         }
-        if (!Object)
+        // Suppression de la désactivation - le script doit rester actif pour la physique
+    }
+
+    // Méthode Fusion appelée après le spawn du NetworkObject
+    public override void Spawned()
+    {
+        Debug.Log($"[TANK] Tank spawné - HasInputAuthority: {Object.HasInputAuthority}");
+        
+        // Si c'est notre joueur local, on configure la caméra pour nous suivre
+        if (Object.HasInputAuthority)
         {
-            enabled = false;
-            return;
+            Debug.Log("[TANK] Configuration caméra pour joueur local");
+            
+            // Trouver la caméra et lui dire de nous suivre
+            CameraFollow cameraFollow = Camera.main?.GetComponent<CameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.SetTarget(transform);
+                Debug.Log("[TANK] Caméra configurée avec succès");
+            }
+            else
+            {
+                Debug.LogWarning("[TANK] CameraFollow non trouvé sur la caméra principale");
+            }
+            
+            // Cacher l'UI "starting" et activer le gameplay
+            HideStartingUI();
+        }
+    }
+    
+    private void HideStartingUI()
+    {
+        // Utiliser le LobbyUI existant pour cacher le waiting panel
+        LobbyUI lobbyUI = FindFirstObjectByType<LobbyUI>();
+        if (lobbyUI != null)
+        {
+            lobbyUI.HideWaitingPanel();
+            Debug.Log("[TANK] UI 'waiting' cachée via LobbyUI");
+        }
+        else
+        {
+            Debug.LogWarning("[TANK] LobbyUI non trouvé pour cacher l'UI");
         }
     }
 

@@ -80,7 +80,7 @@ public class TankComponentAdder : NetworkBehaviour
     {
         while (true)
         {
-            if (Runner.LocalPlayer != null && Runner.IsClient && Runner.IsConnectedToServer)
+            if (Runner != null && Runner.LocalPlayer != null && Runner.IsClient && Runner.IsConnectedToServer)
             {
                 NetworkObject[] views = FindObjectsByType<NetworkObject>(FindObjectsSortMode.None);
                 foreach (NetworkObject view in views)

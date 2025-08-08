@@ -33,8 +33,10 @@ public class CameraFollow : MonoBehaviour
         else
             cam.orthographicSize = orthoSizeLandscape;
 
+        // Plus besoin de chercher continuellement - la cible est définie directement par le tank local
         if (target == null)
         {
+            // Fallback : chercher seulement si aucune cible n'a été définie
             if (Time.time >= nextSearchTime)
             {
                 nextSearchTime = Time.time + searchInterval;
@@ -58,5 +60,23 @@ public class CameraFollow : MonoBehaviour
                 return;
             }
         }
+    }
+    
+    /// <summary>
+    /// Méthode publique pour définir directement la cible à suivre (appelée par le tank local)
+    /// </summary>
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+        Debug.Log($"[CAMERA] Nouvelle cible définie: {newTarget.name}");
+    }
+    
+    /// <summary>
+    /// Réinitialise la cible (utile pour déconnexion/respawn)
+    /// </summary>
+    public void ClearTarget()
+    {
+        target = null;
+        Debug.Log("[CAMERA] Cible effacée");
     }
 }

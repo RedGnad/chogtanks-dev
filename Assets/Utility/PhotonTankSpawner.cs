@@ -14,7 +14,7 @@ public class PhotonTankSpawner : NetworkBehaviour
 
     private void Start()
     {
-        if (Runner.IsServer)
+        if (Runner != null && Runner.IsServer)
         {
             SpawnTank();
         }
@@ -66,11 +66,17 @@ public class PhotonTankSpawner : NetworkBehaviour
             spawnPos += new Vector2(offsetX, offsetY);
         }
 
-        // Runner.Spawn requires NetworkObject prefab, not GameObject
-        // GameObject tank = Runner.Spawn(tankPrefab, spawnPosition, spawnRotation, Runner.LocalPlayer);
-        // GameObject tank = Instantiate(tankPrefab, spawnPos, Quaternion.identity); // tankPrefab variable not found
-        GameObject tank = new GameObject("TempTank"); // Temporary fix - TODO: implement proper tank spawning
-        tank.transform.position = spawnPos;
+        // Charger le prefab tank depuis Resources
+        GameObject tankPrefab = Resources.Load<GameObject>("TankPlayer");
+        if (tankPrefab == null)
+        {
+            Debug.LogError("[SPAWN] TankPlayer prefab not found in Resources!");
+            return;
+        }
+        
+        // Spawner le tank via Fusion
+        var tankNetworkObject = Runner.Spawn(tankPrefab.GetComponent<NetworkObject>(), spawnPos, Quaternion.identity, Runner.LocalPlayer);
+        GameObject tank = tankNetworkObject.gameObject;
         var view = tank.GetComponent<NetworkObject>();
         
         var nameDisplay = tank.GetComponent<PlayerNameDisplay>();

@@ -115,7 +115,8 @@ public class TankShoot2D : NetworkBehaviour
             float heldTime = Time.time - chargeStartTime;
             if (heldTime >= chargeTimeThreshold)
             {
-                SFXManager.Instance.PlaySFX("chargeReady");
+                if (SFXManager.Instance != null)
+                    SFXManager.Instance.PlaySFX("chargeReady");
                 chargeSFXPlayed = true;
             }
         }
@@ -137,11 +138,13 @@ public class TankShoot2D : NetworkBehaviour
 
         if (isPrecision)
         {
-            SFXManager.Instance.PlaySFX("firePrecision");
+            if (SFXManager.Instance != null)
+                SFXManager.Instance.PlaySFX("firePrecision");
         }
         else
         {
-            SFXManager.Instance.PlaySFX("fireNormal");
+            if (SFXManager.Instance != null)
+                SFXManager.Instance.PlaySFX("fireNormal");
         }
 
         float recoilMultiplier = isPrecision ? precisionRecoilMultiplier : 1f;
@@ -189,18 +192,54 @@ public class TankShoot2D : NetworkBehaviour
 
         Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.65f);
         spawnPos.z = 0f;
-        // Runner.Spawn requires NetworkObject, using Instantiate temporarily
-        GameObject shell = Instantiate(shellPrefab, firePoint.position, firePoint.rotation);
-        Rigidbody2D shellRb = shell.GetComponent<Rigidbody2D>();
-        shellRb.linearVelocity = shootDir * shellSpeedFinal; 
         
-        var shellHandler = shell.GetComponent<ShellCollisionHandler>();
-        if (shellHandler != null)
+        // 🔧 CORRECTION : Utiliser Runner.Spawn au lieu d'Instantiate pour la synchronisation Fusion
+        if (Runner != null && Runner.IsServer)
+        {
+            NetworkObject shellNetworkObject = Runner.Spawn(shellPrefab, firePoint.position, firePoint.rotation);
+            if (shellNetworkObject != null)
+            {
+                GameObject shell = shellNetworkObject.gameObject;
+                Rigidbody2D shellRb = shell.GetComponent<Rigidbody2D>();
+                if (shellRb != null)
+                {
+                    shellRb.linearVelocity = shootDir * shellSpeedFinal;
+                }
+                
+                var shellHandler = shell.GetComponent<ShellCollisionHandler>();
+                if (shellHandler != null)
+                {
+                    // Attendre que le NetworkObject soit initialisé avant d'appeler les RPCs
+                    StartCoroutine(SetShellPropertiesAfterSpawn(shellHandler, isPrecision));
+                }
+                
+                Debug.Log($"[TankShoot2D] Shell spawned via Runner.Spawn with velocity {shellRb?.linearVelocity}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[TankShoot2D] Cannot spawn shell: Runner is null or not server");
+        }
+
+    }
+    
+    // 🔧 Coroutine pour attendre l'initialisation du NetworkObject avant d'appeler les RPCs
+    private System.Collections.IEnumerator SetShellPropertiesAfterSpawn(ShellCollisionHandler shellHandler, bool isPrecision)
+    {
+        // Attendre quelques frames pour que le NetworkObject soit complètement initialisé
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+        
+        if (shellHandler != null && shellHandler.Object != null && shellHandler.Object.IsValid)
         {
             shellHandler.SetPrecisionRpc(isPrecision);
             shellHandler.SetShooterRpc(Object.InputAuthority.PlayerId);
+            Debug.Log($"[TankShoot2D] Shell properties set via RPC: precision={isPrecision}");
         }
-
+        else
+        {
+            Debug.LogWarning("[TankShoot2D] Shell NetworkObject not ready for RPCs");
+        }
     }
     
     private bool IsPointerOverButton()

@@ -27,7 +27,10 @@ namespace Sample
         {
             Application.targetFrameRate = Screen.currentResolution.refreshRate;
 
-            _buttonsContainer = _uiDocument.rootVisualElement.Q<VisualElement>("ButtonsContainer");
+            if (_uiDocument != null && _uiDocument.rootVisualElement != null)
+            {
+                _buttonsContainer = _uiDocument.rootVisualElement.Q<VisualElement>("ButtonsContainer");
+            }
 
             BuildButtons();
         }

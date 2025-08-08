@@ -70,9 +70,10 @@ public class LobbyUI : NetworkBehaviour
         
         if (goButton != null) {
             goButton.onClick.AddListener(OnGoButtonClicked);
-            goButton.interactable = false;
+            // ✅ TEMPORAIRE : Bouton toujours activé pour les tests
+            goButton.interactable = true;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
-            if (goText != null) goText.text = "WAIT";
+            if (goText != null) goText.text = "GO";
         }
 
         if (loadingPanel != null)
@@ -229,19 +230,136 @@ public class LobbyUI : NetworkBehaviour
 
     void OnGoButtonClicked()
     {
+        Debug.Log("[LOBBY] GO button clicked - joining public room");
         
-        launcher.JoinRandomPublicRoom();
+        // Rejoindre/créer une room publique via PhotonLauncher
+        if (launcher != null)
+        {
+            launcher.JoinRandomPublicRoom();
+        }
+        else
+        {
+            Debug.LogError("[LOBBY] PhotonLauncher not found!");
+            return;
+        }
+        
+        // Masquer les panels UI
         joinPanel.SetActive(false);
         waitingPanel.SetActive(true);
         
         if (createdCodeText != null)
-            // playerCountText not found - commenting out
-            // if (playerCountText != null)
-            //     playerCountText.text = Runner.ActivePlayers.Count() + "/" + 8; // maxPlayers default
+            createdCodeText.text = "Joining public room...";
+            
         if (goButton != null) {
-            goButton.interactable = false;
+            // ✅ TEMPORAIRE : Bouton reste activé pendant les tests
+            // goButton.interactable = false;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
-            if (goText != null) goText.text = "WAIT ";
+            if (goText != null) goText.text = "JOINING...";
+        }
+    }
+    
+    void StartGame()
+    {
+        Debug.Log("[LOBBY] Starting Fusion game session");
+        
+        // Trouver le NetworkRunner (créé par BasicSpawner)
+        var runner = FindFirstObjectByType<NetworkRunner>();
+        if (runner == null)
+        {
+            Debug.LogError("[LOBBY] NetworkRunner not found! Cannot start game.");
+            return;
+        }
+        
+        Debug.Log($"[LOBBY] Found NetworkRunner: {runner.name}");
+        
+        // Spawner les tanks pour tous les joueurs connectés
+        if (runner.IsServer)
+        {
+            Debug.Log("[LOBBY] We are server - spawning tanks for all players");
+            SpawnTanksForAllPlayers(runner);
+        }
+        else
+        {
+            Debug.Log("[LOBBY] We are client - requesting tank spawn");
+            // En tant que client, on peut demander au serveur de spawner notre tank
+            // ou attendre que le serveur le fasse automatiquement
+        }
+        
+        // Démarrer le timer de jeu si nécessaire
+        StartGameTimer();
+    }
+    
+    void SpawnTanksForAllPlayers(NetworkRunner runner)
+    {
+        Debug.Log($"[LOBBY] Spawning tanks for {runner.ActivePlayers.Count()} players");
+        
+        // Chercher un prefab de tank dans les ressources
+        var tankPrefab = Resources.Load<GameObject>("TankPlayer");
+        if (tankPrefab == null)
+        {
+            // Essayer d'autres noms possibles
+            tankPrefab = Resources.Load<GameObject>("TankPrefab");
+            if (tankPrefab == null)
+            {
+                tankPrefab = Resources.Load<GameObject>("Tank");
+                if (tankPrefab == null)
+                {
+                    tankPrefab = Resources.Load<GameObject>("Player");
+                }
+            }
+        }
+        
+        if (tankPrefab == null)
+        {
+            Debug.LogError("[LOBBY] Tank prefab not found in Resources! Cannot spawn tanks.");
+            return;
+        }
+        
+        Debug.Log($"[LOBBY] Found tank prefab: {tankPrefab.name}");
+        
+        // Spawner un tank pour chaque joueur
+        foreach (var player in runner.ActivePlayers)
+        {
+            Debug.Log($"[LOBBY] Spawning tank for player: {player}");
+            
+            // Position de spawn aléatoire
+            Vector3 spawnPosition = new Vector3(
+                UnityEngine.Random.Range(-5f, 5f), 
+                0f, 
+                UnityEngine.Random.Range(-5f, 5f)
+            );
+            
+            // Spawner le tank via Fusion
+            var tankObject = runner.Spawn(tankPrefab, spawnPosition, Quaternion.identity, player);
+            
+            // S'assurer que le tank a le tag "Player" pour la caméra
+            if (tankObject != null)
+            {
+                tankObject.tag = "Player";
+                Debug.Log($"[LOBBY] Tank spawned for {player}: {tankObject} with tag: {tankObject.tag}");
+            }
+            else
+            {
+                Debug.LogError($"[LOBBY] Failed to spawn tank for {player}");
+            }
+        }
+    }
+    
+    void StartGameTimer()
+    {
+        Debug.Log("[LOBBY] Starting game timer");
+        
+        // Trouver le GameManager ou créer la logique de timer
+        var gameManager = FindFirstObjectByType<GameManager>();
+        if (gameManager != null)
+        {
+            Debug.Log("[LOBBY] Found GameManager - starting game");
+            // gameManager.StartGame(); // Si cette méthode existe
+        }
+        else
+        {
+            Debug.Log("[LOBBY] GameManager not found - implementing basic timer");
+            // Implémenter un timer basique si nécessaire
         }
     }
     
@@ -389,20 +507,21 @@ public class LobbyUI : NetworkBehaviour
 
     public void OnPhotonReady()
     {
-        if (loadingPanel != null)
+        // 🔧 FORCER le masquage du loadingPanel seulement au premier appel
+        if (loadingPanel != null && loadingPanel.activeInHierarchy)
         {
             loadingPanel.SetActive(false);
+            Debug.Log("[LOBBY] LoadingPanel hidden by OnPhotonReady");
         }
         
-        if (Runner != null && Runner.LocalPlayer != null)
-        {
-            createRoomButton.interactable = true;
-            joinRoomButton.interactable = true;
-            if (goButton != null) {
-                goButton.interactable = true;
-                var goText = goButton.GetComponentInChildren<TMP_Text>();
-                if (goText != null) goText.text = "Brawl";
-            }
+        // Activer les boutons même sans session Fusion active
+        // BasicSpawner appelle cette méthode quand les composants Fusion sont prêts
+        createRoomButton.interactable = true;
+        joinRoomButton.interactable = true;
+        if (goButton != null) {
+            goButton.interactable = true;
+            var goText = goButton.GetComponentInChildren<TMP_Text>();
+            if (goText != null) goText.text = "GO";
         }
     }
 
@@ -620,6 +739,18 @@ public class LobbyUI : NetworkBehaviour
     }
     
     // public void OnFriendListUpdate - FriendInfo not available in Fusion
+    
+    /// <summary>
+    /// Méthode publique pour cacher le waiting panel (appelée par le tank local après spawn)
+    /// </summary>
+    public void HideWaitingPanel()
+    {
+        if (waitingPanel != null)
+        {
+            waitingPanel.SetActive(false);
+            Debug.Log("[LOBBY] Waiting panel caché après spawn du tank local");
+        }
+    }
     public void OnCreatedRoom() { }
     public void OnCreateRoomFailed(short returnCode, string message) { }
     public void OnJoinedRoom() { }

@@ -55,7 +55,7 @@ public class PlayerNameDisplay : NetworkBehaviour
 
     private void SetPlayerName()
     {
-        if (nameText != null && Object.InputAuthority != null)
+        if (nameText != null && Object != null && Object.InputAuthority != PlayerRef.None)
         {
             string playerName = Object.InputAuthority.ToString();
             if (string.IsNullOrEmpty(playerName))
