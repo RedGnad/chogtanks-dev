@@ -329,19 +329,15 @@ public class PhotonLauncher : MonoBehaviour
     // OnJoinedRoom removed for Fusion
     public void OnJoinedRoomFusion(NetworkRunner runner)
     {
-        // 🌐 FUSION: Spawner NetworkUIManager pour la synchronisation UI
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - OnJoinedRoomFusion called");
         SpawnNetworkUIManager(runner);
-        
         if (lobbyUI == null) lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
         {
-            // 🔧 ACTIVER les feedbacks UI manquants pour Fusion
             lobbyUI.UpdateRoomStatus($"In Room: {runner.SessionInfo.Name} ({runner.ActivePlayers.Count()}/{runner.SessionInfo.MaxPlayers} players)");
-            
-            // 🌐 FUSION PURE: Démarrer le timer synchronisé via NetworkUIManager
-            // Le timer sera géré par NetworkUIManager (networked) au lieu d'une coroutine locale
-            Debug.Log("[PHOTON] Timer sera démarré par NetworkUIManager une fois spawné");
         }
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - Starting player list update...");
+        StartCoroutine(UpdatePlayerListOnJoin());
         
         // Reset game state
         if (GameManager.Instance != null)
@@ -478,9 +474,12 @@ public class PhotonLauncher : MonoBehaviour
 
     public async void JoinRandomPublicRoom()
     {
+        var startTime = System.DateTime.Now;
+        Debug.Log($"[PHOTON] {startTime:HH:mm:ss.fff} - GO BUTTON: Starting join sequence");
+        
         // 🎯 ROOM FIXE : Tous les joueurs rejoignent la même room persistante
         string roomName = "MainTankBattleRoom";
-        Debug.Log($"[PHOTON] Joining/Creating persistent public room: {roomName}");
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - Target room: {roomName}");
         
         // 🔧 ARCHITECTURE FIXE : Utiliser le BasicSpawner existant et créer le NetworkRunner sur le même GameObject
         var basicSpawner = FindFirstObjectByType<BasicSpawner>();
@@ -494,20 +493,21 @@ public class PhotonLauncher : MonoBehaviour
         var existingRunner = FindObjectOfType<NetworkRunner>();
         if (existingRunner != null)
         {
-            Debug.Log("[PHOTON] Found existing NetworkRunner - shutting down...");
+            Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - Found existing NetworkRunner - shutting down...");
             
             if (existingRunner.IsRunning)
             {
                 await existingRunner.Shutdown();
-                await System.Threading.Tasks.Task.Delay(500);
+                Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - NetworkRunner shutdown completed");
             }
             
             // Détruire le GameObject NetworkRunner entier (maintenant séparé)
             Destroy(existingRunner.gameObject);
-            await System.Threading.Tasks.Task.Delay(100);
+            Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - NetworkRunner GameObject destroyed");
         }
         
-        // 🎯 CRÉER le NetworkRunner sur un GameObject SÉPARÉ pour éviter d'affecter LobbyUI/GameManager
+        // CRÉER le NetworkRunner sur un GameObject SÉPARÉ pour éviter d'affecter LobbyUI/GameManager
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - Creating new NetworkRunner...");
         var runnerObject = new GameObject("NetworkRunner");
         var newRunner = runnerObject.AddComponent<NetworkRunner>();
         newRunner.ProvideInput = true;
@@ -517,23 +517,18 @@ public class PhotonLauncher : MonoBehaviour
         
         // Attacher BasicSpawner comme callback (BasicSpawner reste sur son GameObject original)
         newRunner.AddCallbacks(basicSpawner);
-        Debug.Log("[PHOTON] Created NetworkRunner on separate GameObject - LobbyUI/GameManager preserved");
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - NetworkRunner created, starting game...");
         
-        // Start new session with fresh runner
-        var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-        var sceneInfo = new NetworkSceneInfo();
-        if (scene.IsValid) 
-        {
-            sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
-        }
-        
+        // Start new session with fresh runner - pas de scene reload si déjà dans la bonne scène
         var result = await newRunner.StartGame(new StartGameArgs()
         {
-            GameMode = GameMode.Shared,  // 🎯 Mode Shared pour rooms persistantes (pas de Host unique)
+            GameMode = GameMode.Shared,  // Mode Shared pour rooms persistantes (pas de Host unique)
             SessionName = roomName,
-            Scene = sceneInfo,
+            Scene = null, // Pas de scene reload - on est déjà dans la bonne scène
             PlayerCount = 4
         });
+        
+        Debug.Log($"[PHOTON] {System.DateTime.Now:HH:mm:ss.fff} - StartGame completed, result: {(result.Ok ? "SUCCESS" : "FAILED")}");
         
         if (result.Ok && newRunner.IsRunning)
         {
@@ -647,11 +642,30 @@ public class PhotonLauncher : MonoBehaviour
     /// </summary>
     private System.Collections.IEnumerator StartTimerDelayed(NetworkUIManager networkUIManager)
     {
-        // Attendre une frame pour s'assurer que l'objet est bien initialisé
-        yield return null;
-        
-        // Démarrer le timer synchronisé (300 secondes = 5 minutes)
+        // Démarrer le timer immédiatement - pas besoin d'attendre
         networkUIManager.StartMatchTimer(300f);
         Debug.Log("[PHOTON] ⏰ Timer synchronisé démarré via NetworkUIManager");
+        yield break;
+    }
+    
+    /// <summary>
+    /// Coroutine pour mettre à jour la PlayerList dès l'arrivée dans la room
+    /// </summary>
+    private System.Collections.IEnumerator UpdatePlayerListOnJoin()
+    {
+        // Attendre seulement une frame pour que NetworkUIManager soit spawné
+        yield return null;
+        
+        // Trouver le NetworkUIManager spawné
+        var networkUIManager = FindFirstObjectByType<NetworkUIManager>();
+        if (networkUIManager != null)
+        {
+            Debug.Log("[PHOTON] 📝 Mise à jour de la PlayerList dès l'arrivée dans la room");
+            networkUIManager.UpdatePlayerList();
+        }
+        else
+        {
+            Debug.LogWarning("[PHOTON] ⚠️ NetworkUIManager non trouvé pour mettre à jour la PlayerList");
+        }
     }
 }

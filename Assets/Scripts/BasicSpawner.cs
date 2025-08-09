@@ -292,6 +292,10 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
                 {
                     networkUIManager.NotifyLocalTankSpawned();
                     Debug.Log("[SPAWN] 🚗 Notification envoyée à NetworkUIManager pour tank local");
+                    
+                    // Mettre à jour la PlayerList après le spawn du tank
+                    networkUIManager.UpdatePlayerList();
+                    Debug.Log("[SPAWN] 📝 PlayerList mise à jour après spawn du tank");
                 }
                 else
                 {

@@ -1,7 +1,8 @@
 using UnityEngine;
 using Fusion;
 
-public class MinimapCamera : NetworkBehaviour
+// ✅ MinimapCamera n'a pas besoin d'être un NetworkBehaviour (pas de synchronisation réseau)
+public class MinimapCamera : MonoBehaviour
 {
     [Header("Configuration")]
     [SerializeField] private float height = 20f;
@@ -40,12 +41,24 @@ public class MinimapCamera : NetworkBehaviour
     
     private void CheckForTanks()
     {
-        bool shouldBeInGameMode = Runner != null && Runner.IsConnectedToServer;
+        // ✅ Chercher spécifiquement les tanks, pas n'importe quel NetworkObject
+        var tanks = FindObjectsByType<TankMovement2D>(FindObjectsSortMode.None);
+        bool shouldBeInGameMode = tanks != null && tanks.Length > 0;
         
+        // ✅ Vérifier qu'il y a au moins un tank avec NetworkObject
         if (shouldBeInGameMode)
         {
-            var tanks = FindFirstObjectByType<NetworkObject>();
-            shouldBeInGameMode = tanks != null;
+            bool hasValidTank = false;
+            foreach (var tank in tanks)
+            {
+                var networkObj = tank.GetComponent<NetworkObject>();
+                if (networkObj != null && networkObj.IsValid)
+                {
+                    hasValidTank = true;
+                    break;
+                }
+            }
+            shouldBeInGameMode = hasValidTank;
         }
         
         if (shouldBeInGameMode != wasInGameMode)

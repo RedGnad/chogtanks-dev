@@ -31,7 +31,8 @@ public class MinimapIcon : NetworkBehaviour
         iconRenderer.sortingOrder = 100; 
         
         Color iconColor;
-        if (Object)
+        // ✅ Correction : vérifier HasInputAuthority pour détecter le joueur local
+        if (Object != null && Object.HasInputAuthority)
         {
             iconColor = localPlayerColor;
             iconColor.a = 1f; 

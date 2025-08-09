@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using Fusion;
 
@@ -70,8 +71,10 @@ public class NetworkUIManager : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.All)]
     public void UpdatePlayerListRpc(string playerList)
     {
-        Debug.Log($"[NETWORK_UI] 📝 Mise à jour liste joueurs: {playerList}");
+        Debug.Log($"[NETWORK_UI] 📝 UpdatePlayerListRpc reçu: '{playerList}'");
+        Debug.Log($"[NETWORK_UI] 📝 OnPlayerListUpdated subscribers: {OnPlayerListUpdated?.GetInvocationList().Length ?? 0}");
         OnPlayerListUpdated?.Invoke(playerList);
+        Debug.Log($"[NETWORK_UI] ✅ Event OnPlayerListUpdated déclenché");
     }
     
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -187,19 +190,31 @@ public class NetworkUIManager : NetworkBehaviour
     /// <summary>Mettre à jour la liste des joueurs connectés avec scores</summary>
     public void UpdatePlayerList()
     {
-        if (!Object.HasStateAuthority) return;
+        Debug.Log($"[NETWORK] 📝 UpdatePlayerList appelé - HasStateAuthority: {Object.HasStateAuthority}");
+        
+        if (!Object.HasStateAuthority) 
+        {
+            Debug.Log("[NETWORK] ⚠️ Pas d'autorité - UpdatePlayerList ignoré");
+            return;
+        }
         
         // Récupérer les scores depuis ScoreManager
         var scoreManager = FindFirstObjectByType<ScoreManager>();
         var playerScores = scoreManager?.GetPlayerScores() ?? new System.Collections.Generic.Dictionary<int, int>();
         
+        Debug.Log($"[NETWORK] 📊 ScoreManager trouvé: {scoreManager != null}, Scores: {playerScores.Count}");
+        
+        var activePlayers = Runner.ActivePlayers.ToList();
+        Debug.Log($"[NETWORK] 👥 Joueurs actifs: {activePlayers.Count}");
+        
         // Créer une liste triée par score (descendant)
         var sortedPlayers = new System.Collections.Generic.List<(int playerId, int score)>();
         
-        foreach (var player in Runner.ActivePlayers)
+        foreach (var player in activePlayers)
         {
             int score = playerScores.ContainsKey(player.PlayerId) ? playerScores[player.PlayerId] : 0;
             sortedPlayers.Add((player.PlayerId, score));
+            Debug.Log($"[NETWORK] 👤 Player {player.PlayerId}: {score} pts");
         }
         
         // Trier par score décroissant
@@ -214,7 +229,10 @@ public class NetworkUIManager : NetworkBehaviour
             playerList.Append($"{i + 1}. Player {playerId}: {score} pts");
         }
         
-        UpdatePlayerListRpc(playerList.ToString());
+        string finalList = playerList.ToString();
+        Debug.Log($"[NETWORK] 📋 Liste finale générée: '{finalList}'");
+        
+        UpdatePlayerListRpc(finalList);
     }
     
     /// <summary>Afficher un message de kill dans le feed</summary>

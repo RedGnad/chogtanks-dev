@@ -91,7 +91,7 @@ public class LobbyUI : MonoBehaviour
             // ✅ TEMPORAIRE : Bouton toujours activé pour les tests
             goButton.interactable = true;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
-            if (goText != null) goText.text = "GO";
+            if (goText != null) goText.text = "Brawl";
         }
 
         if (loadingPanel != null)
@@ -248,7 +248,7 @@ public class LobbyUI : MonoBehaviour
 
     void OnGoButtonClicked()
     {
-        Debug.Log("[LOBBY] GO button clicked - joining public room");
+        Debug.Log($"[LOBBY] {System.DateTime.Now:HH:mm:ss.fff} - GO BUTTON CLICKED - starting join sequence");
         
         // 🌐 FUSION PURE: Utiliser PhotonLauncher.Instance persistant
         launcher = PhotonLauncher.Instance;
@@ -540,7 +540,7 @@ public class LobbyUI : MonoBehaviour
         if (goButton != null) {
             goButton.interactable = true;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
-            if (goText != null) goText.text = "GO";
+            if (goText != null) goText.text = "Brawl";
         }
     }
 
@@ -588,32 +588,32 @@ public class LobbyUI : MonoBehaviour
 
     public void UpdatePlayerList()
     {
-        var currentRunner = FindFirstObjectByType<NetworkRunner>();
-        if (playerListText == null || currentRunner == null || !currentRunner.IsConnectedToServer)
+        // 🌐 FUSION PURE: Déléguer à NetworkUIManager pour la synchronisation réseau
+        var networkUIManager = FindFirstObjectByType<NetworkUIManager>();
+        if (networkUIManager != null)
         {
-            if(playerListText != null) playerListText.text = "";
-            return;
+            Debug.Log("[LOBBY] 📝 Demande de mise à jour PlayerList via NetworkUIManager");
+            networkUIManager.UpdatePlayerList();
         }
-        
-        StringBuilder sb = new StringBuilder();
-        Dictionary<int, int> playerScores = ScoreManager.Instance ? ScoreManager.Instance.GetPlayerScores() : new Dictionary<int, int>();
-        
-        foreach (PlayerRef player in currentRunner.ActivePlayers)
+        else
         {
-            string playerName = "Player_" + player.PlayerId; // Temporary - PlayerRef doesn't convert to string directly
-            int score = 0;
+            Debug.LogWarning("[LOBBY] ⚠️ NetworkUIManager introuvable pour UpdatePlayerList");
             
-            if (playerScores.ContainsKey(player.PlayerId))
+            // Fallback : affichage local basique
+            var currentRunner = FindFirstObjectByType<NetworkRunner>();
+            if (playerListText != null && currentRunner != null && currentRunner.IsConnectedToServer)
             {
-                score = playerScores[player.PlayerId];
+                StringBuilder sb = new StringBuilder();
+                foreach (PlayerRef player in currentRunner.ActivePlayers)
+                {
+                    sb.AppendLine($"Player {player.PlayerId}");
+                }
+                playerListText.text = sb.ToString();
             }
-            
-            sb.AppendLine(playerName + " - " + score);
-        }
-        
-        if (playerListText != null)
-        {
-            playerListText.text = sb.ToString();
+            else if (playerListText != null)
+            {
+                playerListText.text = "No players";
+            }
         }
     }
 
@@ -906,9 +906,17 @@ public class LobbyUI : MonoBehaviour
     /// <summary>Gérer la mise à jour de la liste des joueurs</summary>
     private void HandlePlayerListUpdated(string playerList)
     {
+        Debug.Log($"[LOBBY] 📝 HandlePlayerListUpdated appelé avec: '{playerList}'");
+        Debug.Log($"[LOBBY] 📝 playerListText null? {playerListText == null}");
+        
         if (playerListText != null)
         {
             playerListText.text = $"Players: {playerList}";
+            Debug.Log($"[LOBBY] ✅ PlayerList UI mise à jour: '{playerListText.text}'");
+        }
+        else
+        {
+            Debug.LogWarning("[LOBBY] ⚠️ playerListText est null - impossible de mettre à jour l'UI");
         }
     }
     
