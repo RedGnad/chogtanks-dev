@@ -62889,6 +62889,7 @@ GameObject:
   - component: {fileID: 278777535}
   - component: {fileID: 278777534}
   - component: {fileID: 278777537}
+  - component: {fileID: 278777538}
   m_Layer: 0
   m_Name: SFXManager
   m_TagString: Untagged
@@ -63005,27 +63006,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f90097d7603249afbeeb7175a11288f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pvCache: {fileID: 0}
-  audioSource: {fileID: 278777534}
-  masterVolume: 1
-  multiplayerVolumeMultiplier: 0.371
-  sfxClips:
-  - name: shield_activation
-    clip: {fileID: 8300000, guid: 74ef28e21c5b442a68d8e0966bc540e2, type: 3}
-    shareInMultiplayer: 1
-    defaultVolume: 1
-  - name: chargeReady
-    clip: {fileID: 8300000, guid: 3d59974817b0a4d8789d28d550488ab2, type: 3}
-    shareInMultiplayer: 1
-    defaultVolume: 0.7
-  - name: firePrecision
-    clip: {fileID: 8300000, guid: e4ea2c00e70b144e7b1bcf206f1e5fad, type: 3}
-    shareInMultiplayer: 1
-    defaultVolume: 0.7
-  - name: fireNormal
-    clip: {fileID: 8300000, guid: 90d758548211d4fdc9d9f2bc9b08a073, type: 3}
-    shareInMultiplayer: 0
-    defaultVolume: 0.7
 --- !u!4 &278777536
 Transform:
   m_ObjectHideFlags: 0
@@ -63063,6 +63043,24 @@ MonoBehaviour:
   sceneViewId: 5
   InstantiationId: 0
   isRuntimeInstantiated: 0
+--- !u!114 &278777538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 278777533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 1394648833
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours: []
+  ForceRemoteRenderTimeframe: 0
 --- !u!1001 &284260682
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -69613,6 +69611,7 @@ GameObject:
   - component: {fileID: 1679652822}
   - component: {fileID: 1679652821}
   - component: {fileID: 1679652820}
+  - component: {fileID: 1679652823}
   m_Layer: 0
   m_Name: KillNotificationManager
   m_TagString: Untagged
@@ -69671,6 +69670,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1679652823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1679652819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 2661290249
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 1679652821}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &1685479370
 GameObject:
   m_ObjectHideFlags: 0
@@ -70305,83 +70323,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1866919746}
   m_CullTransparentMesh: 1
---- !u!1001 &1869681413
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -20.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 2.21
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -1.9091187
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1793245118734141634, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4563181086445258538, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_Camera
-      value: 
-      objectReference: {fileID: 158992410}
-    - target: {fileID: 4827492414350439138, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: m_Name
-      value: TankPlayer
-      objectReference: {fileID: 0}
-    - target: {fileID: 4856679714800732777, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: sceneViewId
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6145201439310229937, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: Flags
-      value: 262145
-      objectReference: {fileID: 0}
-    - target: {fileID: 6145201439310229937, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: SortKey
-      value: 3012807626
-      objectReference: {fileID: 0}
-    - target: {fileID: 6145201439310229937, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
-      propertyPath: NetworkedBehaviours.Array.size
-      value: 9
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2f87c57323c4f464bbdb49914630ac51, type: 3}
 --- !u!1 &1874282841
 GameObject:
   m_ObjectHideFlags: 0
@@ -72653,6 +72594,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2125285442}
   - component: {fileID: 2125285441}
+  - component: {fileID: 2125285443}
   m_Layer: 0
   m_Name: TankManager
   m_TagString: Untagged
@@ -72688,6 +72630,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2125285443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2125285440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 4245904568
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2125285441}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &2145648647
 GameObject:
   m_ObjectHideFlags: 0
@@ -73458,7 +73419,6 @@ SceneRoots:
   - {fileID: 1300885490}
   - {fileID: 1644012684}
   - {fileID: 2145648648}
-  - {fileID: 1869681413}
   - {fileID: 1355843690}
   - {fileID: 1674036873}
   - {fileID: 2125285442}

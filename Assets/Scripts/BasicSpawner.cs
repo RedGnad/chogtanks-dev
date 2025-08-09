@@ -28,39 +28,24 @@ public struct NetworkInputData : INetworkInput
 
 public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
-    private NetworkRunner _runner;
+    // 🔧 Plus de référence locale au NetworkRunner - il sera géré par PhotonLauncher
 
-    async void Start()
+    void Start()
     {
-        Debug.Log("[FUSION] Starting Fusion session...");
+        Debug.Log("[FUSION] BasicSpawner initialized - waiting for PhotonLauncher to manage NetworkRunner");
         
-        // Créer le NetworkRunner comme avant
-        _runner = GetComponent<NetworkRunner>();
-        if (_runner == null)
-        {
-            _runner = gameObject.AddComponent<NetworkRunner>();
-        }
+        // 🔧 ARCHITECTURE FIXE : Ne plus créer de NetworkRunner ici
+        // PhotonLauncher va créer le NetworkRunner ET attacher ce BasicSpawner comme callback
+        // Cela évite les conflits de cycle de vie et les références cassées
         
-        _runner.ProvideInput = true;
-
-        var sceneManager = GetComponent<NetworkSceneManagerDefault>();
-        if (sceneManager == null)
-        {
-            sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
-        }
-
-        // ❌ DÉSACTIVÉ : Ne plus démarrer Fusion automatiquement pour éviter "NetworkRunner should not be reused"
-        // PhotonLauncher va gérer les sessions Fusion (création/join de rooms)
-        Debug.Log("✅ [FUSION] NetworkRunner prepared, waiting for PhotonLauncher to start session...");
-        
-        // Activer l'UI immédiatement puisqu'on n'attend plus que Fusion démarre
+        // Activer l'UI immédiatement puisque les composants Fusion sont prêts
         var lobbyUI = FindFirstObjectByType<LobbyUI>();
         if (lobbyUI != null)
         {
             lobbyUI.OnPhotonReady();
             Debug.Log("[FUSION] OnPhotonReady called - UI buttons activated");
             
-            // 🎯 SOLUTION SIMPLE : Timer de 2 secondes pour cacher le loadingPanel
+            // 🎯 Timer pour cacher le loadingPanel
             StartCoroutine(HideLoadingPanelAfterDelay(lobbyUI, 2.6f));
         }
         else
@@ -154,6 +139,11 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
         
         // Cacher le panel Wait
         HideWaitPanel();
+        
+        // 🎯 SPAWNER LE TANK pour le joueur qui vient de rejoindre
+        // En mode Shared, n'importe quel client peut spawner des objets
+        Debug.Log($"[FUSION] Spawning tank for player {player}...");
+        SpawnTank(runner, player);
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
@@ -180,9 +170,14 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
 
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
-    {
-        Debug.Log($"🔴 [FUSION] Shutdown: {shutdownReason}");
-    }
+{
+    Debug.Log($"🔴 [FUSION] Shutdown: {shutdownReason}");
+    
+    // 🔧 FIX: Nettoyer les coroutines et références après shutdown pour éviter les interférences UI
+    StopAllCoroutines();
+    
+    Debug.Log("[FUSION] BasicSpawner cleaned up after shutdown");
+}
 
     public void OnConnectedToServer(NetworkRunner runner)
     {
@@ -245,4 +240,68 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
 
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
+
+    // 🎯 MÉTHODE DE SPAWN DE TANK
+    private void SpawnTank(NetworkRunner runner, PlayerRef player)
+    {
+        Debug.Log($"[SPAWN] Attempting to spawn tank for player {player}...");
+        
+        // Trouver un point de spawn aléatoire
+        GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("Spawn");
+        if (spawnPoints.Length == 0)
+        {
+            Debug.LogError("[SPAWN] No spawn points found with tag 'Spawn'!");
+            return;
+        }
+        
+        Vector3 spawnPos = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)].transform.position;
+        
+        // Ajouter un petit offset aléatoire pour éviter les collisions
+        float offsetX = UnityEngine.Random.Range(-0.5f, 0.5f);
+        float offsetY = UnityEngine.Random.Range(-0.5f, 0.5f);
+        spawnPos += new Vector3(offsetX, offsetY, 0);
+        
+        // Charger le prefab tank depuis Resources
+        GameObject tankPrefab = Resources.Load<GameObject>("TankPlayer");
+        if (tankPrefab == null)
+        {
+            Debug.LogError("[SPAWN] TankPlayer prefab not found in Resources!");
+            return;
+        }
+        
+        // Spawner le tank via Fusion
+        Debug.Log($"[SPAWN] Spawning tank at position {spawnPos} for player {player}");
+        var tankNetworkObject = runner.Spawn(tankPrefab.GetComponent<NetworkObject>(), spawnPos, Quaternion.identity, player);
+        
+        if (tankNetworkObject != null)
+        {
+            Debug.Log($"✅ [SPAWN] Tank successfully spawned for player {player}!");
+            
+            // Configurer le nom du joueur si disponible
+            var nameDisplay = tankNetworkObject.GetComponent<PlayerNameDisplay>();
+            if (nameDisplay != null)
+            {
+                Debug.Log($"[SPAWN] PlayerNameDisplay configured for player {player}");
+            }
+            
+            // 🌐 FUSION: Notifier NetworkUIManager si c'est le joueur local
+            if (player == runner.LocalPlayer)
+            {
+                var networkUIManager = FindFirstObjectByType<NetworkUIManager>();
+                if (networkUIManager != null)
+                {
+                    networkUIManager.NotifyLocalTankSpawned();
+                    Debug.Log("[SPAWN] 🚗 Notification envoyée à NetworkUIManager pour tank local");
+                }
+                else
+                {
+                    Debug.LogWarning("[SPAWN] ⚠️ NetworkUIManager non trouvé pour notification tank local");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError($"❌ [SPAWN] Failed to spawn tank for player {player}!");
+        }
+    }
 }

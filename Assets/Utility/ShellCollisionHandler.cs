@@ -96,13 +96,24 @@ public class ShellCollisionHandler : NetworkBehaviour
     {
         if (!Object) return;
 
-        if (Time.time - spawnTime < 0.3f && shooterActorNumber != -1)
+        // 🔧 FIX: Empêcher TOUTE collision avec le tank tireur (pas seulement les dégâts)
+        TankHealth2D collidedTankHealth = collision.collider.GetComponentInParent<TankHealth2D>();
+        if (collidedTankHealth != null)
         {
-            TankHealth2D health = collision.collider.GetComponentInParent<TankHealth2D>();
-            if (health != null && health.Object.InputAuthority != null && 
-                health.Object.InputAuthority.PlayerId == shooterActorNumber)
+            // Vérification par InputAuthority (méthode principale)
+            bool isSelfCollisionByAuthority = Object.InputAuthority != null && 
+                                            collidedTankHealth.Object.InputAuthority != null &&
+                                            Object.InputAuthority.PlayerId == collidedTankHealth.Object.InputAuthority.PlayerId;
+            
+            // Vérification par shooterActorNumber (méthode de backup)
+            bool isSelfCollisionByShooter = shooterActorNumber != -1 && 
+                                          collidedTankHealth.Object.InputAuthority != null &&
+                                          collidedTankHealth.Object.InputAuthority.PlayerId == shooterActorNumber;
+            
+            if (isSelfCollisionByAuthority || isSelfCollisionByShooter)
             {
-                return; 
+                Debug.Log($"[SHELL] Collision ignorée avec le tank tireur (Authority: {isSelfCollisionByAuthority}, Shooter: {isSelfCollisionByShooter})");
+                return; // Ignorer complètement la collision avec le tank tireur
             }
         }
 
@@ -121,10 +132,23 @@ public class ShellCollisionHandler : NetworkBehaviour
             string tankOwner = health.Object.InputAuthority != null ? $"{health.Object.InputAuthority.ToString()} (Actor {health.Object.InputAuthority.PlayerId})" : "<null>";
             string shellOwner = Object.InputAuthority != null ? $"{Object.InputAuthority.ToString()} (Actor {Object.InputAuthority.PlayerId})" : "<null>";
             
-            bool isSelfDamage = health.Object.InputAuthority != null && Object.InputAuthority != null && 
-                              health.Object.InputAuthority.PlayerId == Object.InputAuthority.PlayerId;
+            // 🔧 DOUBLE VÉRIFICATION : Utiliser à la fois InputAuthority ET shooterActorNumber
+            bool isSelfDamageByAuthority = health.Object.InputAuthority != null && Object.InputAuthority != null && 
+                                         health.Object.InputAuthority.PlayerId == Object.InputAuthority.PlayerId;
             
-            if (isSelfDamage) continue;
+            bool isSelfDamageByShooter = health.Object.InputAuthority != null && shooterActorNumber != -1 &&
+                                       health.Object.InputAuthority.PlayerId == shooterActorNumber;
+            
+            bool isSelfDamage = isSelfDamageByAuthority || isSelfDamageByShooter;
+            
+            Debug.Log($"[SHELL] Collision check - Tank: {tankOwner}, Shell: {shellOwner}, ShooterID: {shooterActorNumber}");
+            Debug.Log($"[SHELL] Self-damage check - ByAuthority: {isSelfDamageByAuthority}, ByShooter: {isSelfDamageByShooter}, Final: {isSelfDamage}");
+            
+            if (isSelfDamage) 
+            {
+                Debug.Log($"[SHELL] PREVENTED self-damage for tank {tankOwner}");
+                continue;
+            }
             
             TankShield tankShield = health.GetComponent<TankShield>();
             if (tankShield != null && tankShield.IsShieldActive() && !isPrecisionShot)

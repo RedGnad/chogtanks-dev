@@ -89,14 +89,13 @@ public class TankMovement2D : NetworkBehaviour
     
     private void HideStartingUI()
     {
-        // Utiliser le LobbyUI existant pour cacher le waiting panel
+        // NE PAS cacher le waitingPanel car il contient les éléments UI de gameplay !
+        // Le waitingPanel doit rester visible pour afficher shield, timer, quit, etc.
+        Debug.Log("[TANK] Tank spawné - waitingPanel reste visible pour l'UI de gameplay");
+        
+        // Pas besoin de cacher quoi que ce soit, le waitingPanel contient l'UI de jeu
         LobbyUI lobbyUI = FindFirstObjectByType<LobbyUI>();
-        if (lobbyUI != null)
-        {
-            lobbyUI.HideWaitingPanel();
-            Debug.Log("[TANK] UI 'waiting' cachée via LobbyUI");
-        }
-        else
+        if (lobbyUI == null)
         {
             Debug.LogWarning("[TANK] LobbyUI non trouvé pour cacher l'UI");
         }

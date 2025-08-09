@@ -357,10 +357,15 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         
         if (gameOverUIs.Length == 0)
         {
-            PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
-            if (launcher != null)
+            // 🌐 FUSION PURE: Utiliser NetworkUIManager pour les RPCs
+            NetworkUIManager networkUI = FindFirstObjectByType<NetworkUIManager>();
+            if (networkUI != null)
             {
-                launcher.ShowWinnerToAllRPC(winnerName, winnerActorNumber);
+                networkUI.ShowWinnerToAllRPC(winnerName, winnerActorNumber);
+            }
+            else
+            {
+                Debug.LogWarning("[SCORE] NetworkUIManager not found for ShowWinner RPC");
             }
         }
         

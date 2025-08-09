@@ -6,7 +6,7 @@ using Fusion;
 using System.Text;
 using System.Collections.Generic;
 
-public class LobbyUI : NetworkBehaviour
+public class LobbyUI : MonoBehaviour
 {
     public static LobbyUI Instance { get; private set; }
     
@@ -44,12 +44,20 @@ public class LobbyUI : NetworkBehaviour
 
     private void Awake()
     {
+        Debug.Log($"[LOBBY] 🔍 LobbyUI.Awake called on GameObject: {gameObject.name}");
+        
         if (Instance == null)
         {
             Instance = this;
+            Debug.Log($"[LOBBY] ✅ LobbyUI Instance set to: {gameObject.name}");
+            
+            // 🔧 FUSION: Marquer cet objet comme persistant entre les sessions
+            DontDestroyOnLoad(gameObject);
+            Debug.Log("[LOBBY] LobbyUI marqué comme persistant avec DontDestroyOnLoad");
         }
         else if (Instance != this)
         {
+            Debug.LogWarning($"[LOBBY] ❌ DUPLICATE LobbyUI detected! Destroying: {gameObject.name} (keeping: {Instance.gameObject.name})");
             Destroy(gameObject);
         }
         
@@ -57,7 +65,17 @@ public class LobbyUI : NetworkBehaviour
     
     void Start()
     {
-        launcher = FindFirstObjectByType<PhotonLauncher>();        if (backButton != null)
+        // 🌐 FUSION PURE: Utiliser PhotonLauncher.Instance persistant
+        launcher = PhotonLauncher.Instance;
+        if (launcher == null)
+        {
+            Debug.LogWarning("[LOBBY] PhotonLauncher.Instance not found - will retry on button click");
+        }
+        
+        // 🌐 FUSION: S'abonner aux events NetworkUIManager
+        SubscribeToNetworkEvents();
+        
+        if (backButton != null)
             backButton.onClick.AddListener(OnBackToLobby);
         
         createRoomButton.onClick.AddListener(OnCreateRoom);
@@ -232,14 +250,15 @@ public class LobbyUI : NetworkBehaviour
     {
         Debug.Log("[LOBBY] GO button clicked - joining public room");
         
-        // Rejoindre/créer une room publique via PhotonLauncher
+        // 🌐 FUSION PURE: Utiliser PhotonLauncher.Instance persistant
+        launcher = PhotonLauncher.Instance;
         if (launcher != null)
         {
             launcher.JoinRandomPublicRoom();
         }
         else
         {
-            Debug.LogError("[LOBBY] PhotonLauncher not found!");
+            Debug.LogError("[LOBBY] PhotonLauncher.Instance not found! Architecture problem.");
             return;
         }
         
@@ -569,7 +588,8 @@ public class LobbyUI : NetworkBehaviour
 
     public void UpdatePlayerList()
     {
-        if (playerListText == null || Runner == null || !Runner.IsConnectedToServer)
+        var currentRunner = FindFirstObjectByType<NetworkRunner>();
+        if (playerListText == null || currentRunner == null || !currentRunner.IsConnectedToServer)
         {
             if(playerListText != null) playerListText.text = "";
             return;
@@ -578,7 +598,7 @@ public class LobbyUI : NetworkBehaviour
         StringBuilder sb = new StringBuilder();
         Dictionary<int, int> playerScores = ScoreManager.Instance ? ScoreManager.Instance.GetPlayerScores() : new Dictionary<int, int>();
         
-        foreach (PlayerRef player in Runner.ActivePlayers)
+        foreach (PlayerRef player in currentRunner.ActivePlayers)
         {
             string playerName = "Player_" + player.PlayerId; // Temporary - PlayerRef doesn't convert to string directly
             int score = 0;
@@ -599,34 +619,94 @@ public class LobbyUI : NetworkBehaviour
 
     public void OnBackToLobby()
     {
-        if (Runner.IsClient && Runner.IsConnectedToServer)
-        {
-            Runner.Shutdown();
-        }
-        joinPanel.SetActive(true);
-        waitingPanel.SetActive(false);
-        createdCodeText.text = "";
-        playerListText.text = "";
+        Debug.Log("[LOBBY] 🚪 OnBackToLobby called - starting FUSION PURE quit process");
         
-        foreach (var ui in GameObject.FindGameObjectsWithTag("GameOverUI"))
+        // 🌐 FUSION PURE: Architecture simplifiée
+        // 1. Reset UI immédiat (objets persistants)
+        // 2. Shutdown NetworkRunner (objets temporaires)
+        // 3. Les events NetworkUIManager.OnRoomLeft vont déclencher le reset final
+        
+        // 1. RESET UI immédiat pour éviter les problèmes de timing
+        ResetUIToLobby();
+        
+        // 2. SHUTDOWN propre du NetworkRunner et objets temporaires
+        var currentRunner = FindFirstObjectByType<NetworkRunner>();
+        if (currentRunner != null && currentRunner.IsRunning)
         {
-            Destroy(ui);
+            Debug.Log("[LOBBY] 🔌 Shutting down NetworkRunner - objets temporaires seront détruits");
+            
+            try
+            {
+                // Le shutdown va automatiquement:
+                // - Despawn tous les NetworkObjects (tanks, NetworkUIManager)
+                // - Déclencher NetworkUIManager.OnRoomLeft via Despawned()
+                // - Détruire le GameObject NetworkRunner
+                currentRunner.Shutdown();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[LOBBY] Exception during shutdown: {ex.Message}");
+            }
         }
+        
+        Debug.Log("[LOBBY] ✅ Quit terminé - objets persistants préservés, temporaires détruits");
     }
+    
+    private void ResetUIToLobby()
+    {
+        Debug.Log($"[LOBBY] Resetting UI - joinPanel: {joinPanel}, waitingPanel: {waitingPanel}");
+        
+        // Activer le panel de lobby
+        if (joinPanel != null)
+        {
+            joinPanel.SetActive(true);
+            Debug.Log($"[LOBBY] joinPanel activated - active: {joinPanel.activeInHierarchy}");
+        }
+        else
+        {
+            Debug.LogError("[LOBBY] joinPanel is null!");
+        }
+        
+        // Désactiver le panel de jeu
+        if (waitingPanel != null)
+        {
+            waitingPanel.SetActive(false);
+            Debug.Log($"[LOBBY] waitingPanel deactivated - active: {waitingPanel.activeInHierarchy}");
+        }
+        else
+        {
+            Debug.LogError("[LOBBY] waitingPanel is null!");
+        }
+        
+        // Reset des textes UI
+        if (timerText != null) timerText.text = "";
+        if (roomStatusText != null) roomStatusText.text = "";
+        if (roomStatusTextBig != null) roomStatusTextBig.text = "";
+        if (createdCodeText != null) createdCodeText.text = "";
+        if (playerListText != null) playerListText.text = "";
+        
+        // 🌐 FUSION PURE: Pas besoin de surveillance complexe
+        // Les events NetworkUIManager gèrent le reset UI automatiquement
+        Debug.Log("[LOBBY] ✅ ResetUIToLobby terminé - architecture Fusion pure");
+    }
+    
+
 
     public void HideWaitingForPlayerTextIfRoomFull()
     {
-        if (Runner != null && Runner.IsConnectedToServer && waitingForPlayerText != null)
+        var currentRunner = FindFirstObjectByType<NetworkRunner>();
+        if (currentRunner != null && currentRunner.IsConnectedToServer && waitingForPlayerText != null)
         {
-            waitingForPlayerText.gameObject.SetActive(Runner.ActivePlayers.Count() < 2);
+            waitingForPlayerText.gameObject.SetActive(currentRunner.ActivePlayers.Count() < 2);
         }
     }
 
     public void ShowWaitingForPlayerTextIfNotFull()
     {
-        if (Runner != null && Runner.IsConnectedToServer && waitingForPlayerText != null)
+        var currentRunner = FindFirstObjectByType<NetworkRunner>();
+        if (currentRunner != null && currentRunner.IsConnectedToServer && waitingForPlayerText != null)
         {
-            waitingForPlayerText.gameObject.SetActive(Runner.ActivePlayers.Count() < 2);
+            waitingForPlayerText.gameObject.SetActive(currentRunner.ActivePlayers.Count() < 2);
         }
     }
     
@@ -756,6 +836,121 @@ public class LobbyUI : NetworkBehaviour
     public void OnJoinedRoom() { }
     public void OnJoinRoomFailed(short returnCode, string message) { }
     public void OnJoinRandomFailed(short returnCode, string message) { }
+    
+    #region NetworkUIManager Event Handlers
+    
+    /// <summary>S'abonner aux events du NetworkUIManager temporaire</summary>
+    private void SubscribeToNetworkEvents()
+    {
+        // Désabonnement préventif pour éviter les doublons
+        UnsubscribeFromNetworkEvents();
+        
+        NetworkUIManager.OnRoomJoined += HandleRoomJoined;
+        NetworkUIManager.OnRoomLeft += HandleRoomLeft;
+        NetworkUIManager.OnLocalTankSpawned += HandleLocalTankSpawned;
+        NetworkUIManager.OnPlayerListUpdated += HandlePlayerListUpdated;
+        NetworkUIManager.OnMatchTimerUpdated += HandleMatchTimerUpdated;
+        NetworkUIManager.OnKillFeedMessage += HandleKillFeedMessage;
+        
+        Debug.Log("[LOBBY] 🔗 Abonné aux events NetworkUIManager");
+    }
+    
+    /// <summary>Se désabonner des events du NetworkUIManager</summary>
+    private void UnsubscribeFromNetworkEvents()
+    {
+        NetworkUIManager.OnRoomJoined -= HandleRoomJoined;
+        NetworkUIManager.OnRoomLeft -= HandleRoomLeft;
+        NetworkUIManager.OnLocalTankSpawned -= HandleLocalTankSpawned;
+        NetworkUIManager.OnPlayerListUpdated -= HandlePlayerListUpdated;
+        NetworkUIManager.OnMatchTimerUpdated -= HandleMatchTimerUpdated;
+        NetworkUIManager.OnKillFeedMessage -= HandleKillFeedMessage;
+    }
+    
+    /// <summary>Gérer l'événement de join de room</summary>
+    private void HandleRoomJoined(string roomName)
+    {
+        Debug.Log($"[LOBBY] 🚪 Room rejointe: {roomName}");
+        
+        // Passer en mode "waiting" (UI de jeu)
+        joinPanel.SetActive(false);
+        waitingPanel.SetActive(true);
+        
+        // Mettre à jour le statut de la room
+        if (roomStatusText != null)
+            roomStatusText.text = $"Room: {roomName}";
+        if (roomStatusTextBig != null)
+            roomStatusTextBig.text = $"Room: {roomName}";
+    }
+    
+    /// <summary>Gérer l'événement de quit de room</summary>
+    private void HandleRoomLeft()
+    {
+        Debug.Log("[LOBBY] 🚪 Room quittée - retour au lobby");
+        
+        // Retour au lobby (même logique que OnLeftRoom PUN2)
+        OnLeftRoom();
+    }
+    
+    /// <summary>Gérer le spawn du tank local</summary>
+    private void HandleLocalTankSpawned()
+    {
+        Debug.Log("[LOBBY] 🚗 Tank local spawné - masquage du loading panel");
+        
+        // Cacher le loading panel quand le tank est spawné
+        if (loadingPanel != null)
+        {
+            loadingPanel.SetActive(false);
+        }
+    }
+    
+    /// <summary>Gérer la mise à jour de la liste des joueurs</summary>
+    private void HandlePlayerListUpdated(string playerList)
+    {
+        if (playerListText != null)
+        {
+            playerListText.text = $"Players: {playerList}";
+        }
+    }
+    
+    /// <summary>Gérer la mise à jour du timer de match</summary>
+    private void HandleMatchTimerUpdated(float timeRemaining)
+    {
+        if (timerText != null)
+        {
+            int minutes = Mathf.FloorToInt(timeRemaining / 60);
+            int seconds = Mathf.FloorToInt(timeRemaining % 60);
+            timerText.text = $"{minutes:00}:{seconds:00}";
+        }
+    }
+    
+    /// <summary>Gérer les messages du killfeed</summary>
+    private void HandleKillFeedMessage(string message)
+    {
+        if (killFeedText != null)
+        {
+            killFeedText.text = message;
+            
+            // Optionnel: faire disparaître le message après quelques secondes
+            CancelInvoke(nameof(ClearKillFeed));
+            Invoke(nameof(ClearKillFeed), 3f);
+        }
+    }
+    
+    /// <summary>Effacer le killfeed</summary>
+    private void ClearKillFeed()
+    {
+        if (killFeedText != null)
+            killFeedText.text = "";
+    }
+    
+    #endregion
+    
+    private void OnDestroy()
+    {
+        // 🧹 Nettoyage: se désabonner des events
+        UnsubscribeFromNetworkEvents();
+        Debug.Log("[LOBBY] 🧹 LobbyUI destroyed - events unsubscribed");
+    }
     
     private void UpdateMainScreenPlayerName()
     {

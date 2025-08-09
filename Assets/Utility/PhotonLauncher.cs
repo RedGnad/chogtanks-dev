@@ -4,8 +4,11 @@ using UnityEngine;
 using System.Linq; 
 using System.Collections.Generic; 
 
-public class PhotonLauncher : NetworkBehaviour
+// 🌐 FUSION PURE: PhotonLauncher est maintenant persistant (MonoBehaviour + DontDestroyOnLoad)
+// Les RPCs sont déplacés vers NetworkUIManager temporaire
+public class PhotonLauncher : MonoBehaviour
 {
+    public static PhotonLauncher Instance { get; private set; }
     [Header("UI References")]
     [SerializeField] private GameObject gameOverUIPrefab;
 
@@ -17,98 +20,8 @@ public class PhotonLauncher : NetworkBehaviour
     private bool isWaitingForReconnection = false;
     private bool wasDisconnected = false;
 
-    // private List<RoomInfo> cachedRoomList = new List<RoomInfo>(); // RoomInfo not available in Fusion
-
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void RestartMatchSoftRPC()
-    {
-        foreach (var ui in GameObject.FindGameObjectsWithTag("GameOverUI"))
-        {
-            Destroy(ui);
-        }
-
-        var minimapCam = FindObjectOfType<MinimapCamera>();
-        if (minimapCam != null)
-        {
-            minimapCam.ForceReset();
-        }
-
-        TankHealth2D myTank = null;
-        foreach (var t in FindObjectsOfType<TankHealth2D>())
-        {
-            if (t.Object)
-            {
-                myTank = t;
-                break;
-            }
-        }
-        if (myTank != null)
-        {
-            Runner.Despawn(myTank.Object);
-        }
-
-        var spawner = FindObjectOfType<PhotonTankSpawner>();
-        if (spawner != null)
-        {
-            spawner.SpawnTank();
-        }
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void ShowWinnerToAllRPC(string winnerName, int winnerActorNumber)
-    {
-        
-        bool isWinner = Runner.LocalPlayer.PlayerId == winnerActorNumber;
-        
-        GameObject prefabToUse = gameOverUIPrefab;
-        if (prefabToUse == null)
-        {
-            var tankHealth = FindObjectOfType<TankHealth2D>();
-            if (tankHealth != null)
-            {
-                var field = typeof(TankHealth2D).GetField("gameOverUIPrefab", 
-                    System.Reflection.BindingFlags.NonPublic | 
-                    System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    prefabToUse = field.GetValue(tankHealth) as GameObject;
-                }
-            }
-        }
-        
-        Camera mainCam = Camera.main;
-        if (mainCam != null && prefabToUse != null)
-        {
-            GameObject uiInstance = Instantiate(prefabToUse, mainCam.transform);
-            RectTransform rt = uiInstance.GetComponent<RectTransform>();
-            if (rt != null)
-            {
-                rt.localPosition = new Vector3(0f, 0f, 1f);
-                rt.localRotation = Quaternion.identity;
-                float baseScale = 1f;
-                float dist = Vector3.Distance(mainCam.transform.position, rt.position);
-                float scaleFactor = baseScale * (dist / mainCam.orthographicSize) * 0.1f;
-                rt.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
-            }
-            
-            var controller = uiInstance.GetComponent<GameOverUIController>();
-            if (controller != null)
-            {
-                if (isWinner)
-                {
-                    controller.ShowWin(winnerName);
-                }
-                else
-                {
-                    controller.ShowWinner(winnerName);
-                }
-                
-                StartCoroutine(ReturnToLobbyAfterDelay(6));
-            }
-            
-            StartCoroutine(AutoDestroyAndRestart(uiInstance));
-        }
-    }
+    // 🌐 FUSION PURE: RPCs déplacés vers NetworkUIManager temporaire
+    // PhotonLauncher persistant ne gère plus les RPCs
 
     private System.Collections.IEnumerator ReturnToLobbyAfterDelay(int seconds)
     {
@@ -140,19 +53,15 @@ public class PhotonLauncher : NetworkBehaviour
         CallRestartMatchSoft();
     }
 
+    // 🌐 FUSION PURE: Méthode obsolète - RPCs gérés par NetworkUIManager
     public static void CallRestartMatchSoft()
     {
-        var launcher = FindObjectOfType<PhotonLauncher>();
-        if (launcher != null)
+        Debug.Log("[PHOTON] CallRestartMatchSoft - utiliser NetworkUIManager.RestartMatchSoftRPC()");
+        
+        var networkUI = FindFirstObjectByType<NetworkUIManager>();
+        if (networkUI != null)
         {
-            if (launcher.Object != null)
-            {
-                launcher.RestartMatchSoftRPC();
-            }
-            else
-            {
-                Debug.LogError("[PhotonLauncher] PhotonView manquant sur PhotonLauncher !");
-            }
+            networkUI.RestartMatchSoftRPC();
         }
         else
         {
@@ -186,34 +95,50 @@ public class PhotonLauncher : NetworkBehaviour
         roomName = GenerateRoomCode();
         Debug.Log($"[PHOTON] Creating private room with code: {roomName}");
         
-        // Créer une session Fusion avec le code comme nom de room
-        var runner = FindObjectOfType<NetworkRunner>();
-        if (runner != null)
+        // 🔧 FUSION: Détruire l'ancien runner et créer un nouveau (éviter la réutilisation)
+        var existingRunner = FindObjectOfType<NetworkRunner>();
+        if (existingRunner != null)
         {
-            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-            var sceneInfo = new NetworkSceneInfo();
-            if (scene.IsValid) 
+            Debug.Log("[PHOTON] Found existing NetworkRunner - destroying it to create a fresh one");
+            
+            if (existingRunner.IsRunning)
             {
-                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+                existingRunner.Shutdown();
             }
             
-            var result = await runner.StartGame(new StartGameArgs()
-            {
-                GameMode = GameMode.Host,
-                SessionName = roomName,
-                Scene = sceneInfo,
-                PlayerCount = 4 // Max 4 joueurs
-            });
-            
-            if (result.Ok)
-            {
-                Debug.Log($"[PHOTON] Private room created successfully: {roomName}");
-                OnJoinedRoomFusion(runner);
-            }
-            else
-            {
-                Debug.LogError($"[PHOTON] Failed to create private room: {result.ErrorMessage}");
-            }
+            Destroy(existingRunner.gameObject);
+            await System.Threading.Tasks.Task.Delay(100); // Petit délai pour la destruction
+        }
+        
+        // Créer un nouveau NetworkRunner
+        GameObject runnerGO = new GameObject("NetworkRunner");
+        var newRunner = runnerGO.AddComponent<NetworkRunner>();
+        var spawner = runnerGO.AddComponent<BasicSpawner>();
+        newRunner.AddCallbacks(spawner);
+        
+        var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        var sceneInfo = new NetworkSceneInfo();
+        if (scene.IsValid) 
+        {
+            sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+        }
+        
+        var result = await newRunner.StartGame(new StartGameArgs()
+        {
+            GameMode = GameMode.Host,
+            SessionName = roomName,
+            Scene = sceneInfo,
+            PlayerCount = 4 // Max 4 joueurs
+        });
+        
+        if (result.Ok && newRunner.IsRunning)
+        {
+            Debug.Log($"[PHOTON] Private room created successfully: {roomName}");
+            OnJoinedRoomFusion(newRunner);
+        }
+        else
+        {
+            Debug.LogError($"[PHOTON] Failed to create private room: {result.ErrorMessage ?? "NetworkRunner not running"}");
         }
     }
 
@@ -222,34 +147,50 @@ public class PhotonLauncher : NetworkBehaviour
         roomName = code.ToUpper();
         Debug.Log($"[PHOTON] Joining room with code: {roomName}");
         
-        // Rejoindre une session Fusion avec le code
-        var runner = FindObjectOfType<NetworkRunner>();
-        if (runner != null)
+        // 🔧 FUSION: Détruire l'ancien runner et créer un nouveau (éviter la réutilisation)
+        var existingRunner = FindObjectOfType<NetworkRunner>();
+        if (existingRunner != null)
         {
-            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-            var sceneInfo = new NetworkSceneInfo();
-            if (scene.IsValid) 
+            Debug.Log("[PHOTON] Found existing NetworkRunner - destroying it to create a fresh one");
+            
+            if (existingRunner.IsRunning)
             {
-                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+                existingRunner.Shutdown();
             }
             
-            var result = await runner.StartGame(new StartGameArgs()
-            {
-                GameMode = GameMode.Client,
-                SessionName = roomName,
-                Scene = sceneInfo
-            });
-            
-            if (result.Ok)
-            {
-                Debug.Log($"[PHOTON] Joined room successfully: {roomName}");
-                OnJoinedRoomFusion(runner);
-            }
-            else
-            {
-                Debug.LogError($"[PHOTON] Failed to join room: {result.ErrorMessage}");
-                OnJoinRoomFailedFusion(0, result.ErrorMessage);
-            }
+            Destroy(existingRunner.gameObject);
+            await System.Threading.Tasks.Task.Delay(100); // Petit délai pour la destruction
+        }
+        
+        // Créer un nouveau NetworkRunner
+        GameObject runnerGO = new GameObject("NetworkRunner");
+        var newRunner = runnerGO.AddComponent<NetworkRunner>();
+        var spawner = runnerGO.AddComponent<BasicSpawner>();
+        newRunner.AddCallbacks(spawner);
+        
+        var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        var sceneInfo = new NetworkSceneInfo();
+        if (scene.IsValid) 
+        {
+            sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+        }
+        
+        var result = await newRunner.StartGame(new StartGameArgs()
+        {
+            GameMode = GameMode.Client,
+            SessionName = roomName,
+            Scene = sceneInfo
+        });
+        
+        if (result.Ok && newRunner.IsRunning)
+        {
+            Debug.Log($"[PHOTON] Joined room successfully: {roomName}");
+            OnJoinedRoomFusion(newRunner);
+        }
+        else
+        {
+            Debug.LogError($"[PHOTON] Failed to join room: {result.ErrorMessage ?? "NetworkRunner not running"}");
+            OnJoinRoomFailedFusion(0, result.ErrorMessage ?? "NetworkRunner not running");
         }
     }
 
@@ -265,22 +206,33 @@ public class PhotonLauncher : NetworkBehaviour
         }
     }
 
+    private void Awake()
+    {
+        Debug.Log($"[PHOTON] 🔍 PhotonLauncher.Awake called on GameObject: {gameObject.name}");
+        
+        if (Instance == null)
+        {
+            Instance = this;
+            Debug.Log($"[PHOTON] ✅ PhotonLauncher Instance set to: {gameObject.name}");
+            
+            // 🔧 FUSION PURE: Marquer cet objet comme persistant entre les sessions
+            DontDestroyOnLoad(gameObject);
+            Debug.Log("[PHOTON] PhotonLauncher marqué comme persistant avec DontDestroyOnLoad");
+        }
+        else if (Instance != this)
+        {
+            Debug.LogWarning($"[PHOTON] ❌ DUPLICATE PhotonLauncher detected! Destroying: {gameObject.name} (keeping: {Instance.gameObject.name})");
+            Destroy(gameObject);
+            return;
+        }
+    }
+
     private void Start()
     {
-        if (GetComponent<NetworkObject>() == null)
-        {
-            Debug.LogError("[PhotonLauncher] NetworkObject manquant sur l'objet PhotonLauncher ! Merci d'ajouter un NetworkObject dans l'inspecteur AVANT de lancer la scène.");
-        }
+        // 🌐 FUSION PURE: Plus besoin de NetworkObject sur PhotonLauncher persistant
+        // Les RPCs sont gérés par NetworkUIManager temporaire
         
-        if (Runner == null || !Runner.IsConnectedToServer)
-        {
-            
-            // Fusion connection settings handled differently 
-            // Fusion ping settings handled differently 
-            // Fusion keep alive handled differently 
-            
-            // Fusion connection handled differently
-        }
+        Debug.Log("[PHOTON] PhotonLauncher persistant initialisé - prêt pour créer des sessions");
         
         StartCoroutine(ConnectionHeartbeat());
     }
@@ -293,22 +245,22 @@ public class PhotonLauncher : NetworkBehaviour
         {
             yield return wait;
             
-            if (Runner != null && Runner.IsConnectedToServer)
+            // 🌐 FUSION PURE: Vérifier qu'une session Fusion existe
+            var currentRunner = FindFirstObjectByType<NetworkRunner>();
+            if (currentRunner != null && currentRunner.IsRunning)
             {
-                
-                if (Runner != null && Runner.IsConnectedToServer)
-                {
-                    HeartbeatPingRpc();
-                }
+                // 🌐 FUSION PURE: Heartbeat simplifié - plus de RPC nécessaire
+                Debug.Log("[PHOTON] Heartbeat - PhotonLauncher persistant actif");
+                Debug.Log("[PHOTON] Session Fusion active détectée");
+            }
+            else
+            {
+                Debug.Log("[PHOTON] Pas de session active - heartbeat en attente");
             }
         }
     }
     
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    private void HeartbeatPingRpc()
-    {
-        // ...
-    }
+    // 🌐 FUSION PURE: HeartbeatPingRpc supprimé - plus de RPC dans PhotonLauncher persistant
 
     // OnConnectedToMaster removed for Fusion
     public void OnConnectedToMasterFusion()
@@ -356,9 +308,11 @@ public class PhotonLauncher : NetworkBehaviour
     {
         yield return new WaitForSeconds(autoReconnectDelay);
         
-        if (Runner != null && Runner.IsConnectedToServer)
+        // 🌐 FUSION PURE: Vérifier la session via FindFirstObjectByType
+        var activeRunner = FindFirstObjectByType<NetworkRunner>();
+        if (activeRunner != null && activeRunner.IsRunning)
         {
-            // Fusion disconnect handled differently
+            Debug.Log("[PHOTON] Session Fusion active détectée lors de la déconnexion");
         }
         
         LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
@@ -375,24 +329,32 @@ public class PhotonLauncher : NetworkBehaviour
     // OnJoinedRoom removed for Fusion
     public void OnJoinedRoomFusion(NetworkRunner runner)
     {
+        // 🌐 FUSION: Spawner NetworkUIManager pour la synchronisation UI
+        SpawnNetworkUIManager(runner);
+        
         if (lobbyUI == null) lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
         {
-            // Fusion room name handled differently
+            // 🔧 ACTIVER les feedbacks UI manquants pour Fusion
+            lobbyUI.UpdateRoomStatus($"In Room: {runner.SessionInfo.Name} ({runner.ActivePlayers.Count()}/{runner.SessionInfo.MaxPlayers} players)");
+            
+            // 🌐 FUSION PURE: Démarrer le timer synchronisé via NetworkUIManager
+            // Le timer sera géré par NetworkUIManager (networked) au lieu d'une coroutine locale
+            Debug.Log("[PHOTON] Timer sera démarré par NetworkUIManager une fois spawné");
         }
         
+        // Reset game state
         if (GameManager.Instance != null)
         {
             GameManager.Instance.isGameOver = false;
         }
         
-        if (ScoreManager.Instance != null) 
+        if (ScoreManager.Instance != null)
         {
             ScoreManager.Instance.ResetManager();
         }
         
-        // Spawn tank directly using the provided NetworkRunner
-        SpawnTankFusion(runner);
+        Debug.Log("[PHOTON] Tank spawn will be handled by BasicSpawner.OnPlayerJoined() callback");
     }
 
     private void SpawnTankFusion(NetworkRunner runner)
@@ -413,11 +375,9 @@ public class PhotonLauncher : NetworkBehaviour
             return;
         }
         
-        if (!runner.IsServer)
-        {
-            Debug.LogWarning("[PhotonLauncher] NetworkRunner is not server, cannot spawn tank");
-            return;
-        }
+        // 🔧 FUSION: En mode Shared, tous les clients peuvent spawner
+        // Pas de vérification d'autorité nécessaire en mode Shared
+        Debug.Log($"[PhotonLauncher] GameMode: {runner.GameMode}, IsServer: {runner.IsServer}, IsClient: {runner.IsClient}");
         
         // Vérifier si le match est terminé avant de spawner un tank
         if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
@@ -518,56 +478,72 @@ public class PhotonLauncher : NetworkBehaviour
 
     public async void JoinRandomPublicRoom()
     {
-        string roomName = "PublicRoom_" + UnityEngine.Random.Range(1000, 9999);
-        Debug.Log($"[PHOTON] Joining/Creating public room: {roomName}");
+        // 🎯 ROOM FIXE : Tous les joueurs rejoignent la même room persistante
+        string roomName = "MainTankBattleRoom";
+        Debug.Log($"[PHOTON] Joining/Creating persistent public room: {roomName}");
         
-        // Use existing NetworkRunner (prepared by BasicSpawner but not started)
+        // 🔧 ARCHITECTURE FIXE : Utiliser le BasicSpawner existant et créer le NetworkRunner sur le même GameObject
+        var basicSpawner = FindFirstObjectByType<BasicSpawner>();
+        if (basicSpawner == null)
+        {
+            Debug.LogError("[PHOTON] BasicSpawner not found! Cannot start Fusion session.");
+            return;
+        }
+        
+        // Nettoyer l'ancien runner s'il existe
         var existingRunner = FindObjectOfType<NetworkRunner>();
         if (existingRunner != null)
         {
-            Debug.Log("[PHOTON] Using existing NetworkRunner for public room");
+            Debug.Log("[PHOTON] Found existing NetworkRunner - shutting down...");
             
-            // If already in a session, leave it first
-            if (existingRunner.IsRunning && (existingRunner.IsServer || existingRunner.IsClient))
+            if (existingRunner.IsRunning)
             {
-                Debug.Log("[PHOTON] Leaving current session to join public room...");
                 await existingRunner.Shutdown();
-                
-                // Wait a bit for clean shutdown
                 await System.Threading.Tasks.Task.Delay(500);
             }
             
-            // Start new session with existing runner
-            var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-            var sceneInfo = new NetworkSceneInfo();
-            if (scene.IsValid) 
-            {
-                sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
-            }
-            
-            var result = await existingRunner.StartGame(new StartGameArgs()
-            {
-                GameMode = GameMode.AutoHostOrClient,
-                SessionName = roomName,
-                Scene = sceneInfo,
-                PlayerCount = 4
-            });
-            
-            if (result.Ok && existingRunner.IsRunning)
-            {
-                Debug.Log($"[PHOTON] Joined/Created public room successfully");
-                OnJoinedRoomFusion(existingRunner);
-            }
-            else
-            {
-                Debug.LogError($"[PHOTON] Failed to join/create public room: {result.ErrorMessage ?? "NetworkRunner not running"}");
-                OnJoinRoomFailedFusion(0, result.ErrorMessage ?? "NetworkRunner not running");
-            }
+            // Détruire le GameObject NetworkRunner entier (maintenant séparé)
+            Destroy(existingRunner.gameObject);
+            await System.Threading.Tasks.Task.Delay(100);
+        }
+        
+        // 🎯 CRÉER le NetworkRunner sur un GameObject SÉPARÉ pour éviter d'affecter LobbyUI/GameManager
+        var runnerObject = new GameObject("NetworkRunner");
+        var newRunner = runnerObject.AddComponent<NetworkRunner>();
+        newRunner.ProvideInput = true;
+        
+        // Ajouter NetworkSceneManager sur le même GameObject que NetworkRunner
+        var sceneManager = runnerObject.AddComponent<NetworkSceneManagerDefault>();
+        
+        // Attacher BasicSpawner comme callback (BasicSpawner reste sur son GameObject original)
+        newRunner.AddCallbacks(basicSpawner);
+        Debug.Log("[PHOTON] Created NetworkRunner on separate GameObject - LobbyUI/GameManager preserved");
+        
+        // Start new session with fresh runner
+        var scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        var sceneInfo = new NetworkSceneInfo();
+        if (scene.IsValid) 
+        {
+            sceneInfo.AddSceneRef(scene, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+        }
+        
+        var result = await newRunner.StartGame(new StartGameArgs()
+        {
+            GameMode = GameMode.Shared,  // 🎯 Mode Shared pour rooms persistantes (pas de Host unique)
+            SessionName = roomName,
+            Scene = sceneInfo,
+            PlayerCount = 4
+        });
+        
+        if (result.Ok && newRunner.IsRunning)
+        {
+            Debug.Log($"[PHOTON] Joined/Created public room successfully");
+            OnJoinedRoomFusion(newRunner);
         }
         else
         {
-            Debug.LogError("[PHOTON] No NetworkRunner found or not running");
-            OnJoinRoomFailedFusion(0, "No NetworkRunner found");
+            Debug.LogError($"[PHOTON] Failed to join/create public room: {result.ErrorMessage ?? "NetworkRunner not running"}");
+            OnJoinRoomFailedFusion(0, result.ErrorMessage ?? "NetworkRunner not running");
         }
     }
 
@@ -581,5 +557,101 @@ public class PhotonLauncher : NetworkBehaviour
     public void JoinOrCreatePublicRoom()
     {
         JoinRandomPublicRoom();
+    }
+    
+    // 🌐 FUSION PURE: Ancienne coroutine GameTimerCoroutine supprimée
+    // Le timer est maintenant géré par NetworkUIManager (synchronisé réseau)
+    
+    /// <summary>
+    /// 🌐 FUSION: Spawner NetworkUIManager pour la synchronisation UI
+    /// </summary>
+    private void SpawnNetworkUIManager(NetworkRunner runner)
+    {
+        if (runner == null || !runner.IsRunning)
+        {
+            Debug.LogWarning("[PHOTON] Cannot spawn NetworkUIManager - NetworkRunner not running");
+            return;
+        }
+        
+        // Vérifier si NetworkUIManager existe déjà
+        var existingUIManager = FindFirstObjectByType<NetworkUIManager>();
+        if (existingUIManager != null)
+        {
+            Debug.Log("[PHOTON] NetworkUIManager already exists - skipping spawn");
+            return;
+        }
+        
+        // Charger le prefab NetworkUIManager depuis Resources
+        GameObject uiManagerPrefab = Resources.Load<GameObject>("NetworkUIManager");
+        if (uiManagerPrefab == null)
+        {
+            Debug.LogError("[PHOTON] NetworkUIManager prefab not found in Resources! Creating temporary GameObject...");
+            
+            // Créer un GameObject temporaire avec NetworkUIManager
+            GameObject tempUIManager = new GameObject("NetworkUIManager_Temp");
+            tempUIManager.AddComponent<NetworkUIManager>();
+            
+            // Spawner via Fusion
+            var networkObject = tempUIManager.GetComponent<NetworkObject>();
+            if (networkObject == null)
+            {
+                networkObject = tempUIManager.AddComponent<NetworkObject>();
+            }
+            
+            var spawnedObject = runner.Spawn(networkObject, Vector3.zero, Quaternion.identity);
+            Debug.Log("[PHOTON] 🌐 NetworkUIManager temporaire spawné avec succès");
+            
+            // Démarrer le timer synchronisé (seulement si on a l'autorité)
+            StartNetworkTimer(spawnedObject);
+        }
+        else
+        {
+            // Spawner le prefab NetworkUIManager
+            var networkObject = uiManagerPrefab.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                var spawnedObject = runner.Spawn(networkObject, Vector3.zero, Quaternion.identity);
+                Debug.Log("[PHOTON] 🌐 NetworkUIManager spawné depuis prefab avec succès");
+                
+                // Démarrer le timer synchronisé (seulement si on a l'autorité)
+                StartNetworkTimer(spawnedObject);
+            }
+            else
+            {
+                Debug.LogError("[PHOTON] NetworkUIManager prefab missing NetworkObject component!");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Démarre le timer synchronisé via NetworkUIManager
+    /// </summary>
+    private void StartNetworkTimer(NetworkObject spawnedUIManager)
+    {
+        if (spawnedUIManager == null) return;
+        
+        var networkUIManager = spawnedUIManager.GetComponent<NetworkUIManager>();
+        if (networkUIManager != null)
+        {
+            // Démarrer le timer avec un délai pour s'assurer que l'objet est bien initialisé
+            StartCoroutine(StartTimerDelayed(networkUIManager));
+        }
+        else
+        {
+            Debug.LogWarning("[PHOTON] NetworkUIManager component not found on spawned object");
+        }
+    }
+    
+    /// <summary>
+    /// Coroutine pour démarrer le timer avec un petit délai
+    /// </summary>
+    private System.Collections.IEnumerator StartTimerDelayed(NetworkUIManager networkUIManager)
+    {
+        // Attendre une frame pour s'assurer que l'objet est bien initialisé
+        yield return null;
+        
+        // Démarrer le timer synchronisé (300 secondes = 5 minutes)
+        networkUIManager.StartMatchTimer(300f);
+        Debug.Log("[PHOTON] ⏰ Timer synchronisé démarré via NetworkUIManager");
     }
 }

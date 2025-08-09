@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using Fusion;
 
 #if UNITY_EDITOR
 public class FixTankPrefab : MonoBehaviour
@@ -21,6 +22,13 @@ public class FixTankPrefab : MonoBehaviour
 
         // Ouvrir le prefab pour modification
         GameObject prefabInstance = PrefabUtility.LoadPrefabContents(prefabPath);
+        
+        // 🎯 AJOUTER NETWORKOBJECT EN PREMIER (requis pour Fusion)
+        if (prefabInstance.GetComponent<NetworkObject>() == null)
+        {
+            prefabInstance.AddComponent<NetworkObject>();
+            Debug.Log("Added NetworkObject component");
+        }
         
         // Ajouter les scripts NetworkBehaviour manquants
         if (prefabInstance.GetComponent<TankMovement2D>() == null)

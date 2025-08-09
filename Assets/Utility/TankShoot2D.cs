@@ -193,10 +193,11 @@ public class TankShoot2D : NetworkBehaviour
         Vector3 spawnPos = firePoint.position + (Vector3)(shootDir * 0.65f);
         spawnPos.z = 0f;
         
-        // 🔧 CORRECTION : Utiliser Runner.Spawn au lieu d'Instantiate pour la synchronisation Fusion
-        if (Runner != null && Runner.IsServer)
+        // 🔧 CORRECTION : En mode Shared, tout client peut spawner (pas besoin d'être Server)
+        if (Runner != null && Object.HasInputAuthority)
         {
-            NetworkObject shellNetworkObject = Runner.Spawn(shellPrefab, firePoint.position, firePoint.rotation);
+            // 🔧 FIX: Spawner le shell avec l'autorité du tank pour permettre la prévention du self-damage
+            NetworkObject shellNetworkObject = Runner.Spawn(shellPrefab, firePoint.position, firePoint.rotation, Object.InputAuthority);
             if (shellNetworkObject != null)
             {
                 GameObject shell = shellNetworkObject.gameObject;
@@ -218,7 +219,7 @@ public class TankShoot2D : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning("[TankShoot2D] Cannot spawn shell: Runner is null or not server");
+            Debug.LogWarning($"[TankShoot2D] Cannot spawn shell: Runner={Runner != null}, HasInputAuthority={Object?.HasInputAuthority}");
         }
 
     }
@@ -232,9 +233,11 @@ public class TankShoot2D : NetworkBehaviour
         
         if (shellHandler != null && shellHandler.Object != null && shellHandler.Object.IsValid)
         {
+            int shooterId = Object.InputAuthority != null ? Object.InputAuthority.PlayerId : -1;
             shellHandler.SetPrecisionRpc(isPrecision);
-            shellHandler.SetShooterRpc(Object.InputAuthority.PlayerId);
-            Debug.Log($"[TankShoot2D] Shell properties set via RPC: precision={isPrecision}");
+            shellHandler.SetShooterRpc(shooterId);
+            Debug.Log($"[TankShoot2D] Shell properties set via RPC: precision={isPrecision}, shooterID={shooterId}");
+            Debug.Log($"[TankShoot2D] Tank InputAuthority: {Object.InputAuthority}, PlayerId: {shooterId}");
         }
         else
         {
