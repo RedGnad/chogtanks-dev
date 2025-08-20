@@ -100,9 +100,6 @@ contract ChogTanks is ERC721, ERC721Enumerable, Ownable {
         
         nftLevels[tokenId] = 1;
         
-        walletNFTs[msg.sender].push(tokenId);
-        nftIndexInWallet[tokenId] = walletNFTs[msg.sender].length - 1;
-        
         emit NFTMinted(msg.sender, tokenId);
         
         if (isMaxSupplyReached()) {
@@ -145,49 +142,56 @@ contract ChogTanks is ERC721, ERC721Enumerable, Ownable {
         emit NFTEvolved(msg.sender, tokenId, targetLevel, evolutionCost);
     }
     
-    function transferFrom(address from, address to, uint256 tokenId) public override(ERC721, IERC721) {
-        super.transferFrom(from, to, tokenId);
-        _updateWalletNFTsOnTransfer(from, to, tokenId);
-    }
-    
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public override(ERC721, IERC721) {
-        super.safeTransferFrom(from, to, tokenId, data);
-        _updateWalletNFTsOnTransfer(from, to, tokenId);
-    }
-    
-    function _updateWalletNFTsOnTransfer(address from, address to, uint256 tokenId) private {
-        if (from != address(0) && to != address(0)) {
-            _removeNFTFromWallet(from, tokenId);
-            walletNFTs[to].push(tokenId);
-            nftIndexInWallet[tokenId] = walletNFTs[to].length - 1;
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Enumerable)
+        returns (address)
+    {
+        address from = _ownerOf(tokenId);
+        
+        address previousOwner = super._update(to, tokenId, auth);
+        
+        if (from != address(0) && to != address(0) && from != to) {
+            _removeFromWallet(from, tokenId);
+            _addToWallet(to, tokenId);
         }
+        else if (from == address(0) && to != address(0)) {
+            _addToWallet(to, tokenId);
+        }
+        else if (from != address(0) && to == address(0)) {
+            _removeFromWallet(from, tokenId);
+        }
+        
+        return previousOwner;
+    }
+
+    function _increaseBalance(address account, uint128 value)
+        internal
+        override(ERC721, ERC721Enumerable)
+    {
+        super._increaseBalance(account, value);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
     
-    function _removeNFTFromWallet(address wallet, uint256 tokenId) private {
+    function _addToWallet(address wallet, uint256 tokenId) private {
+        walletNFTs[wallet].push(tokenId);
+        nftIndexInWallet[tokenId] = walletNFTs[wallet].length - 1;
+    }
+    
+    function _removeFromWallet(address wallet, uint256 tokenId) private {
         uint256[] storage nfts = walletNFTs[wallet];
-        
-        if (nfts.length == 0) {
-            return;
-        }
-        
         uint256 index = nftIndexInWallet[tokenId];
         
-        if (index >= nfts.length) {
-            return;
-        }
-        
-        if (nfts[index] != tokenId) {
-            bool found = false;
-            for (uint256 i = 0; i < nfts.length; i++) {
-                if (nfts[i] == tokenId) {
-                    index = i;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                return; 
-            }
+        if (index >= nfts.length || nfts[index] != tokenId) {
+            return; 
         }
         
         uint256 lastIndex = nfts.length - 1;
@@ -296,29 +300,5 @@ contract ChogTanks is ERC721, ERC721Enumerable, Ownable {
         
         (bool success, ) = owner().call{value: balance}("");
         require(success, "Withdrawal failed");
-    }
-    
-    function _update(address to, uint256 tokenId, address auth)
-        internal
-        override(ERC721, ERC721Enumerable)
-        returns (address)
-    {
-        return super._update(to, tokenId, auth);
-    }
-
-    function _increaseBalance(address account, uint128 value)
-        internal
-        override(ERC721, ERC721Enumerable)
-    {
-        super._increaseBalance(account, value);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
     }
 }

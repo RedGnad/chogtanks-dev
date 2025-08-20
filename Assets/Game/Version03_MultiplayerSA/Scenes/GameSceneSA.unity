@@ -61626,7 +61626,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                  '
+  m_text: '                                     '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -62476,7 +62476,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                      '
+  m_text: '                                       '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -64546,7 +64546,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ' '
+  m_text: '                                  '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -64732,6 +64732,8 @@ MonoBehaviour:
   roomName: TestRoom
   maxPlayers: 8
   lobbyUI: {fileID: 0}
+  adminWallets:
+  - 0xD20CC1610BB0D0CF0daacb159AB6Cc4787D9e6D4
 --- !u!114 &546917730
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68291,7 +68293,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                                                                 '
+  m_text: '                                                                      '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -71111,7 +71113,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                   '
+  m_text: '                                           '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -72177,7 +72179,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -24.000061}
+  m_AnchoredPosition: {x: 0, y: -24}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1866919746
@@ -72836,7 +72838,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ' '
+  m_text: '                                     '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -73354,7 +73356,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ' '
+  m_text: '                                       '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}

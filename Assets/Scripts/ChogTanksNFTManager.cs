@@ -1137,7 +1137,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                 }
                 else
                 {
-                    string levelMessage = "Ready to mint";
+                    string levelMessage = "Ready to mint           ";
                     levelText.text = levelMessage;
                     Debug.Log($"[UI-LEVEL] ✅ levelText set to: '{levelMessage}'");
                 }

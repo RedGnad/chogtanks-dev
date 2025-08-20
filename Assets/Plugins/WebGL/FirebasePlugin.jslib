@@ -347,10 +347,10 @@ mergeInto(LibraryManager.library, {
             .set(
               {
                 nftLevel: nftLevelNumber,
-                level: nftLevelNumber, // 🎯 SYNCHRONISER level avec nftLevel
+                level: nftLevelNumber, //
                 walletAddress: normalizedAddress,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                syncSource: "evolution_sync", // 🔍 Marquer comme synchronisation d'évolution
+                syncSource: "evolution_sync", //
               },
               { merge: true }
             )
@@ -359,7 +359,7 @@ mergeInto(LibraryManager.library, {
                 `[NFT] Niveau NFT ET level synchronisés: ${nftLevelNumber}`
               );
               console.log(
-                `[NFT] 🎯 SYNC: level=${nftLevelNumber}, nftLevel=${nftLevelNumber}`
+                `[NFT]  level=${nftLevelNumber}, nftLevel=${nftLevelNumber}`
               );
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
@@ -415,7 +415,7 @@ mergeInto(LibraryManager.library, {
             })
             .then(function () {
               console.log(
-                `[NFT] ✅ Mise à jour complète NFT réussie: TokenID=${tokenIdValue}, Level=${levelValue}`
+                `[NFT]  Mise à jour complète NFT réussie: TokenID=${tokenIdValue}, Level=${levelValue}`
               );
 
               setTimeout(function () {
@@ -434,7 +434,7 @@ mergeInto(LibraryManager.library, {
                       currentLevel !== levelValue
                     ) {
                       console.warn(
-                        `[NFT] ⚠️ Incohérence détectée, nouvel essai de mise à jour...`
+                        `[NFT]  Incohérence détectée, nouvel essai de mise à jour...`
                       );
 
                       docRef.set(
@@ -453,10 +453,7 @@ mergeInto(LibraryManager.library, {
               }, 1000);
             })
             .catch(function (error) {
-              console.error(
-                "[NFT] ❌ Erreur lors de la mise à jour NFT:",
-                error
-              );
+              console.error("[NFT]  Erreur lors de la mise à jour NFT:", error);
 
               docRef
                 .set(
@@ -469,11 +466,11 @@ mergeInto(LibraryManager.library, {
                   { merge: true }
                 )
                 .then(function () {
-                  console.log(`[NFT] ✅ Mise à jour NFT par fallback réussie`);
+                  console.log(`[NFT]  Mise à jour NFT par fallback réussie`);
                 })
                 .catch(function (error) {
                   console.error(
-                    "[NFT] ❌ Échec complet de mise à jour NFT:",
+                    "[NFT]  Échec complet de mise à jour NFT:",
                     error
                   );
                 });
@@ -484,14 +481,14 @@ mergeInto(LibraryManager.library, {
             .auth()
             .signInAnonymously()
             .catch(function (error) {
-              console.error("[NFT] ❌ Échec authentification anonyme:", error);
+              console.error("[NFT]  Échec authentification anonyme:", error);
             });
         }
       });
 
       return true;
     } catch (error) {
-      console.error("[NFT] ❌ Exception dans UpdateNFTDataJS:", error);
+      console.error("[NFT]  Exception dans UpdateNFTDataJS:", error);
       return false;
     }
   },
@@ -615,7 +612,7 @@ mergeInto(LibraryManager.library, {
                     );
 
                     fetch(
-                      "https://chogtanks-nft-servers.onrender.com/api/evolve-authorization",
+                      "https://chogtanks-nft-server.fly.dev/api/evolve-authorization",
                       {
                         method: "POST",
                         headers: {
@@ -732,7 +729,7 @@ mergeInto(LibraryManager.library, {
   GetNFTStateJS: function (walletAddress) {
     try {
       const address = UTF8ToString(walletAddress);
-      const normalizedAddress = address.toLowerCase().trim(); // 🔧 SIMPLE FIX: Normalize address
+      const normalizedAddress = address.toLowerCase().trim(); //
       console.log(
         `[NFT][DEBUG] GetNFTStateJS - Récupération de l'état NFT pour: ${normalizedAddress}`
       );
@@ -913,7 +910,7 @@ mergeInto(LibraryManager.library, {
       const normalizedAddress = address.toLowerCase().trim();
 
       console.log(
-        `[MINT-SUCCESS] 🎆 Marking mint as successful for wallet: ${normalizedAddress}`
+        `[MINT-SUCCESS]  Marking mint as successful for wallet: ${normalizedAddress}`
       );
 
       if (typeof firebase === "undefined" || !firebase.apps.length) {
@@ -935,7 +932,7 @@ mergeInto(LibraryManager.library, {
         )
         .then(() => {
           console.log(
-            `[MINT-SUCCESS] ✅ hasMintedNFT set to true for ${normalizedAddress}`
+            `[MINT-SUCCESS]  hasMintedNFT set to true for ${normalizedAddress}`
           );
           if (typeof unityInstance !== "undefined") {
             unityInstance.SendMessage(
@@ -946,12 +943,12 @@ mergeInto(LibraryManager.library, {
           }
         })
         .catch((error) => {
-          console.error(`[MINT-SUCCESS] ❌ Error marking mint success:`, error);
+          console.error(`[MINT-SUCCESS]  Error marking mint success:`, error);
         });
 
       return true;
     } catch (error) {
-      console.error(`[MINT-SUCCESS] ❌ Exception in MarkMintSuccessJS:`, error);
+      console.error(`[MINT-SUCCESS]  Exception in MarkMintSuccessJS:`, error);
       return false;
     }
   },
@@ -962,7 +959,7 @@ mergeInto(LibraryManager.library, {
       const normalizedAddress = address.toLowerCase().trim();
 
       console.log(
-        `[AUTO-MINT-CHECK] 🔍 Checking hasMintedNFT for wallet: ${normalizedAddress}`
+        `[AUTO-MINT-CHECK]  Checking hasMintedNFT for wallet: ${normalizedAddress}`
       );
 
       if (typeof firebase === "undefined" || !firebase.apps.length) {
@@ -982,11 +979,11 @@ mergeInto(LibraryManager.library, {
             const data = doc.data();
             hasMinted = data.hasMintedNFT === true;
             console.log(
-              `[AUTO-MINT-CHECK] 📊 Document found: hasMintedNFT=${hasMinted}`
+              `[AUTO-MINT-CHECK]  Document found: hasMintedNFT=${hasMinted}`
             );
           } else {
             console.log(
-              `[AUTO-MINT-CHECK] 📊 No document found, hasMintedNFT=false (first time)`
+              `[AUTO-MINT-CHECK]  No document found, hasMintedNFT=false (first time)`
             );
           }
 
@@ -996,7 +993,7 @@ mergeInto(LibraryManager.library, {
             shouldAutoMint: !hasMinted, // Auto-mint si jamais minté
           };
 
-          console.log(`[AUTO-MINT-CHECK] ✅ Sending result to Unity:`, result);
+          console.log(`[AUTO-MINT-CHECK]  Sending result to Unity:`, result);
 
           if (typeof unityInstance !== "undefined") {
             unityInstance.SendMessage(
@@ -1008,7 +1005,7 @@ mergeInto(LibraryManager.library, {
         })
         .catch((error) => {
           console.error(
-            `[AUTO-MINT-CHECK] ❌ Error checking hasMintedNFT:`,
+            `[AUTO-MINT-CHECK]  Error checking hasMintedNFT:`,
             error
           );
 
@@ -1031,7 +1028,7 @@ mergeInto(LibraryManager.library, {
       return true;
     } catch (error) {
       console.error(
-        `[AUTO-MINT-CHECK] ❌ Exception in CheckHasMintedNFTJS:`,
+        `[AUTO-MINT-CHECK]  Exception in CheckHasMintedNFTJS:`,
         error
       );
       return false;
@@ -1184,7 +1181,7 @@ mergeInto(LibraryManager.library, {
 
                 if (owner.toLowerCase() === normalizedAddress) {
                   console.log(
-                    `[BLOCKCHAIN] ✅ Found NFT! TokenID: ${tokenId}, Owner: ${owner}`
+                    `[BLOCKCHAIN]  Found NFT! TokenID: ${tokenId}, Owner: ${owner}`
                   );
 
                   const getLevelData = "0x86481d40" + padHex(tokenId);
@@ -1198,7 +1195,7 @@ mergeInto(LibraryManager.library, {
                     level = parseInt(levelResult, 16);
                   }
 
-                  console.log(`[BLOCKCHAIN] ✅ NFT Level: ${level}`);
+                  console.log(`[BLOCKCHAIN]  NFT Level: ${level}`);
 
                   unityInstance.SendMessage(
                     "ChogTanksNFTManager",
@@ -1409,19 +1406,16 @@ mergeInto(LibraryManager.library, {
 
       console.log(`[DIRECT-MINT] Calling signature server...`);
 
-      fetch(
-        "https://chogtanks-nft-servers.onrender.com/api/mint-authorization",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            walletAddress: address,
-            playerPoints: 0, // Mint requires 0 points
-          }),
-        }
-      )
+      fetch("https://chogtanks-nft-server.fly.dev/api/mint-authorization", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          playerPoints: 0, // Mint requires 0 points
+        }),
+      })
         .then((response) => response.json())
         .then((data) => {
           console.log(`[DIRECT-MINT] Server response:`, data);
@@ -1497,26 +1491,26 @@ mergeInto(LibraryManager.library, {
   ) {
     try {
       const address = UTF8ToString(walletAddress);
-      const normalizedAddress = address.toLowerCase().trim(); // 🔧 SIMPLE FIX: Normalize address
+      const normalizedAddress = address.toLowerCase().trim(); //
       const level = blockchainLevel;
       const nftTokenId = tokenId;
 
       console.log(
-        `[FIREBASE-SYNC] 🔄 Starting sync for wallet ${normalizedAddress}`
+        `[FIREBASE-SYNC]  Starting sync for wallet ${normalizedAddress}`
       );
       console.log(
-        `[FIREBASE-SYNC] 🔗 Blockchain data: level=${level}, tokenId=${nftTokenId}`
+        `[FIREBASE-SYNC]  Blockchain data: level=${level}, tokenId=${nftTokenId}`
       );
 
       const syncNFTLevel = async () => {
         try {
           console.log(
-            `[FIREBASE-SYNC] 📊 Fetching current Firebase data for score...`
+            `[FIREBASE-SYNC]  Fetching current Firebase data for score...`
           );
 
-          // 🔧 FIX: Define db variable
+          //
           const db = firebase.firestore();
-          const docRef = db.collection("WalletScores").doc(normalizedAddress); // 🔧 SIMPLE FIX: Use WalletScores + normalized address
+          const docRef = db.collection("WalletScores").doc(normalizedAddress); //
           const doc = await docRef.get();
 
           let currentScore = 0;
@@ -1524,25 +1518,25 @@ mergeInto(LibraryManager.library, {
             const data = doc.data();
             currentScore = data.score || 0;
             console.log(
-              `[FIREBASE-SYNC] 📊 Found existing score in Firebase: ${currentScore}`
+              `[FIREBASE-SYNC]  Found existing score in Firebase: ${currentScore}`
             );
 
             const firebaseLevel = data.level || 0;
             if (firebaseLevel !== level) {
               console.log(
-                `[FIREBASE-SYNC] ⚠️ Level mismatch! Firebase: ${firebaseLevel}, Blockchain: ${level}`
+                `[FIREBASE-SYNC]  Level mismatch! Firebase: ${firebaseLevel}, Blockchain: ${level}`
               );
               console.log(
-                `[FIREBASE-SYNC] 🔄 Updating Firebase level to match blockchain...`
+                `[FIREBASE-SYNC]  Updating Firebase level to match blockchain...`
               );
             } else {
               console.log(
-                `[FIREBASE-SYNC] ✅ Levels already synchronized (${level})`
+                `[FIREBASE-SYNC]  Levels already synchronized (${level})`
               );
             }
           } else {
             console.log(
-              `[FIREBASE-SYNC] 🆕 No existing Firebase document, creating new one`
+              `[FIREBASE-SYNC]  No existing Firebase document, creating new one`
             );
           }
 
@@ -1559,14 +1553,14 @@ mergeInto(LibraryManager.library, {
           };
 
           console.log(
-            `[FIREBASE-SYNC] 💾 Updating Firebase document with synced data:`,
+            `[FIREBASE-SYNC]  Updating Firebase document with synced data:`,
             syncedData
           );
 
           await docRef.set(syncedData, { merge: true });
 
           console.log(
-            `[FIREBASE-SYNC] ✅ Firebase successfully synchronized with blockchain data`
+            `[FIREBASE-SYNC]  Firebase successfully synchronized with blockchain data`
           );
 
           const finalState = {
@@ -1578,11 +1572,11 @@ mergeInto(LibraryManager.library, {
           };
 
           console.log(
-            `[FIREBASE-SYNC] 🎯 Sending final synchronized state to Unity:`,
+            `[FIREBASE-SYNC]  Sending final synchronized state to Unity:`,
             finalState
           );
 
-          // 🔧 FIX: Check if unityInstance is defined before using it
+          //
           if (typeof unityInstance !== "undefined") {
             unityInstance.SendMessage(
               "ChogTanksNFTManager",
@@ -1590,10 +1584,10 @@ mergeInto(LibraryManager.library, {
               JSON.stringify(finalState)
             );
           } else {
-            console.error("[FIREBASE-SYNC] ❌ unityInstance is not defined");
+            console.error("[FIREBASE-SYNC]  unityInstance is not defined");
           }
         } catch (error) {
-          console.error(`[FIREBASE-SYNC] ❌ Sync failed:`, error);
+          console.error(`[FIREBASE-SYNC]  Sync failed:`, error);
 
           const fallbackState = {
             hasNFT: true,
@@ -1603,12 +1597,9 @@ mergeInto(LibraryManager.library, {
             score: 100,
           };
 
-          console.log(
-            `[FIREBASE-SYNC] 🔄 Using fallback state:`,
-            fallbackState
-          );
+          console.log(`[FIREBASE-SYNC]  Using fallback state:`, fallbackState);
 
-          // 🔧 FIX: Check if unityInstance is defined before using it
+          //
           if (typeof unityInstance !== "undefined") {
             unityInstance.SendMessage(
               "ChogTanksNFTManager",
@@ -1617,7 +1608,7 @@ mergeInto(LibraryManager.library, {
             );
           } else {
             console.error(
-              "[FIREBASE-SYNC] ❌ unityInstance is not defined in fallback"
+              "[FIREBASE-SYNC]  unityInstance is not defined in fallback"
             );
           }
         }
@@ -1627,7 +1618,7 @@ mergeInto(LibraryManager.library, {
       return true;
     } catch (error) {
       console.error(
-        `[FIREBASE-SYNC] ❌ Exception in SyncNFTLevelWithFirebaseJS:`,
+        `[FIREBASE-SYNC]  Exception in SyncNFTLevelWithFirebaseJS:`,
         error
       );
       return false;
@@ -1649,20 +1640,17 @@ mergeInto(LibraryManager.library, {
     console.log(`[EVOL-DIRECT] Player points: ${playerPoints}`);
     console.log(`[EVOL-DIRECT] Target level: ${targetLevel}`);
 
-    fetch(
-      "https://chogtanks-nft-servers.onrender.com/api/evolve-authorization",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          walletAddress: normalizedAddress,
-          playerPoints: playerPoints,
-          targetLevel: targetLevel,
-        }),
-      }
-    )
+    fetch("https://chogtanks-nft-server.fly.dev/api/evolve-authorization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        walletAddress: normalizedAddress,
+        playerPoints: playerPoints,
+        targetLevel: targetLevel,
+      }),
+    })
       .then((response) => response.json())
       .then((data) => {
         console.log(`[EVOL-DIRECT] Server response:`, data);
@@ -1680,7 +1668,7 @@ mergeInto(LibraryManager.library, {
           };
 
           console.log(
-            `[EVOL-DIRECT] ✅ Evolution authorized, sending to Unity:`,
+            `[EVOL-DIRECT]  Evolution authorized, sending to Unity:`,
             authData
           );
           unityInstance.SendMessage(
@@ -1690,7 +1678,7 @@ mergeInto(LibraryManager.library, {
           );
         } else {
           console.error(
-            `[EVOL-DIRECT] ❌ Server denied authorization:`,
+            `[EVOL-DIRECT]  Server denied authorization:`,
             data.error
           );
           unityInstance.SendMessage(
@@ -1704,7 +1692,7 @@ mergeInto(LibraryManager.library, {
         }
       })
       .catch((error) => {
-        console.error(`[EVOL-DIRECT] ❌ Server error:`, error);
+        console.error(`[EVOL-DIRECT]  Server error:`, error);
 
         console.log(
           `[EVOL-DIRECT] Falling back to mock signature for development`
@@ -1733,7 +1721,7 @@ mergeInto(LibraryManager.library, {
           signature: "0x1234567890abcdef",
         };
 
-        console.log(`[EVOL-DIRECT] 🔧 Using mock authorization:`, mockAuth);
+        console.log(`[EVOL-DIRECT]  Using mock authorization:`, mockAuth);
         unityInstance.SendMessage(
           "ChogTanksNFTManager",
           "OnEvolutionAuthorized",
@@ -1752,14 +1740,14 @@ mergeInto(LibraryManager.library, {
       const walletAddress = UTF8ToString(walletAddressPtr);
       const normalizedAddress = walletAddress.toLowerCase().trim();
 
-      console.log(`[EVOLUTION-CHECK] 🔍 Checking evolution eligibility ONLY:`);
+      console.log(`[EVOLUTION-CHECK]  Checking evolution eligibility ONLY:`);
       console.log(`[EVOLUTION-CHECK] Wallet: ${normalizedAddress}`);
       console.log(`[EVOLUTION-CHECK] Points required: ${pointsRequired}`);
       console.log(`[EVOLUTION-CHECK] Token ID: ${tokenId}`);
       console.log(`[EVOLUTION-CHECK] Target level: ${targetLevel}`);
 
       if (typeof firebase === "undefined" || !firebase.apps.length) {
-        console.error("[EVOLUTION-CHECK] ❌ Firebase not initialized");
+        console.error("[EVOLUTION-CHECK]  Firebase not initialized");
         return false;
       }
 
@@ -1783,7 +1771,7 @@ mergeInto(LibraryManager.library, {
 
                 if (currentScore >= pointsRequired) {
                   console.log(
-                    `[EVOLUTION-CHECK] ✅ Eligibility confirmed - proceeding to evolution`
+                    `[EVOLUTION-CHECK]  Eligibility confirmed - proceeding to evolution`
                   );
 
                   const unityNFTState = window.unityNFTState || {
@@ -1793,7 +1781,7 @@ mergeInto(LibraryManager.library, {
                   const currentLevelFromUnity = unityNFTState.level || 1;
 
                   fetch(
-                    "https://chogtanks-nft-servers.onrender.com/api/evolve-authorization",
+                    "https://chogtanks-nft-server.fly.dev/api/evolve-authorization",
                     {
                       method: "POST",
                       headers: {
@@ -1829,7 +1817,7 @@ mergeInto(LibraryManager.library, {
                         };
 
                         console.log(
-                          `[EVOLUTION-CHECK] ✅ Sending authorized evolution data to Unity`
+                          `[EVOLUTION-CHECK]  Sending authorized evolution data to Unity`
                         );
                         unityInstance.SendMessage(
                           "ChogTanksNFTManager",
@@ -1838,7 +1826,7 @@ mergeInto(LibraryManager.library, {
                         );
                       } else {
                         console.error(
-                          `[EVOLUTION-CHECK] ❌ Server denied authorization:`,
+                          `[EVOLUTION-CHECK]  Server denied authorization:`,
                           authData.error
                         );
                         unityInstance.SendMessage(
@@ -1854,10 +1842,7 @@ mergeInto(LibraryManager.library, {
                       }
                     })
                     .catch((error) => {
-                      console.error(
-                        `[EVOLUTION-CHECK] ❌ Server error:`,
-                        error
-                      );
+                      console.error(`[EVOLUTION-CHECK]  Server error:`, error);
 
                       const unityNFTState = window.unityNFTState || {
                         level: 1,
@@ -1878,7 +1863,7 @@ mergeInto(LibraryManager.library, {
                       };
 
                       console.log(
-                        `[EVOLUTION-CHECK] 🔧 Using mock authorization with Unity level ${currentLevelFromUnity} for development`
+                        `[EVOLUTION-CHECK]  Using mock authorization with Unity level ${currentLevelFromUnity} for development`
                       );
                       unityInstance.SendMessage(
                         "ChogTanksNFTManager",
@@ -1888,7 +1873,7 @@ mergeInto(LibraryManager.library, {
                     });
                 } else {
                   console.log(
-                    `[EVOLUTION-CHECK] ❌ Insufficient points: ${currentScore} < ${pointsRequired}`
+                    `[EVOLUTION-CHECK]  Insufficient points: ${currentScore} < ${pointsRequired}`
                   );
                   unityInstance.SendMessage(
                     "ChogTanksNFTManager",
@@ -1902,7 +1887,7 @@ mergeInto(LibraryManager.library, {
                   );
                 }
               } else {
-                console.error("[EVOLUTION-CHECK] ❌ No data found for wallet");
+                console.error("[EVOLUTION-CHECK]  No data found for wallet");
                 unityInstance.SendMessage(
                   "ChogTanksNFTManager",
                   "OnEvolutionCheckComplete",
@@ -1914,7 +1899,7 @@ mergeInto(LibraryManager.library, {
               }
             })
             .catch((error) => {
-              console.error("[EVOLUTION-CHECK] ❌ Database error:", error);
+              console.error("[EVOLUTION-CHECK]  Database error:", error);
               unityInstance.SendMessage(
                 "ChogTanksNFTManager",
                 "OnEvolutionCheckComplete",
@@ -1955,7 +1940,7 @@ mergeInto(LibraryManager.library, {
       const normalizedAddress = walletAddress.toLowerCase().trim();
 
       console.log(
-        `[POINTS-CONSUME] 💰 Consuming points after blockchain success:`
+        `[POINTS-CONSUME]  Consuming points after blockchain success:`
       );
       console.log(`[POINTS-CONSUME] Wallet: ${normalizedAddress}`);
       console.log(`[POINTS-CONSUME] Points to consume: ${pointsToConsume}`);
@@ -1963,7 +1948,7 @@ mergeInto(LibraryManager.library, {
       console.log(`[POINTS-CONSUME] New level: ${newLevel}`);
 
       if (typeof firebase === "undefined" || !firebase.apps.length) {
-        console.error("[POINTS-CONSUME] ❌ Firebase not initialized");
+        console.error("[POINTS-CONSUME]  Firebase not initialized");
         return false;
       }
 
@@ -2002,9 +1987,9 @@ mergeInto(LibraryManager.library, {
           })
             .then((result) => {
               console.log(
-                `[POINTS-CONSUME] ✅ Points consumed successfully: ${result.consumedPoints}`
+                `[POINTS-CONSUME]  Points consumed successfully: ${result.consumedPoints}`
               );
-              console.log(`[POINTS-CONSUME] ✅ New score: ${result.newScore}`);
+              console.log(`[POINTS-CONSUME]  New score: ${result.newScore}`);
 
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
@@ -2020,7 +2005,7 @@ mergeInto(LibraryManager.library, {
               }
             })
             .catch((error) => {
-              console.error("[POINTS-CONSUME] ❌ Transaction failed:", error);
+              console.error("[POINTS-CONSUME]  Transaction failed:", error);
 
               if (typeof unityInstance !== "undefined") {
                 unityInstance.SendMessage(
@@ -2056,14 +2041,14 @@ mergeInto(LibraryManager.library, {
       const walletAddress = UTF8ToString(walletAddressPtr);
       const normalizedAddress = walletAddress.toLowerCase().trim();
 
-      console.log(`[PRE-EVOLUTION] 🔍 Checking points before evolution:`);
+      console.log(`[PRE-EVOLUTION]  Checking points before evolution:`);
       console.log(`[PRE-EVOLUTION] Wallet: ${normalizedAddress}`);
       console.log(`[PRE-EVOLUTION] Points required: ${pointsRequired}`);
       console.log(`[PRE-EVOLUTION] Token ID: ${tokenId}`);
       console.log(`[PRE-EVOLUTION] Target level: ${targetLevel}`);
 
       if (typeof firebase === "undefined" || !firebase.apps.length) {
-        console.error("[PRE-EVOLUTION] ❌ Firebase not initialized");
+        console.error("[PRE-EVOLUTION]  Firebase not initialized");
         return;
       }
 
@@ -2081,18 +2066,18 @@ mergeInto(LibraryManager.library, {
               if (docSnap.exists) {
                 currentScore = docSnap.data().score || 0;
                 console.log(
-                  `[PRE-EVOLUTION] 📊 Current score in Firebase: ${currentScore}`
+                  `[PRE-EVOLUTION]  Current score in Firebase: ${currentScore}`
                 );
               }
 
               if (currentScore >= pointsRequired) {
                 console.log(
-                  `[PRE-EVOLUTION] ✅ Sufficient points (${currentScore} >= ${pointsRequired})`
+                  `[PRE-EVOLUTION]  Sufficient points (${currentScore} >= ${pointsRequired})`
                 );
 
                 const newScore = Math.max(0, currentScore - pointsRequired);
                 console.log(
-                  `[PRE-EVOLUTION] 💰 Consuming points: ${currentScore} - ${pointsRequired} = ${newScore}`
+                  `[PRE-EVOLUTION]  Consuming points: ${currentScore} - ${pointsRequired} = ${newScore}`
                 );
 
                 return userDocRef
@@ -2108,7 +2093,7 @@ mergeInto(LibraryManager.library, {
                   })
                   .then(() => {
                     console.log(
-                      `[PRE-EVOLUTION] ✅ Points consumed successfully`
+                      `[PRE-EVOLUTION]  Points consumed successfully`
                     );
 
                     const result = {
@@ -2130,7 +2115,7 @@ mergeInto(LibraryManager.library, {
                   });
               } else {
                 console.log(
-                  `[PRE-EVOLUTION] ❌ Insufficient points (${currentScore} < ${pointsRequired})`
+                  `[PRE-EVOLUTION]  Insufficient points (${currentScore} < ${pointsRequired})`
                 );
 
                 const result = {
@@ -2189,7 +2174,7 @@ mergeInto(LibraryManager.library, {
   SetupRealTransactionDetection: function () {
     try {
       console.log(
-        "[REAL-TX] 🎯 Setting up REAL blockchain transaction detection..."
+        "[REAL-TX]  Setting up REAL blockchain transaction detection..."
       );
 
       window.pendingTransactions = new Map();
@@ -2200,7 +2185,7 @@ mergeInto(LibraryManager.library, {
       ) {
         try {
           console.log(
-            `[REAL-TX] 🔍 Checking receipt for transaction: ${txHash} (type: ${type})`
+            `[REAL-TX]  Checking receipt for transaction: ${txHash} (type: ${type})`
           );
 
           let provider = null;
@@ -2212,7 +2197,7 @@ mergeInto(LibraryManager.library, {
 
           if (!provider) {
             console.error(
-              "[REAL-TX] ❌ No provider available for transaction check"
+              "[REAL-TX]  No provider available for transaction check"
             );
             return false;
           }
@@ -2223,26 +2208,24 @@ mergeInto(LibraryManager.library, {
           });
 
           if (receipt) {
-            console.log(`[REAL-TX] 📋 Receipt found:`, receipt);
+            console.log(`[REAL-TX]  Receipt found:`, receipt);
 
             const success = receipt.status === "0x1" || receipt.status === 1;
 
             if (success) {
               console.log(
-                `[REAL-TX] ✅ Transaction REALLY succeeded on blockchain: ${txHash}`
+                `[REAL-TX]  Transaction REALLY succeeded on blockchain: ${txHash}`
               );
 
               if (type === "mint") {
-                console.log(`[REAL-TX] 🎆 Triggering OnMintTransactionSuccess`);
+                console.log(`[REAL-TX]  Triggering OnMintTransactionSuccess`);
                 window.unityInstance.SendMessage(
                   "ChogTanksNFTManager",
                   "OnRealMintSuccess",
                   txHash
                 );
               } else if (type === "evolve") {
-                console.log(
-                  `[REAL-TX] 🚀 Triggering OnEvolveTransactionSuccess`
-                );
+                console.log(`[REAL-TX]  Triggering OnEvolveTransactionSuccess`);
                 const txData = window.pendingTransactions.get(txHash);
                 const targetLevel = txData ? txData.targetLevel : 2;
                 window.unityInstance.SendMessage(
@@ -2259,18 +2242,18 @@ mergeInto(LibraryManager.library, {
               return true;
             } else {
               console.log(
-                `[REAL-TX] ❌ Transaction REALLY failed on blockchain: ${txHash}`
+                `[REAL-TX]  Transaction REALLY failed on blockchain: ${txHash}`
               );
               window.pendingTransactions.delete(txHash);
               return false;
             }
           } else {
-            console.log(`[REAL-TX] ⏳ Transaction still pending: ${txHash}`);
+            console.log(`[REAL-TX]  Transaction still pending: ${txHash}`);
             return null;
           }
         } catch (error) {
           console.error(
-            `[REAL-TX] ❌ Error checking transaction receipt:`,
+            `[REAL-TX]  Error checking transaction receipt:`,
             error
           );
           return false;
@@ -2279,7 +2262,7 @@ mergeInto(LibraryManager.library, {
 
       window.monitorTransaction = function (txHash, type, extraData = {}) {
         console.log(
-          `[REAL-TX] 👀 Starting to monitor transaction: ${txHash} (${type})`
+          `[REAL-TX]  Starting to monitor transaction: ${txHash} (${type})`
         );
 
         window.pendingTransactions.set(txHash, {
@@ -2300,7 +2283,7 @@ mergeInto(LibraryManager.library, {
             clearInterval(checkInterval);
           } else if (attempts >= maxAttempts) {
             console.log(
-              `[REAL-TX] ⏰ Monitoring timeout for transaction: ${txHash}`
+              `[REAL-TX]  Monitoring timeout for transaction: ${txHash}`
             );
             window.pendingTransactions.delete(txHash);
             clearInterval(checkInterval);
@@ -2308,11 +2291,11 @@ mergeInto(LibraryManager.library, {
         }, 3000);
       };
 
-      console.log("[REAL-TX] ✅ Real transaction detection setup complete");
+      console.log("[REAL-TX]  Real transaction detection setup complete");
       return true;
     } catch (error) {
       console.error(
-        "[REAL-TX] ❌ Error setting up real transaction detection:",
+        "[REAL-TX]  Error setting up real transaction detection:",
         error
       );
       return false;
