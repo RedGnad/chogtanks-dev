@@ -219,7 +219,7 @@ namespace Sample
                 Debug.LogWarning($"[Connect] Exception lors de la signature, mais continuons : {signEx.Message}");
             }
 #else
-            dapp.OnPersonalSignButton();
+            // dapp.OnPersonalSignButton(); // Désactivé - migration vers Privy
 #endif
             Debug.Log("[Connect] Traitement de signature terminé");
         }

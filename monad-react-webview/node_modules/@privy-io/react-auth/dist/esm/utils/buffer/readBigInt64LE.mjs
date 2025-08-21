@@ -1,0 +1,1 @@
+const t=(t,r=0)=>{let n=t[r],e=t[r+7];if(!n||!e)throw Error(`Buffer offset out of range: first: ${n}, last: ${e}.`);return(BigInt(t[r+4]+256*t[r+5]+65536*t[r+6]+(e<<24))<<32n)+BigInt(n+256*t[++r]+65536*t[++r]+16777216*t[++r])};function r(t,r=0){let n=0n;for(let e=0;e<8;e++)n|=BigInt(t[r+e])<<BigInt(8*e);return n}export{t as readBigInt64LE,r as readBigInt64LEFromUint8Array};

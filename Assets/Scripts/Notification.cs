@@ -27,6 +27,10 @@ namespace Sample
 
         private void Awake()
         {
+            // Script désactivé - migration vers Privy
+            this.enabled = false;
+            return;
+            
             NotificationContainer = _uiDocument.rootVisualElement.Q<VisualElement>("NotificationContainer");
             _messageLabel = _uiDocument.rootVisualElement.Q<Label>("NotificationText");
             _buttonHide = _uiDocument.rootVisualElement.Q<Button>("NotificationButton");

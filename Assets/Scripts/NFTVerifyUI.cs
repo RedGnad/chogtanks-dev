@@ -189,9 +189,10 @@ public class NFTVerifyUI : MonoBehaviour
     
     private void OnDestroy()
     {
-        var dapp = FindObjectOfType<Sample.Dapp>();
-        if (dapp != null)
-            dapp.OnPersonalSignCompleted -= OnPersonalSignApproved;
+        // Dapp.cs désactivé - migration vers Privy
+        // var dapp = FindObjectOfType<Sample.Dapp>();
+        // if (dapp != null)
+        //     dapp.OnPersonalSignCompleted -= OnPersonalSignApproved;
         
         CancelInvoke(nameof(CheckWalletAndUpdateUI));
     }
