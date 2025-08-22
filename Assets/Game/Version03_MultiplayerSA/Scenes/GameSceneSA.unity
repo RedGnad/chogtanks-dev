@@ -64565,8 +64565,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4eea7e7cff744a378df293413b16a2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webViewUrl: https://redgnad.github.io/CHOGTANKS/privy-crossapp.html
-  productionUrl: https://redgnad.github.io/CHOGTANKS/monad-react-webview/
+  webViewUrl: https://chogtanks-git-build-10-redgnads-projects.vercel.app/simple-test.html
+  productionUrl: https://chogtanks-git-build-10-redgnads-projects.vercel.app/simple-test.html
 --- !u!4 &476038028
 Transform:
   m_ObjectHideFlags: 0
