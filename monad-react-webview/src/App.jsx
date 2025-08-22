@@ -4,6 +4,7 @@ import { useCrossAppAccounts } from '@privy-io/react-auth';
 
 // Configuration Privy
 const PRIVY_APP_ID = "cmek64iqd02lql70b9fl64lm9";
+const PRIVY_CLIENT_ID = "client-WY6Ppw4LLAHEMShmi9brMwkW43C9mQfy9r7Z2RyJJojW8";
 const MONAD_GAMES_ID = "cmd8euall0037le0my79qpz42";
 
 function MonadLoginComponent() {
@@ -222,17 +223,18 @@ function App() {
     <PrivyProvider 
       appId={PRIVY_APP_ID}
       config={{
-        loginMethods: ['email', 'wallet'],
-        appearance: {
-          theme: 'light',
-          accentColor: '#667eea',
+        loginMethodsAndOrder: {
+          primary: [`privy:${MONAD_GAMES_ID}`],
         },
         embeddedWallets: {
           createOnLogin: 'users-without-wallets'
         }
       }}
     >
-      <MonadLoginComponent />
+      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+        <h1>🎮 Monad Games ID</h1>
+        <MonadLoginComponent />
+      </div>
     </PrivyProvider>
   );
 }

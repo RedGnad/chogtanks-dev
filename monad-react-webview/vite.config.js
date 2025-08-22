@@ -13,7 +13,7 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: true
   },
-  base: '/CHOGTANKS/monad-react-webview/',
+  base: './',
   define: {
     global: 'globalThis',
   }

@@ -10,7 +10,7 @@ public class MonadGamesIDWebView : MonoBehaviour
 {
     [Header("Configuration")]
     [SerializeField] private string webViewUrl = "http://localhost:8000"; // Dev: React app
-    [SerializeField] private string productionUrl = "https://redgnad.github.io/CHOGTANKS/monad-react-webview/"; // Production: GitHub Pages
+    [SerializeField] private string productionUrl = "https://chogtanks.vercel.app/monad-react-webview/"; // Production: Vercel
     
     // Events pour notifier les autres scripts
     public static event System.Action<MonadGamesIDResult> OnMonadGamesIDResultEvent;
