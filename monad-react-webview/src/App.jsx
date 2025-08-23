@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { useCrossAppAccounts } from '@privy-io/react-auth';
+import { sendToUnity, closeWindowAfterDelay, isOpenedFromUnity } from './unityBridge';
 
 // Configuration Privy
 const PRIVY_APP_ID = "cmek64iqd02lql70b9fl64lm9";
-const PRIVY_CLIENT_ID = "client-WY6Ppw4LLAHEMShmi9brMwkW43C9mQfy9r7Z2RyJJojW8";
 const MONAD_GAMES_ID = "cmd8euall0037le0my79qpz42";
+const PRIVY_CLIENT_ID = "client-WY6Ppw4LLAHEMShmi9brMwkW43C9mQfy9r7Z2RyJJojW8";
 
 function MonadLoginComponent() {
   const { ready, authenticated, user, login } = usePrivy();
@@ -13,6 +14,7 @@ function MonadLoginComponent() {
   const [status, setStatus] = useState('ready');
   const [error, setError] = useState('');
   const [walletInfo, setWalletInfo] = useState(null);
+  const [sentToUnity, setSentToUnity] = useState(false);
 
   // Vérifier si l'utilisateur a déjà un compte cross-app lié
   const crossAppAccount = user?.linkedAccounts?.find(
@@ -77,7 +79,7 @@ function MonadLoginComponent() {
       });
 
       // Envoyer à Unity
-      sendToUnity({
+      handleSendToUnity({
         success: true,
         walletAddress: walletAddress,
         username: username,
@@ -93,47 +95,73 @@ function MonadLoginComponent() {
     }
   };
 
-  const sendToUnity = (data) => {
+  const handleSendToUnity = (data) => {
     console.log('[MONAD WEBVIEW] 📤 Sending to Unity:', data);
+    setSentToUnity(true);
     
-    try {
-      // Méthode 1: Communication directe Unity WebGL
-      if (window.unityInstance && window.unityInstance.SendMessage) {
-        window.unityInstance.SendMessage('MonadGamesIDWebView', 'OnMonadGamesIDResult', JSON.stringify(data));
-        console.log('[MONAD WEBVIEW] ✅ Sent via unityInstance.SendMessage');
-      }
-      
-      // Méthode 2: PostMessage pour communication parent
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({
-          type: 'MONAD_GAMES_ID_RESULT',
-          data: data
-        }, '*');
-        console.log('[MONAD WEBVIEW] ✅ Sent via postMessage');
-      }
-      
-      // Méthode 3: Fallback localStorage
-      localStorage.setItem('MONAD_WALLET_RESULT', JSON.stringify(data));
-      console.log('[MONAD WEBVIEW] ✅ Saved to localStorage');
-      
-      // Auto-fermeture après 3 secondes
-      setTimeout(() => {
-        if (window.close) {
-          window.close();
-        }
-      }, 3000);
-      
-    } catch (err) {
-      console.error('[MONAD WEBVIEW] ❌ Error sending to Unity:', err);
+    // Utiliser notre bridge optimisé pour envoyer les données à Unity
+    const success = sendToUnity(data);
+    
+    if (success && data.success) {
+      // Planifier la fermeture de la fenêtre après un délai
+      closeWindowAfterDelay(3000);
     }
   };
+  
+  // Vérifier si la fenêtre est ouverte depuis Unity
+  useEffect(() => {
+    const fromUnity = isOpenedFromUnity();
+    console.log('[MONAD WEBVIEW] 🔍 Opened from Unity:', fromUnity);
+    
+    // Ajouter un écouteur d'événements pour les messages de Unity
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'UNITY_READY') {
+        console.log('[MONAD WEBVIEW] 📨 Received UNITY_READY message');
+        // Si nous avons déjà des données à envoyer, les renvoyer
+        if (walletInfo && status === 'success') {
+          handleSendToUnity({
+            success: true,
+            walletAddress: walletInfo.address,
+            username: walletInfo.username,
+            userId: user?.id || ''
+          });
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [walletInfo, status]);
 
   // Auto-login si déjà authentifié avec cross-app
   useEffect(() => {
     if (ready && authenticated && crossAppAccount && status === 'ready') {
       handleLogin();
     }
-  }, [ready, authenticated, crossAppAccount, status]);
+    
+    // Mise à jour de l'UI quand l'utilisateur est authentifié et a un compte cross-app
+    if (ready && authenticated && crossAppAccount && status !== 'success') {
+      const embeddedWallet = crossAppAccount.embeddedWallets?.[0];
+      if (embeddedWallet?.address) {
+        console.log('[MONAD WEBVIEW] 🔄 Updating UI with wallet info');
+        setWalletInfo({
+          address: embeddedWallet.address,
+          username: crossAppAccount.username || user.id
+        });
+        setStatus('success');
+        
+        // Envoyer automatiquement à Unity si pas déjà fait
+        if (!sentToUnity) {
+          handleSendToUnity({
+            success: true,
+            walletAddress: embeddedWallet.address,
+            username: crossAppAccount.username || user.id,
+            userId: user.id
+          });
+        }
+      }
+    }
+  }, [ready, authenticated, crossAppAccount, status, user, sentToUnity]);
 
   const getStatusMessage = () => {
     switch (status) {
@@ -160,21 +188,21 @@ function MonadLoginComponent() {
         <>
           <button 
             onClick={handleLogin}
-            disabled={!ready || isLoading}
+            disabled={!ready || isLoading || status === 'success'}
             style={{
-              background: isLoading ? '#ccc' : 'linear-gradient(45deg, #667eea, #764ba2)',
+              background: isLoading ? '#ccc' : status === 'success' ? '#4CAF50' : 'linear-gradient(45deg, #667eea, #764ba2)',
               color: 'white',
               border: 'none',
               padding: '15px 30px',
               borderRadius: '25px',
               fontSize: '16px',
               fontWeight: 'bold',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: isLoading || status === 'success' ? 'not-allowed' : 'pointer',
               width: '100%',
               marginBottom: '20px'
             }}
           >
-            {isLoading ? getStatusMessage() : 'Sign in with Monad Games ID'}
+            {status === 'success' ? '✅ Connected' : isLoading ? getStatusMessage() : 'Sign in with Monad Games ID'}
           </button>
           
           {status === 'success' && walletInfo && (

@@ -153,7 +153,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -313, y: -136}
+  m_AnchoredPosition: {x: -313, y: -181}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &7914695
@@ -208,7 +208,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                                           '
+  m_text: '                                                                                  '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -64565,8 +64565,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4eea7e7cff744a378df293413b16a2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webViewUrl: https://chogtanks-git-build-10-redgnads-projects.vercel.app/simple-test.html
-  productionUrl: https://chogtanks-git-build-10-redgnads-projects.vercel.app/simple-test.html
+  webViewUrl: https://redgnad.github.io/CHOGTANKS/monad-react-webview/
+  productionUrl: https://redgnad.github.io/CHOGTANKS/
+  pollingInterval: 3
+  maxPollingDuration: 30
+  pollingBackoffMultiplier: 2
 --- !u!4 &476038028
 Transform:
   m_ObjectHideFlags: 0
@@ -67391,7 +67394,6 @@ RectTransform:
   m_LocalScale: {x: 1.0750859, y: 1.0750859, z: 1.0750859}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 1979205228}
   - {fileID: 1798406278}
   - {fileID: 571280758}
   - {fileID: 401650801}
@@ -67405,6 +67407,7 @@ RectTransform:
   - {fileID: 42899733}
   - {fileID: 564937803}
   - {fileID: 1554403260}
+  - {fileID: 1979205228}
   m_Father: {fileID: 1832027025}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -71018,7 +71021,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '                                           '
+  m_text: '                                                               '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
   m_sharedMaterial: {fileID: -1464295614531797952, guid: 3a435c6a3b3d14c8884c6beae3578b07, type: 2}
@@ -71137,7 +71140,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -313, y: -337}
+  m_AnchoredPosition: {x: -313, y: -437}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1543419498
@@ -74672,7 +74675,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -541, y: -27}
+  m_AnchoredPosition: {x: -604, y: -249}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2008267925

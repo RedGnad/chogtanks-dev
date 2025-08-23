@@ -7,7 +7,7 @@ mergeInto(LibraryManager.library, {
         
         // Écouter les messages postMessage de la page React
         window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'CHOGTANKS_MONAD_RESULT') {
+            if (event.data && event.data.type === 'MONAD_GAMES_ID_RESULT') {
                 console.log('[MONAD PLUGIN] Received message from React:', event.data);
                 
                 try {
@@ -56,38 +56,18 @@ mergeInto(LibraryManager.library, {
         window.addEventListener('popstate', handleUrlChange);
     },
     
-    OpenMonadGamesIDWindow: function(urlPtr) {
-        var url = UTF8ToString(urlPtr);
-        console.log('[MONAD PLUGIN] Opening Monad Games ID window:', url);
+    ReadMonadWalletResult: function() {
+        var result = localStorage.getItem('MONAD_WALLET_RESULT') || '';
+        console.log('[MONAD PLUGIN] Reading from localStorage:', result);
         
-        // Ouvrir dans une nouvelle fenêtre avec dimensions optimales
-        window.monadGamesWindow = window.open(
-            url, 
-            'MonadGamesID', 
-            'width=500,height=700,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no'
-        );
-        
-        // Vérifier si la fenêtre s'est fermée
-        var checkClosed = setInterval(function() {
-            if (window.monadGamesWindow.closed) {
-                console.log('[MONAD PLUGIN] Monad Games ID window closed');
-                clearInterval(checkClosed);
-                
-                // Notifier Unity que la fenêtre s'est fermée
-                try {
-                    unityInstance.SendMessage('MonadGamesIDWebView', 'OnWebViewClosed', '');
-                } catch (error) {
-                    console.error('[MONAD PLUGIN] Error notifying Unity of window close:', error);
-                }
-            }
-        }, 1000);
+        // Convertir en pointeur de chaîne pour Unity
+        var bufferSize = lengthBytesUTF8(result) + 1;
+        var buffer = _malloc(bufferSize);
+        stringToUTF8(result, buffer, bufferSize);
+        return buffer;
     },
     
-    CloseMonadGamesIDWindow: function() {
-        console.log('[MONAD PLUGIN] Closing Monad Games ID window');
-        
-        if (window.monadGamesWindow && !window.monadGamesWindow.closed) {
-            window.monadGamesWindow.close();
-        }
+    IsUnityReady: function() {
+        return (typeof unityInstance !== 'undefined' && unityInstance) ? 1 : 0;
     }
 });
