@@ -58,11 +58,11 @@ public class MonadTestUI : MonoBehaviour
         
         if (result.success)
         {
-            UpdateUI("✅ Connected successfully!", result.walletAddress, result.username);
+            UpdateUI("Connected successfully!", result.walletAddress, result.username);
         }
         else
         {
-            UpdateUI($"❌ Error: {result.error}", "", "");
+            UpdateUI($"Error: {result.error}", "", "");
         }
     }
     

@@ -69,7 +69,7 @@ function MonadLoginComponent() {
       }
 
       const walletAddress = embeddedWallet.address;
-      const username = crossAppAccount.username || user.id;
+      const username = crossAppAccount.username || "Red_G";
 
       console.log('[MONAD WEBVIEW] ✅ Success! Wallet:', walletAddress);
       
@@ -146,7 +146,7 @@ function MonadLoginComponent() {
         console.log('[MONAD WEBVIEW] 🔄 Updating UI with wallet info');
         setWalletInfo({
           address: embeddedWallet.address,
-          username: crossAppAccount.username || user.id
+          username: crossAppAccount.username || "Red_G"
         });
         setStatus('success');
         
@@ -155,7 +155,7 @@ function MonadLoginComponent() {
           handleSendToUnity({
             success: true,
             walletAddress: embeddedWallet.address,
-            username: crossAppAccount.username || user.id,
+            username: crossAppAccount.username || "Red_G",
             userId: user.id
           });
         }

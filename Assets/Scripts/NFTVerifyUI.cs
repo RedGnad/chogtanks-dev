@@ -67,7 +67,9 @@ public class NFTVerifyUI : MonoBehaviour
                 string oldPrefsAddress = PlayerPrefs.GetString("walletAddress", "");
                 if (!string.IsNullOrEmpty(oldPrefsAddress))
                 {
-                    PlayerPrefs.DeleteKey("walletAddress");
+                    // NE PAS effacer - peut être un wallet Privy !
+                    Debug.Log("[NFT-VERIFY] Keeping wallet address - may be Privy connection");
+                    // PlayerPrefs.DeleteKey("walletAddress"); // DÉSACTIVÉ
                 }
                 
                 try

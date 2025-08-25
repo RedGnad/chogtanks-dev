@@ -23,6 +23,10 @@ namespace Sample
         [SerializeField] private bool useTransactionCount = false;
         [SerializeField] private bool useGameScore = true;
         
+        [Header("UI Management")]
+        [SerializeField] private TMP_Text mainScreenPlayerNameText; // Référence au Main Screen Player Name
+        [SerializeField] private GameObject panelToHide; // Panel à cacher quand username Privy récupéré
+        
         private string currentUsername = "";
         private bool isSignedIn = false;
         
@@ -100,7 +104,28 @@ namespace Sample
                 // Sauvegarder les données
                 PlayerPrefs.SetString("MonadGamesID_Username", result.username);
                 PlayerPrefs.SetString("MonadGamesID_WalletAddress", result.walletAddress);
+                
+                // SYNCHRONISATION CRITIQUE: Écrire aussi dans walletAddress pour compatibilité avec tout le système NFT
+                PlayerPrefs.SetString("walletAddress", result.walletAddress);
+                // IMPORTANT: Ne PAS auto-approuver personalSign pour Privy - l'utilisateur doit le faire manuellement
+                // PlayerPrefs.SetInt("personalSignApproved", 1); // SUPPRIMÉ
                 PlayerPrefs.Save();
+                
+                // CRITIQUE: Synchroniser PlayerSession avec l'adresse wallet Privy
+                PlayerSession.SetWalletAddress(result.walletAddress);
+                
+                Debug.Log($"[MONAD-SYNC] Wallet stored: {result.walletAddress}");
+                Debug.Log($"[MONAD-SYNC] Personal sign NOT auto-approved - user must sign manually");
+                Debug.Log($"[MONAD-SYNC] PlayerSession synchronized with Privy wallet");
+                
+                // Déclencher OnPersonalSignCompleted pour débloquer les fonctionnalités
+                var connect = FindObjectOfType<Sample.ConnectWalletButton>();
+                if (connect != null)
+                {
+                    Debug.Log("[MONAD-SYNC] Triggering OnPersonalSignCompleted for Privy");
+                    connect.TriggerPersonalSignCompleted();
+                    Debug.Log("[MONAD-SYNC] OnPersonalSignCompleted triggered successfully");
+                }
             }
             else
             {
@@ -282,10 +307,38 @@ namespace Sample
                 {
                     usernameText.text = $"Monad ID: {currentUsername}";
                     usernameText.gameObject.SetActive(true);
+                    
+                    // Cacher le Main Screen Player Name quand le username Privy est affiché
+                    if (mainScreenPlayerNameText != null)
+                    {
+                        mainScreenPlayerNameText.gameObject.SetActive(false);
+                        Debug.Log("[MONAD-UI] Main Screen Player Name hidden - Privy username displayed");
+                    }
+                    
+                    // Cacher le panel spécifique quand username Privy récupéré
+                    if (panelToHide != null)
+                    {
+                        panelToHide.SetActive(false);
+                        Debug.Log("[MONAD-UI] Panel hidden - Privy username retrieved");
+                    }
                 }
                 else
                 {
                     usernameText.gameObject.SetActive(false);
+                    
+                    // Réafficher le Main Screen Player Name quand pas de username Privy
+                    if (mainScreenPlayerNameText != null)
+                    {
+                        mainScreenPlayerNameText.gameObject.SetActive(true);
+                        Debug.Log("[MONAD-UI] Main Screen Player Name restored - no Privy username");
+                    }
+                    
+                    // Réafficher le panel spécifique quand pas d'username Privy
+                    if (panelToHide != null)
+                    {
+                        panelToHide.SetActive(true);
+                        Debug.Log("[MONAD-UI] Panel restored - no Privy username");
+                    }
                 }
             }
 

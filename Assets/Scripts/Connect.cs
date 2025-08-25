@@ -161,16 +161,8 @@ namespace Sample
                         Debug.LogWarning($"[Connect] PlayerSession non disponible : {playerEx.Message}");
                     }
 
-                    var dapp = FindObjectOfType<Dapp>();
-                    if (dapp != null)
-                    {
-                        Debug.Log("[Connect] Préparation de la signature différée...");
-                        StartCoroutine(TriggerPersonalSignAfterDelay(dapp));
-                    }
-                    else
-                    {
-                        Debug.LogError("[Connect] ERREUR: Aucun composant Dapp trouvé");
-                    }
+                    Debug.Log("[Connect] Préparation de la signature différée...");
+                    StartCoroutine(TriggerPersonalSignAfterDelay());
                 }
                 catch (System.Exception e)
                 {
@@ -183,7 +175,7 @@ namespace Sample
             }
         }
         
-        private IEnumerator TriggerPersonalSignAfterDelay(Dapp dapp)
+        private IEnumerator TriggerPersonalSignAfterDelay()
         {
             yield return new WaitForSeconds(1f);
             for (int i = 0; i < 5; i++)
@@ -193,35 +185,53 @@ namespace Sample
             var signatureTask = AppKit.Evm.SignMessageAsync(message);
             Debug.Log("[Connect] Signature personnelle demandée");
             yield return new WaitUntil(() => signatureTask.IsCompleted);
-            Debug.Log("[Connect] Signature personnelle validée !");
-            try
+            
+            // CRITIQUE: Vérifier si la signature a VRAIMENT réussi
+            if (signatureTask.IsCompletedSuccessfully && !string.IsNullOrEmpty(signatureTask.Result))
             {
-                PlayerPrefs.SetInt("personalSignApproved", 1);
-                PlayerPrefs.Save();
-                Debug.Log($"[Connect] personalSignApproved flag set to {PlayerPrefs.GetInt("personalSignApproved", 0)}");
-                OnPersonalSignCompleted?.Invoke(); 
-                var nftVerification = FindObjectOfType<NFTVerification>();
-                if (nftVerification != null)
+                Debug.Log("[Connect] Signature personnelle RÉUSSIE !");
+                try
                 {
-                    nftVerification.ForceNFTCheck();
-                    Debug.Log("[Connect] ForceNFTCheck lancé après signature !");
+                    PlayerPrefs.SetInt("personalSignApproved", 1);
+                    PlayerPrefs.Save();
+                    Debug.Log($"[Connect] personalSignApproved flag set to {PlayerPrefs.GetInt("personalSignApproved", 0)}");
+                    OnPersonalSignCompleted?.Invoke(); 
+                    var nftVerification = FindObjectOfType<NFTVerification>();
+                    if (nftVerification != null)
+                    {
+                        nftVerification.ForceNFTCheck();
+                        Debug.Log("[Connect] ForceNFTCheck lancé après signature !");
+                    }
+                    var nftManager = FindObjectOfType<ChogTanksNFTManager>();
+                    if (nftManager != null)
+                    {
+                        nftManager.LoadNFTStateFromBlockchain(); 
+                        nftManager.ForceLevelTextDisplay();
+                        Debug.Log("[Connect] LoadNFTStateFromBlockchain + ForceLevelTextDisplay appelé après personal sign (dans coroutine)");
+                    }
                 }
-                var nftManager = FindObjectOfType<ChogTanksNFTManager>();
-                if (nftManager != null)
+                catch (System.Exception signEx)
                 {
-                    nftManager.LoadNFTStateFromBlockchain(); 
-                    nftManager.ForceLevelTextDisplay();
-                    Debug.Log("[Connect] LoadNFTStateFromBlockchain + ForceLevelTextDisplay appelé après personal sign (dans coroutine)");
+                    Debug.LogWarning($"[Connect] Exception lors de la signature, mais continuons : {signEx.Message}");
                 }
             }
-            catch (System.Exception signEx)
+            else
             {
-                Debug.LogWarning($"[Connect] Exception lors de la signature, mais continuons : {signEx.Message}");
+                Debug.LogWarning("[Connect] Signature personnelle REFUSÉE ou FERMÉE - wallet non autorisé");
+                // NE PAS définir personalSignApproved = 1
+                // Les fonctionnalités blockchain restent bloquées
             }
 #else
             // dapp.OnPersonalSignButton(); // Désactivé - migration vers Privy
 #endif
             Debug.Log("[Connect] Traitement de signature terminé");
+        }
+        
+        // MÉTHODE PUBLIQUE pour permettre à Privy de déclencher le flux UI
+        public void TriggerPersonalSignCompleted()
+        {
+            Debug.Log("[Connect] TriggerPersonalSignCompleted appelé par Privy");
+            OnPersonalSignCompleted?.Invoke();
         }
     }
 }

@@ -105,6 +105,14 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public void ShowPanel(string walletAddress)
     {
+        // Vérifier personal sign avant d'afficher le panel
+        bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+        if (!signApproved)
+        {
+            Debug.LogWarning("[NFT-PANEL] Personal sign required - panel blocked");
+            UpdateStatus("Complete personal signature to access NFT panel");
+            return;
+        }
         
         currentWalletAddress = walletAddress;
         gameObject.SetActive(true);
@@ -121,6 +129,15 @@ public class NFTDisplayPanel : MonoBehaviour
     
     public async void RefreshNFTList()
     {
+        // Vérifier personal sign avant de rafraîchir
+        bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+        if (!signApproved)
+        {
+            Debug.LogWarning("[NFT-PANEL] Personal sign required - refresh blocked");
+            UpdateStatus("Complete personal signature to access NFTs");
+            return;
+        }
+        
         float currentTime = Time.time;
         if (currentTime - lastRefreshTime < MIN_REFRESH_INTERVAL)
         {

@@ -94,7 +94,16 @@ public class NFTVerification : MonoBehaviour
         currentWallet = PlayerPrefs.GetString("walletAddress", "");
         if (!string.IsNullOrEmpty(currentWallet))
         {
-            StartCoroutine(CheckAllNFTs());
+            // Vérifier personal sign avant de charger les NFTs
+            bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+            if (signApproved)
+            {
+                StartCoroutine(CheckAllNFTs());
+            }
+            else
+            {
+                Debug.Log("[NFT-VERIFICATION] Wallet found but personal sign required");
+            }
         }
         
         InvokeRepeating(nameof(CheckWalletUpdate), 1f, 2f);
@@ -549,27 +558,36 @@ public class NFTVerification : MonoBehaviour
             }
         }
         
-        // Masquer les textes NFT/XP en même temps que les boutons
-        ChogTanksNFTManager nftManager = FindObjectOfType<ChogTanksNFTManager>();
-        if (nftManager != null)
-        {
-            nftManager.HideLevelUI();
-        }
+        // DÉSACTIVÉ: Ne plus cacher automatiquement l'UI NFT/XP depuis NFTVerification
+        // car cela créait une boucle infinie avec Privy wallet
+        // ChogTanksNFTManager nftManager = FindObjectOfType<ChogTanksNFTManager>();
+        // if (nftManager != null)
+        // {
+        //     nftManager.HideLevelUI();
+        // }
     }
 
     private void CheckWalletUpdate()
     {
         string savedWallet = PlayerPrefs.GetString("walletAddress", "");
         
-        if (!string.IsNullOrEmpty(savedWallet) && savedWallet != currentWallet)
+        bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+        
+        if (!string.IsNullOrEmpty(savedWallet) && signApproved && savedWallet != currentWallet)
         {
             Debug.Log($"[NFT-VERIFICATION] Wallet update detected: {currentWallet} → {savedWallet}");
             currentWallet = savedWallet;
             StartCoroutine(CheckAllNFTs());
         }
-        else if (!string.IsNullOrEmpty(savedWallet) && savedWallet == currentWallet)
+        else if (!string.IsNullOrEmpty(savedWallet) && signApproved && savedWallet == currentWallet)
         {
             RefreshButtonStatesOnly();
+        }
+        else if (!signApproved && !string.IsNullOrEmpty(currentWallet))
+        {
+            Debug.Log("[NFT-VERIFICATION] Personal sign required - locking buttons");
+            currentWallet = "";
+            LockAllButtons();
         }
     }
     
