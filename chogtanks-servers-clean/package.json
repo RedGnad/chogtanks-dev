@@ -1,0 +1,24 @@
+{
+    "name": "chogtanks-signature-server",
+    "version": "1.0.0",
+    "description": "CHOGTANKS signature server with Monad Games ID integration",
+    "main": "signature-server.js",
+    "scripts": {
+      "start": "node signature-server.js",
+      "dev": "nodemon signature-server.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "ethers": "^5.7.2",
+      "cors": "^2.8.5",
+      "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+      "nodemon": "^3.0.1"
+    },
+    "engines": {
+      "node": ">=16.0.0"
+    },
+    "author": "CHOGTANKS Team",
+    "license": "MIT"
+  }
