@@ -379,7 +379,7 @@ namespace Sample
                 var buttonText = monadSignInButton.GetComponentInChildren<TextMeshProUGUI>();
                 if (buttonText != null)
                 {
-                    buttonText.text = isSignedIn ? "Monad Games Info" : "Sign in with Monad Games ID";
+                    buttonText.text = isSignedIn ? "Connected" : "Monad ID";
                 }
             }
         }
