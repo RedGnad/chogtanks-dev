@@ -590,10 +590,16 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         
         if (gameOverUIs.Length == 0)
         {
+            Debug.Log("[WINNER-DEBUG] Recherche de PhotonLauncher...");
             PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
             if (launcher != null)
             {
+                Debug.Log($"[WINNER-DEBUG] PhotonLauncher trouvé, appel ShowWinnerToAllRPC pour {winnerName}");
                 launcher.ShowWinnerToAllRPC(winnerName, winnerActorNumber);
+            }
+            else
+            {
+                Debug.LogError("[WINNER-DEBUG] PhotonLauncher NOT FOUND!");
             }
         }
         

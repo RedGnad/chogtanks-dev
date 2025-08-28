@@ -52,11 +52,48 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         {
             spawner.SpawnTank();
         }
+        
+        // Reset sound flag for next match
+        soundAlreadyPlayed = false;
     }
 
+    public void RespawnTank()
+    {
+        TankHealth2D myTank = null;
+        foreach (var t in FindObjectsOfType<TankHealth2D>())
+        {
+            if (t.photonView.IsMine)
+            {
+                myTank = t;
+                break;
+            }
+        }
+        if (myTank != null)
+        {
+            PhotonNetwork.Destroy(myTank.gameObject);
+        }
+
+        var spawner = FindObjectOfType<PhotonTankSpawner>();
+        if (spawner != null)
+        {
+            spawner.SpawnTank();
+        }
+        
+        // Reset sound flag for next match
+        soundAlreadyPlayed = false;
+    }
+
+    [Header("Winner Sound")]
+    [SerializeField] private AudioClip[] winnerSoundClips;
+    private static bool soundAlreadyPlayed = false;
+    
     [PunRPC]
     public void ShowWinnerToAllRPC(string winnerName, int winnerActorNumber)
     {
+        Debug.Log($"[WINNER-RPC] ShowWinnerToAllRPC appelé pour {winnerName}");
+        
+        // Joue le son de victoire localement
+        PlayWinnerSoundLocal();
         
         bool isWinner = PhotonNetwork.LocalPlayer.ActorNumber == winnerActorNumber;
         
@@ -108,6 +145,47 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             
             StartCoroutine(AutoDestroyAndRestart(uiInstance));
         }
+    }
+
+    private void PlayWinnerSoundLocal()
+    {
+        Debug.Log("[PHOTON-WINNER-SOUND] PlayWinnerSoundLocal() appelé");
+        
+        if (soundAlreadyPlayed)
+        {
+            Debug.Log("[PHOTON-WINNER-SOUND] Son déjà joué, ignoré");
+            return;
+        }
+        
+        if (winnerSoundClips == null) 
+        {
+            Debug.LogWarning("[PHOTON-WINNER-SOUND] winnerSoundClips est null !");
+            return;
+        }
+        
+        if (winnerSoundClips.Length == 0)
+        {
+            Debug.LogWarning("[PHOTON-WINNER-SOUND] Aucun clip audio assigné dans winnerSoundClips !");
+            return;
+        }
+        
+        Debug.Log($"[PHOTON-WINNER-SOUND] {winnerSoundClips.Length} clips audio trouvés");
+        soundAlreadyPlayed = true;
+        
+        foreach (AudioClip clip in winnerSoundClips)
+        {
+            if (clip != null)
+            {
+                Debug.Log($"[PHOTON-WINNER-SOUND] Lecture du clip : {clip.name}");
+                AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position);
+            }
+            else
+            {
+                Debug.LogWarning("[PHOTON-WINNER-SOUND] Clip audio null détecté !");
+            }
+        }
+        
+        Debug.Log("[PHOTON-WINNER-SOUND] Lecture des sons de victoire terminée");
     }
 
     private System.Collections.IEnumerator ReturnToLobbyAfterDelay(int seconds)

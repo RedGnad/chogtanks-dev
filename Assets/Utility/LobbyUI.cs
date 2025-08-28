@@ -38,6 +38,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     
     [Header("Loading Panel")]
     public GameObject loadingPanel;
+    [SerializeField] private float loadingPanelDuration = 3f;
 
     private PhotonLauncher launcher;
     private bool isShieldCooldownActive = false; 
@@ -79,6 +80,8 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         if (loadingPanel != null)
         {
             loadingPanel.SetActive(true);
+            // Démarrer le timer pour cacher le panel après la durée configurée
+            StartCoroutine(HideLoadingPanelAfterDelay());
         }
 
         if (playerNameInput != null)
@@ -93,6 +96,13 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
+        
+        // Enable menu camera when joinPanel is active
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.EnableMenuMode();
+        }
+        
         createRoomButton.interactable = false;
         joinRoomButton.interactable = false;
         
@@ -241,9 +251,22 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     void OnCreateRoom()
     {
+        // Freeze camera BEFORE any other action
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.FreezeCameraImmediately();
+        }
+        
         launcher.CreatePrivateRoom();
         joinPanel.SetActive(false);
         waitingPanel.SetActive(true);
+        
+        // Complete disable after panel change and start game music
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.DisableMenuMode();
+            MenuCameraController.Instance.StartGameMusic();
+        }
     }
 
     void OnJoinRoom()
@@ -251,9 +274,22 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         string code = joinCodeInput.text.Trim().ToUpper();
         if (code.Length == 4)
         {
+            // Freeze camera BEFORE any other action
+            if (MenuCameraController.Instance != null)
+            {
+                MenuCameraController.Instance.FreezeCameraImmediately();
+            }
+            
             launcher.JoinRoomByCode(code);
             joinPanel.SetActive(false);
             waitingPanel.SetActive(true);
+            
+            // Complete disable after panel change and start game music
+            if (MenuCameraController.Instance != null)
+            {
+                MenuCameraController.Instance.DisableMenuMode();
+                MenuCameraController.Instance.StartGameMusic();
+            }
         }
         else
         {
@@ -263,6 +299,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     void OnGoButtonClicked()
     {
+        // Freeze camera BEFORE any other action
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.FreezeCameraImmediately();
+        }
+        
         launcher.JoinRandomPublicRoom();
         joinPanel.SetActive(false);
         waitingPanel.SetActive(true);
@@ -273,6 +315,13 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             goButton.interactable = false;
             var goText = goButton.GetComponentInChildren<TMP_Text>();
             if (goText != null) goText.text = "WAIT ";
+        }
+        
+        // Complete disable after panel change and start game music
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.DisableMenuMode();
+            MenuCameraController.Instance.StartGameMusic();
         }
     }
     
@@ -418,12 +467,24 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         return null;
     }
 
-    public void OnPhotonReady()
+    private System.Collections.IEnumerator HideLoadingPanelAfterDelay()
     {
+        yield return new WaitForSeconds(loadingPanelDuration);
+        
         if (loadingPanel != null)
         {
+            Debug.Log($"[LOADING-PANEL] Masquage automatique après {loadingPanelDuration} secondes");
             loadingPanel.SetActive(false);
         }
+    }
+
+    public void OnPhotonReady()
+    {
+        // SUPPRIMÉ: Plus de masquage basé sur Photon - utilise maintenant le timer fixe
+        // if (loadingPanel != null)
+        // {
+        //     loadingPanel.SetActive(false);
+        // }
         
         if (!string.IsNullOrEmpty(PhotonNetwork.NickName))
         {
@@ -442,6 +503,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         createdCodeText.text = "No room found with this code.";
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
+        
+        // Enable menu camera when returning to joinPanel
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.EnableMenuMode();
+        }
     }
 
     public void OnJoinedRoomUI(string code)
@@ -540,6 +607,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         foreach (var ui in GameObject.FindGameObjectsWithTag("GameOverUI"))
         {
             Destroy(ui);
+        }
+        
+        // Enable menu camera when returning to joinPanel
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.EnableMenuMode();
         }
     }
 
@@ -664,6 +737,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
         
+        // Enable menu camera when returning to joinPanel
+        if (MenuCameraController.Instance != null)
+        {
+            MenuCameraController.Instance.EnableMenuMode();
+        }
+        
         UpdateMainScreenPlayerName();
     }
     
@@ -686,5 +765,32 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             
             mainScreenPlayerNameText.text = " " + playerName;
         }
+    }
+    
+    /// <summary>
+    /// Méthode publique pour définir le nom de joueur depuis Monad Games ID
+    /// </summary>
+    public void SetPlayerNameFromMonadID(string monadUsername)
+    {
+        if (string.IsNullOrEmpty(monadUsername)) return;
+        
+        Debug.Log($"[LOBBY-UI] Setting player name from Monad ID: {monadUsername}");
+        
+        // Mettre à jour le premier champ d'input avec le username Monad
+        if (playerNameInput != null)
+        {
+            playerNameInput.text = monadUsername;
+        }
+        
+        // Vider le second champ
+        if (playerNameInput2 != null)
+        {
+            playerNameInput2.text = "";
+        }
+        
+        // Appeler la méthode existante pour traiter le changement
+        CombineAndSetPlayerName();
+        
+        Debug.Log($"[LOBBY-UI] Player name set to: {monadUsername}");
     }
 }

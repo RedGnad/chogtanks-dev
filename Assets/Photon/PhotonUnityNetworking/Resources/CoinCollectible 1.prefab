@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 172697585080812759}
   - component: {fileID: 9128549695931908116}
   - component: {fileID: 8832245853124422327}
+  - component: {fileID: 6158311642099844207}
   m_Layer: 0
   m_Name: CoinCollectible 1
   m_TagString: Untagged
@@ -93,9 +94,9 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
-  m_Color: {r: 1, g: 0.8207309, b: 0, a: 1}
+  m_SortingOrder: 1
+  m_Sprite: {fileID: 21300000, guid: 581704312095d479abb1bf144d086ca4, type: 3}
+  m_Color: {r: 1, g: 0.97532374, b: 0.8632076, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -163,3 +164,18 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.1
+--- !u!114 &6158311642099844207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2417917804166580721}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3c6003df714b4802b0b22ece508b383, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rotationSpeed: 90
+  waveAmplitude: 0.5
+  waveSpeed: 4

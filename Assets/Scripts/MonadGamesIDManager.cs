@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Photon.Pun;
 
 namespace Sample
 {
@@ -55,6 +56,30 @@ namespace Sample
             
             // S'abonner aux événements du nouveau système WebView
             MonadGamesIDWebView.OnMonadGamesIDResultEvent += OnMonadWebViewResult;
+            
+            // Forcer la restauration du username après un délai
+            StartCoroutine(ForceRestoreUsernameAfterDelay());
+        }
+        
+        private System.Collections.IEnumerator ForceRestoreUsernameAfterDelay()
+        {
+            // Attendre que tout soit initialisé
+            yield return new WaitForSeconds(1f);
+            
+            string savedUsername = PlayerPrefs.GetString("MonadGamesID_Username", "");
+            if (!string.IsNullOrEmpty(savedUsername))
+            {
+                Debug.Log($"[MONAD-RESTORE] Forçage restauration username: {savedUsername}");
+                SetMonadUsernameAsPlayerName(savedUsername);
+                
+                // Vérifier encore après 2 secondes si nécessaire
+                yield return new WaitForSeconds(2f);
+                if (PhotonNetwork.NickName != savedUsername)
+                {
+                    Debug.Log($"[MONAD-RESTORE] Deuxième tentative de restauration: {savedUsername}");
+                    PhotonNetwork.NickName = savedUsername;
+                }
+            }
         }
 
         private void SetupUI()
@@ -100,6 +125,9 @@ namespace Sample
                 UpdateUI();
                 UpdateStatus($"Connecté: {result.username}");
                 OnUsernameChanged?.Invoke(result.username);
+                
+                // NOUVEAU: Utiliser le username Monad Games ID comme nom de joueur
+                SetMonadUsernameAsPlayerName(result.username);
                 
                 // Sauvegarder les données
                 PlayerPrefs.SetString("MonadGamesID_Username", result.username);
@@ -163,6 +191,9 @@ namespace Sample
                 UpdateUI();
                 UpdateStatus($"Monad Games ID: {username}");
                 OnUsernameChanged?.Invoke(username);
+                
+                // NOUVEAU: Utiliser le username Monad Games ID comme nom de joueur
+                SetMonadUsernameAsPlayerName(username);
             });
             
             // Sauvegarder les données
@@ -308,11 +339,12 @@ namespace Sample
                     usernameText.text = $"Monad ID: {currentUsername}";
                     usernameText.gameObject.SetActive(true);
                     
-                    // Cacher le Main Screen Player Name quand le username Privy est affiché
+                    // CORRIGÉ: Mettre à jour le Main Screen Player Name avec le username au lieu de le cacher
                     if (mainScreenPlayerNameText != null)
                     {
-                        mainScreenPlayerNameText.gameObject.SetActive(false);
-                        Debug.Log("[MONAD-UI] Main Screen Player Name hidden - Privy username displayed");
+                        mainScreenPlayerNameText.text = " " + currentUsername;
+                        mainScreenPlayerNameText.gameObject.SetActive(true);
+                        Debug.Log($"[MONAD-UI] Main Screen Player Name updated to: {currentUsername}");
                     }
                     
                     // Cacher le panel spécifique quand username Privy récupéré
@@ -382,7 +414,39 @@ namespace Sample
             {
                 UpdateUI();
                 OnUsernameChanged?.Invoke(currentUsername);
+                
+                // NOUVEAU: Restaurer le username comme nom de joueur au démarrage
+                SetMonadUsernameAsPlayerName(currentUsername);
             }
+        }
+
+        /// <summary>
+        /// Définit le username Monad Games ID comme nom de joueur - SIMPLE
+        /// </summary>
+        private void SetMonadUsernameAsPlayerName(string username)
+        {
+            if (string.IsNullOrEmpty(username)) return;
+            
+            Debug.Log($"[MONAD-PLAYER-NAME] Setting '{username}' as PhotonNetwork.NickName");
+            
+            // SIMPLE: Mettre à jour PhotonNetwork.NickName directement
+            PhotonNetwork.NickName = username;
+            
+            // Forcer la mise à jour du mainScreenPlayerNameText via LobbyUI
+            var lobbyUI = FindObjectOfType<LobbyUI>();
+            if (lobbyUI != null)
+            {
+                // Utiliser la méthode privée UpdateMainScreenPlayerName via reflection
+                var method = typeof(LobbyUI).GetMethod("UpdateMainScreenPlayerName", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (method != null)
+                {
+                    method.Invoke(lobbyUI, null);
+                    Debug.Log($"[MONAD-PLAYER-NAME] UpdateMainScreenPlayerName() called - should show '{username}'");
+                }
+            }
+            
+            Debug.Log($"[MONAD-PLAYER-NAME] PhotonNetwork.NickName set to '{username}'");
         }
 
         public string GetCurrentUsername() => currentUsername;

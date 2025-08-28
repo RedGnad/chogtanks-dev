@@ -39,6 +39,7 @@ public class SettingsPanelManager : MonoBehaviour
                     button.onClick.AddListener(HideSettingsPanel);
             }
         }
+        
     }
     
     public void ToggleSettingsPanel()

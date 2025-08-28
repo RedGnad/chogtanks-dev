@@ -396,6 +396,15 @@ public class ChogTanksNFTManager : MonoBehaviour
         bool hasCurrentWallet = !string.IsNullOrEmpty(currentPlayerWallet);
         bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
         
+        // AUTO-SIGN: Si wallet déjà connecté et données blockchain disponibles, simuler personal sign
+        if (walletInPrefs && hasCurrentWallet && !signApproved && currentNFTState.hasNFT)
+        {
+            Debug.Log("[NFT-AUTO-SIGN] Wallet déjà connecté avec données NFT - simulation personal sign");
+            PlayerPrefs.SetInt("personalSignApproved", 1);
+            PlayerPrefs.Save();
+            signApproved = true;
+        }
+        
         bool appKitConnected = false;
         string appKitAddress = "";
         
@@ -421,6 +430,18 @@ public class ChogTanksNFTManager : MonoBehaviour
             walletInPrefs = true;
             
             currentPlayerWallet = appKitAddress;
+        }
+        
+        // DÉCONNEXION DÉTECTÉE: Si AppKit déconnecté mais PlayerPrefs encore présent, nettoyer
+        if (!appKitConnected && walletInPrefs)
+        {
+            Debug.Log("[UI-DISCONNECT] AppKit déconnecté - nettoyage PlayerPrefs");
+            PlayerPrefs.DeleteKey("walletAddress");
+            PlayerPrefs.SetInt("personalSignApproved", 0);
+            PlayerPrefs.Save();
+            walletInPrefs = false;
+            signApproved = false;
+            currentPlayerWallet = "";
         }
         
         bool hasWallet = hasCurrentWallet || walletInPrefs || appKitConnected;
