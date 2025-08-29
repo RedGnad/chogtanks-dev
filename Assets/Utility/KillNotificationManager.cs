@@ -103,7 +103,6 @@ public class KillNotificationManager : MonoBehaviourPunCallbacks
         // Jouer le son killfeed pour tous les joueurs
         if (SFXManager.Instance != null)
         {
-            Debug.Log("[KILLFEED] 🔊 Déclenchement du son killfeed via KillNotificationManager");
             SFXManager.Instance.PlayRandomKillFeedSoundLocal();
         }
         else

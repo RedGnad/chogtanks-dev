@@ -16,17 +16,17 @@ namespace Sample
         
         [Header("Config")]
         [SerializeField] private string gameWalletAddress = "0x8107edd492E8201a286b163f38d896a779AFA6b9";
-        [SerializeField] private string monadGamesContractAddress = "0x1234567890123456789012345678901234567890"; // À remplacer par l'adresse réelle
-        [SerializeField] private string monadRpcUrl = "https://testnet-rpc.monad.xyz/"; // RPC Monad Testnet
-        [SerializeField] private string monadChainId = "10143"; // Chain ID Monad Testnet
+        [SerializeField] private string monadGamesContractAddress = "0x1234567890123456789012345678901234567890";
+        [SerializeField] private string monadRpcUrl = "https://testnet-rpc.monad.xyz/";
+        [SerializeField] private string monadChainId = "10143"; 
         
         [Header("Scoring Strategy - À définir")]
         [SerializeField] private bool useTransactionCount = false;
         [SerializeField] private bool useGameScore = true;
         
         [Header("UI Management")]
-        [SerializeField] private TMP_Text mainScreenPlayerNameText; // Référence au Main Screen Player Name
-        [SerializeField] private GameObject panelToHide; // Panel à cacher quand username Privy récupéré
+        [SerializeField] private TMP_Text mainScreenPlayerNameText;
+        [SerializeField] private GameObject panelToHide; 
         
         private string currentUsername = "";
         private bool isSignedIn = false;
@@ -54,29 +54,23 @@ namespace Sample
             SetupUI();
             LoadSavedState();
             
-            // S'abonner aux événements du nouveau système WebView
             MonadGamesIDWebView.OnMonadGamesIDResultEvent += OnMonadWebViewResult;
             
-            // Forcer la restauration du username après un délai
             StartCoroutine(ForceRestoreUsernameAfterDelay());
         }
         
         private System.Collections.IEnumerator ForceRestoreUsernameAfterDelay()
         {
-            // Attendre que tout soit initialisé
             yield return new WaitForSeconds(1f);
             
             string savedUsername = PlayerPrefs.GetString("MonadGamesID_Username", "");
             if (!string.IsNullOrEmpty(savedUsername))
             {
-                Debug.Log($"[MONAD-RESTORE] Forçage restauration username: {savedUsername}");
                 SetMonadUsernameAsPlayerName(savedUsername);
                 
-                // Vérifier encore après 2 secondes si nécessaire
                 yield return new WaitForSeconds(2f);
                 if (PhotonNetwork.NickName != savedUsername)
                 {
-                    Debug.Log($"[MONAD-RESTORE] Deuxième tentative de restauration: {savedUsername}");
                     PhotonNetwork.NickName = savedUsername;
                 }
             }
@@ -94,9 +88,7 @@ namespace Sample
         
         private void OnMonadSignInButtonClicked()
         {
-            Debug.Log("[MONAD-GAMES] Bouton Sign In cliqué");
             
-            // Utiliser le nouveau système WebView
             if (MonadGamesIDWebView.Instance != null)
             {
                 UpdateStatus("Ouverture WebView...");
@@ -104,19 +96,14 @@ namespace Sample
             }
             else
             {
-                Debug.LogError("[MONAD-GAMES] MonadGamesIDWebView introuvable");
                 UpdateStatus("Erreur système");
             }
         }
 
-        /// <summary>
-        /// Callback du nouveau système WebView
-        /// </summary>
         private void OnMonadWebViewResult(MonadGamesIDWebView.MonadGamesIDResult result)
         {
             if (result.success)
             {
-                Debug.Log($"[MONAD-GAMES] ✅ WebView Success: {result.username}, Wallet: {result.walletAddress}");
                 
                 currentUsername = result.username;
                 isSignedIn = true;
@@ -126,38 +113,28 @@ namespace Sample
                 UpdateStatus($"Connecté: {result.username}");
                 OnUsernameChanged?.Invoke(result.username);
                 
-                // NOUVEAU: Utiliser le username Monad Games ID comme nom de joueur
                 SetMonadUsernameAsPlayerName(result.username);
                 
-                // Sauvegarder les données
+                // NOUVEAU: Marquer le joueur comme ayant un Monad ID verified
+                SetPlayerMonadVerifiedStatus(true);
+                
                 PlayerPrefs.SetString("MonadGamesID_Username", result.username);
                 PlayerPrefs.SetString("MonadGamesID_WalletAddress", result.walletAddress);
                 
-                // SYNCHRONISATION CRITIQUE: Écrire aussi dans walletAddress pour compatibilité avec tout le système NFT
                 PlayerPrefs.SetString("walletAddress", result.walletAddress);
-                // IMPORTANT: Ne PAS auto-approuver personalSign pour Privy - l'utilisateur doit le faire manuellement
-                // PlayerPrefs.SetInt("personalSignApproved", 1); // SUPPRIMÉ
                 PlayerPrefs.Save();
                 
-                // CRITIQUE: Synchroniser PlayerSession avec l'adresse wallet Privy
                 PlayerSession.SetWalletAddress(result.walletAddress);
                 
-                Debug.Log($"[MONAD-SYNC] Wallet stored: {result.walletAddress}");
-                Debug.Log($"[MONAD-SYNC] Personal sign NOT auto-approved - user must sign manually");
-                Debug.Log($"[MONAD-SYNC] PlayerSession synchronized with Privy wallet");
                 
-                // Déclencher OnPersonalSignCompleted pour débloquer les fonctionnalités
                 var connect = FindObjectOfType<Sample.ConnectWalletButton>();
                 if (connect != null)
                 {
-                    Debug.Log("[MONAD-SYNC] Triggering OnPersonalSignCompleted for Privy");
                     connect.TriggerPersonalSignCompleted();
-                    Debug.Log("[MONAD-SYNC] OnPersonalSignCompleted triggered successfully");
                 }
             }
             else
             {
-                Debug.LogError($"[MONAD-GAMES] ❌ WebView Error: {result.error}");
                 UpdateStatus($"Erreur: {result.error}");
             }
         }
@@ -166,9 +143,7 @@ namespace Sample
         {
             try
             {
-                // Cette méthode est maintenant appelée par PrivyManager
-                // qui gère directement l'API call et appelle OnMonadGamesIDFound/NotFound
-                await Task.Delay(100); // Petit délai pour éviter les race conditions
+                await Task.Delay(100);
             }
             catch (System.Exception e)
             {
@@ -176,12 +151,8 @@ namespace Sample
             }
         }
         
-        /// <summary>
-        /// Appelée quand un username Monad Games ID est trouvé
-        /// </summary>
         public void OnMonadGamesIDFound(string username, string walletAddress)
         {
-            Debug.Log($"[MONAD GAMES ID] ✅ Username trouvé: {username} pour wallet: {walletAddress}");
             
             currentUsername = username;
             isSignedIn = true;
@@ -192,19 +163,14 @@ namespace Sample
                 UpdateStatus($"Monad Games ID: {username}");
                 OnUsernameChanged?.Invoke(username);
                 
-                // NOUVEAU: Utiliser le username Monad Games ID comme nom de joueur
                 SetMonadUsernameAsPlayerName(username);
             });
             
-            // Sauvegarder les données
             PlayerPrefs.SetString("MonadGamesID_Username", username);
             PlayerPrefs.SetString("MonadGamesID_WalletAddress", walletAddress);
             PlayerPrefs.Save();
         }
         
-        /// <summary>
-        /// Appelée quand aucun username Monad Games ID n'est trouvé
-        /// </summary>
         public void OnMonadGamesIDNotFound(string walletAddress)
         {
             Debug.Log($"[MONAD GAMES ID] ⚠️ Aucun username pour wallet: {walletAddress}");
@@ -216,11 +182,8 @@ namespace Sample
             UnityMainThreadDispatcher.Instance().Enqueue(() => {
                 UpdateUI();
                 UpdateStatus("Créer un username Monad Games ID");
-                // Optionnel: ouvrir URL de création de username
-                // Application.OpenURL("https://monad-games-id-site.vercel.app/");
             });
             
-            // Sauvegarder la wallet address pour plus tard
             PlayerPrefs.SetString("MonadGamesID_WalletAddress", walletAddress);
             PlayerPrefs.DeleteKey("MonadGamesID_Username");
             PlayerPrefs.Save();
@@ -230,8 +193,6 @@ namespace Sample
         {
             try
             {
-                // Cette méthode n'est plus utilisée avec le nouveau système WebView
-                // Le username est maintenant récupéré directement via React + Privy Cross App
                 string savedWallet = PlayerPrefs.GetString("MonadGamesID_WalletAddress", "");
                 
                 if (string.IsNullOrEmpty(savedWallet))
@@ -239,14 +200,12 @@ namespace Sample
                     return "";
                 }
 
-                // Simulation d'appel RPC pour compatibilité
                 await Task.Delay(100);
                 
                 return "";
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[MONAD-GAMES] Erreur récupération username: {e.Message}");
                 return "";
             }
         }
@@ -277,7 +236,6 @@ namespace Sample
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[MONAD-GAMES] Erreur décodage: {e.Message}");
                 return "";
             }
         }
@@ -307,19 +265,15 @@ namespace Sample
                     @params = new object[] { transaction }
                 };
 
-                // Simulation d'envoi de transaction pour compatibilité
-                // Dans le futur, utiliser le wallet address sauvegardé pour les transactions
                 string savedWallet = PlayerPrefs.GetString("MonadGamesID_WalletAddress", "");
                 if (!string.IsNullOrEmpty(savedWallet))
                 {
-                    await Task.Delay(1000); // Simulation délai réseau
+                    await Task.Delay(1000);
                     UpdateStatus($"Score {score} soumis!");
-                    Debug.Log($"[MONAD-GAMES] Score {score} soumis pour wallet: {savedWallet}");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[MONAD-GAMES] Erreur soumission: {e.Message}");
                 UpdateStatus("Erreur soumission score");
             }
         }
@@ -339,37 +293,29 @@ namespace Sample
                     usernameText.text = $"Monad ID: {currentUsername}";
                     usernameText.gameObject.SetActive(true);
                     
-                    // CORRIGÉ: Mettre à jour le Main Screen Player Name avec le username au lieu de le cacher
                     if (mainScreenPlayerNameText != null)
                     {
                         mainScreenPlayerNameText.text = " " + currentUsername;
                         mainScreenPlayerNameText.gameObject.SetActive(true);
-                        Debug.Log($"[MONAD-UI] Main Screen Player Name updated to: {currentUsername}");
                     }
                     
-                    // Cacher le panel spécifique quand username Privy récupéré
                     if (panelToHide != null)
                     {
                         panelToHide.SetActive(false);
-                        Debug.Log("[MONAD-UI] Panel hidden - Privy username retrieved");
                     }
                 }
                 else
                 {
                     usernameText.gameObject.SetActive(false);
                     
-                    // Réafficher le Main Screen Player Name quand pas de username Privy
                     if (mainScreenPlayerNameText != null)
                     {
                         mainScreenPlayerNameText.gameObject.SetActive(true);
-                        Debug.Log("[MONAD-UI] Main Screen Player Name restored - no Privy username");
                     }
                     
-                    // Réafficher le panel spécifique quand pas d'username Privy
                     if (panelToHide != null)
                     {
                         panelToHide.SetActive(true);
-                        Debug.Log("[MONAD-UI] Panel restored - no Privy username");
                     }
                 }
             }
@@ -390,7 +336,6 @@ namespace Sample
             {
                 statusText.text = status;
             }
-            Debug.Log($"[MONAD-GAMES] {status}");
         }
 
         private void ShowMonadInfo()
@@ -415,14 +360,10 @@ namespace Sample
                 UpdateUI();
                 OnUsernameChanged?.Invoke(currentUsername);
                 
-                // NOUVEAU: Restaurer le username comme nom de joueur au démarrage
                 SetMonadUsernameAsPlayerName(currentUsername);
             }
         }
 
-        /// <summary>
-        /// Définit le username Monad Games ID comme nom de joueur - SIMPLE
-        /// </summary>
         private void SetMonadUsernameAsPlayerName(string username)
         {
             if (string.IsNullOrEmpty(username)) return;
@@ -447,6 +388,28 @@ namespace Sample
             }
             
             Debug.Log($"[MONAD-PLAYER-NAME] PhotonNetwork.NickName set to '{username}'");
+        }
+        
+        /// <summary>
+        /// Marque le joueur comme ayant un Monad ID verified via Custom Properties
+        /// </summary>
+        private void SetPlayerMonadVerifiedStatus(bool isVerified)
+        {
+            if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null)
+            {
+                ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
+                playerProps["monadVerified"] = isVerified;
+                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProps);
+                
+                Debug.Log($"[MONAD-VERIFIED] Player marked as Monad verified: {isVerified}");
+            }
+            else
+            {
+                // Si pas encore connecté à Photon, sauvegarder pour plus tard
+                PlayerPrefs.SetInt("MonadVerified", isVerified ? 1 : 0);
+                PlayerPrefs.Save();
+                Debug.Log($"[MONAD-VERIFIED] Monad verified status saved for later: {isVerified}");
+            }
         }
 
         public string GetCurrentUsername() => currentUsername;

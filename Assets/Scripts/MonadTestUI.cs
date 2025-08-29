@@ -2,9 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Interface de test pour Monad Games ID WebView
-/// </summary>
 public class MonadTestUI : MonoBehaviour
 {
     [Header("UI Elements")]
@@ -15,7 +12,6 @@ public class MonadTestUI : MonoBehaviour
     
     private void Start()
     {
-        // Setup UI
         if (loginButton != null)
         {
             loginButton.onClick.AddListener(OnLoginButtonClicked);
@@ -23,22 +19,18 @@ public class MonadTestUI : MonoBehaviour
         
         UpdateUI("Ready to connect", "", "");
         
-        // S'abonner aux événements
         MonadGamesIDWebView.OnMonadGamesIDResultEvent += OnMonadResult;
         
-        // Vérifier s'il y a déjà des données sauvegardées
         CheckExistingData();
     }
     
     private void OnDestroy()
     {
-        // Se désabonner des événements
         MonadGamesIDWebView.OnMonadGamesIDResultEvent -= OnMonadResult;
     }
     
     private void OnLoginButtonClicked()
     {
-        Debug.Log("[MONAD TEST] Login button clicked");
         UpdateUI("Opening WebView...", "", "");
         
         if (MonadGamesIDWebView.Instance != null)
@@ -47,14 +39,12 @@ public class MonadTestUI : MonoBehaviour
         }
         else
         {
-            Debug.LogError("[MONAD TEST] MonadGamesIDWebView instance not found!");
             UpdateUI("Error: WebView not found", "", "");
         }
     }
     
     private void OnMonadResult(MonadGamesIDWebView.MonadGamesIDResult result)
     {
-        Debug.Log($"[MONAD TEST] Received result: Success={result.success}");
         
         if (result.success)
         {

@@ -22,7 +22,6 @@ public class MinimapIcon : MonoBehaviourPunCallbacks
     
     private void Update()
     {
-        // Check if cloak should end
         if (isCloaked && Time.time >= cloakEndTime)
         {
             SetCloaked(false);
@@ -61,7 +60,6 @@ public class MinimapIcon : MonoBehaviourPunCallbacks
     
     public void ActivateCloak(float duration)
     {
-        // Send RPC to all clients to activate cloak
         photonView.RPC("RPC_ActivateCloak", RpcTarget.All, duration);
     }
     
@@ -71,7 +69,6 @@ public class MinimapIcon : MonoBehaviourPunCallbacks
         isCloaked = true;
         cloakEndTime = Time.time + duration;
         SetCloaked(true);
-        Debug.Log($"[MinimapIcon] Cloak activated for {duration} seconds on {(photonView.IsMine ? "local" : "remote")} player");
     }
     
     private void SetCloaked(bool cloaked)
@@ -79,21 +76,17 @@ public class MinimapIcon : MonoBehaviourPunCallbacks
         isCloaked = cloaked;
         if (iconRenderer != null)
         {
-            // Only hide from OTHER players, not from yourself
             if (photonView.IsMine)
             {
-                // Local player always sees their own icon (maybe dimmed to show cloak is active)
                 iconRenderer.enabled = true;
                 if (cloaked)
                 {
-                    // Dim the icon to show cloak is active
                     Color dimmedColor = iconRenderer.color;
                     dimmedColor.a = 0.5f;
                     iconRenderer.color = dimmedColor;
                 }
                 else
                 {
-                    // Restore full opacity
                     Color normalColor = iconRenderer.color;
                     normalColor.a = 1f;
                     iconRenderer.color = normalColor;
@@ -101,14 +94,13 @@ public class MinimapIcon : MonoBehaviourPunCallbacks
             }
             else
             {
-                // Other players see/don't see based on cloak status
                 iconRenderer.enabled = !cloaked;
             }
         }
         
         if (!cloaked)
         {
-            Debug.Log("[MinimapIcon] Cloak deactivated");
+            //Debug.Log("[MinimapIcon] Cloak deactivated");
         }
     }
     

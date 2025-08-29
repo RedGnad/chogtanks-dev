@@ -112,7 +112,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     [Header("Contract Settings")]
     private const string CONTRACT_ADDRESS = "0x04223adab3a0c1a2e8aade678bebd3fddd580a38";
     
-    // Events for UI updates
     public static System.Action<bool, int> OnNFTStateChanged; 
     private const string MINT_NFT_SELECTOR = "0xd46c2811";
     private const string EVOLVE_NFT_SELECTOR = "0x3365a3b6";
@@ -130,18 +129,19 @@ public class ChogTanksNFTManager : MonoBehaviour
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI scoreProgressText;
     
+    [Header("Monad Games ID Feedback")]
+    public TextMeshProUGUI monadSuccessText; // Texte à afficher pendant 3s
+    public AudioClip monadSuccessSound; // Son à jouer
+    private AudioSource audioSource; // AudioSource pour jouer le son
+    
     [Header("Warm-Up System")]
-    [Tooltip("Button that triggers the warm-up (e.g., settings button)")]
     public UnityEngine.UI.Button warmUpTriggerButton;
-    [Tooltip("Button to simulate clicking (e.g., evolution button)")]
     public UnityEngine.UI.Button warmUpTargetButton;
     private bool hasWarmedUp = false;
     private bool isWarmingUp = false; 
     
     [Header("Simple NFT Buttons (Coexist with Panel)")]
-    [Tooltip("Container for simple NFT buttons - should be positioned to not conflict with NFTDisplayPanel")]
     public Transform nftButtonContainer;
-    [Tooltip("Optional: Prefab template for NFT buttons")]
     public GameObject nftButtonPrefab;
     private List<UnityEngine.UI.Button> nftButtons = new List<UnityEngine.UI.Button>();
     
@@ -174,14 +174,12 @@ public class ChogTanksNFTManager : MonoBehaviour
     [DllImport("__Internal")]
     public static extern void CheckHasMintedNFTJS(string walletAddress);
     
-    // DEPRECATED: Use SyncNFTLevelWithFirebaseJS instead to maintain consistency
     [DllImport("__Internal")]
     private static extern void UpdateNFTLevelJS(string walletAddress, int newLevel);
     
     [DllImport("__Internal")]
     private static extern void ReadNFTFromBlockchainJS(string walletAddress, string callbackMethod);
     
-    // PRIMARY: Use this function for all Firebase NFT level updates
     [DllImport("__Internal")]
     public static extern void SyncNFTLevelWithFirebaseJS(string walletAddress, int blockchainLevel, int tokenId);
     
@@ -219,7 +217,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (evolutionButton != null)
         {
-            Debug.Log("[NFT-DEBUG] Evolution button found and listener added");
             evolutionButton.onClick.AddListener(OnEvolutionButtonClicked);
         }
         else
@@ -233,8 +230,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (!string.IsNullOrEmpty(currentPlayerWallet))
         {
-            Debug.Log($"[NFT-DEBUG] Wallet found in PlayerPrefs: {currentPlayerWallet}");
-            Debug.Log($"[NFT-DEBUG] Starting delayed reconnection process...");
             StartCoroutine(DelayedReconnection());
         }
         
@@ -259,7 +254,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     {
         if (warmUpTriggerButton != null)
         {
-            Debug.Log("[WARM-UP] Setting up warm-up trigger button");
             warmUpTriggerButton.onClick.AddListener(OnWarmUpTriggerClicked);
         }
         else
@@ -270,11 +264,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private void OnWarmUpTriggerClicked()
     {
-        Debug.Log("[WARM-UP] Warm-up trigger activated");
         
         if (!hasWarmedUp)
         {
-            Debug.Log("[WARM-UP] First time trigger - starting warm-up simulation");
             hasWarmedUp = true;
             isWarmingUp = true; 
             StartCoroutine(SimulateButtonClickSilently());
@@ -287,38 +279,29 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private System.Collections.IEnumerator SimulateButtonClickSilently()
     {
-        Debug.Log("[WARM-UP] Simulating button click silently...");
         
         if (warmUpTargetButton != null)
         {
             yield return null;
             
-            Debug.Log("[WARM-UP] Invoking target button click silently");
             
             warmUpTargetButton.onClick.Invoke();
             
-            Debug.Log("[WARM-UP] Silent button click simulation completed");
-            
+        
             yield return new WaitForSeconds(0.1f);
             isWarmingUp = false;
-            Debug.Log("[WARM-UP] Warm-up state ended - normal flow resumed");
         }
         else
         {
-            Debug.LogWarning("[WARM-UP] Warm-up target button not assigned in Inspector");
             isWarmingUp = false;
         }
     }
     
     private void HandleNFTStateChanged(bool hasNFT, int nftCount)
     {
-        Debug.Log($"[NFT-UI] ===== HANDLING NFT STATE CHANGE =====");
-        Debug.Log($"[NFT-UI] hasNFT={hasNFT}, count={nftCount}");
-        Debug.Log($"[NFT-UI] Current UI components - statusText: {(statusText != null ? "OK" : "NULL")}, levelText: {(levelText != null ? "OK" : "NULL")}");
         
         if (hasNFT && nftCount > 0)
         {
-            Debug.Log($"[NFT-UI] Updating UI to show {nftCount} NFT(s)");
             
             UpdateStatusUI($"{nftCount} NFT FOUND - MINTED SUCCESSFULLY!");
             UpdateLevelUI(1); 
@@ -329,9 +312,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             ShowLevelUI();
             
-            Debug.Log($"[NFT-UI] UI FORCEFULLY UPDATED: Status='{nftCount} NFT FOUND', Level=1");
-            
-            // ✅ MONAD GAMES ID: Soumettre le score après mint confirmé par blockchain
             if (nftCount == 1 && currentNFTState.level == 1) {
                 string lastTxHash = PlayerPrefs.GetString("LastMintTxHash", "");
                 SubmitToMonadGamesID(100, "1", "mint", lastTxHash);
@@ -345,11 +325,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     void OnPersonalSignApproved()
     {
-        Debug.Log("[NFTManager] Personal sign completed - refreshing wallet and UI");
         currentPlayerWallet = PlayerPrefs.GetString("walletAddress", "");
         if (!string.IsNullOrEmpty(currentPlayerWallet))
         {
-            Debug.Log($"[NFT-UI] Wallet connected: {currentPlayerWallet} - forcing UI refresh");
             
             UpdateStatusUI("Checking blockchain state...");
             HideLevelUI();
@@ -367,13 +345,11 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (levelText != null)
         {
-            Debug.LogError($"[UI-TRACE] HIDING levelText!");
             levelText.gameObject.SetActive(false);
         }
         
         if (scoreProgressText != null)
         {
-            Debug.LogError($"[UI-TRACE] HIDING scoreProgressText!");
             scoreProgressText.gameObject.SetActive(false);
         }
         
@@ -385,7 +361,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     public void ShowLevelUI()
     {
-        // PRIORITÉ: Utiliser currentPlayerWallet (plus fiable pour Privy)
         string bestWallet = currentPlayerWallet;
         if (string.IsNullOrEmpty(bestWallet))
         {
@@ -396,10 +371,8 @@ public class ChogTanksNFTManager : MonoBehaviour
         bool hasCurrentWallet = !string.IsNullOrEmpty(currentPlayerWallet);
         bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
         
-        // AUTO-SIGN: Si wallet déjà connecté et données blockchain disponibles, simuler personal sign
         if (walletInPrefs && hasCurrentWallet && !signApproved && currentNFTState.hasNFT)
         {
-            Debug.Log("[NFT-AUTO-SIGN] Wallet déjà connecté avec données NFT - simulation personal sign");
             PlayerPrefs.SetInt("personalSignApproved", 1);
             PlayerPrefs.Save();
             signApproved = true;
@@ -423,7 +396,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (appKitConnected && !string.IsNullOrEmpty(appKitAddress) && string.IsNullOrEmpty(bestWallet))
         {
-            Debug.Log($"[UI-LEVEL] Session reconnection detected - syncing PlayerPrefs with AppKit");
             PlayerPrefs.SetString("walletAddress", appKitAddress);
             PlayerPrefs.Save();
             bestWallet = appKitAddress;
@@ -432,10 +404,8 @@ public class ChogTanksNFTManager : MonoBehaviour
             currentPlayerWallet = appKitAddress;
         }
         
-        // DÉCONNEXION DÉTECTÉE: Si AppKit déconnecté mais PlayerPrefs encore présent, nettoyer
         if (!appKitConnected && walletInPrefs)
         {
-            Debug.Log("[UI-DISCONNECT] AppKit déconnecté - nettoyage PlayerPrefs");
             PlayerPrefs.DeleteKey("walletAddress");
             PlayerPrefs.SetInt("personalSignApproved", 0);
             PlayerPrefs.Save();
@@ -449,23 +419,19 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (hasWallet && signApproved)
         {
-            Debug.LogError($"[UI-TRACE] SHOWING UI - wallet and signature approved");
             
             if (levelText != null)
             {
-                Debug.LogError($"[UI-TRACE] ACTIVATING levelText!");
                 levelText.gameObject.SetActive(true);
             }
             
             if (scoreProgressText != null)
             {
-                Debug.LogError($"[UI-TRACE] ACTIVATING scoreProgressText!");
                 scoreProgressText.gameObject.SetActive(true);
             }
         }
         else
         {
-            Debug.LogError($"[UI-TRACE] HIDING UI - wallet: {hasWallet}, signature: {signApproved}");
             
             if (hasWallet && !signApproved)
             {
@@ -474,13 +440,11 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (levelText != null)
             {
-                Debug.LogError($"[UI-TRACE] HIDING levelText in ShowLevelUI()!");
                 levelText.gameObject.SetActive(false);
             }
             
             if (scoreProgressText != null)
             {
-                Debug.LogError($"[UI-TRACE] HIDING scoreProgressText in ShowLevelUI()!");
                 scoreProgressText.gameObject.SetActive(false);
             }
         }
@@ -490,7 +454,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         
-        Debug.Log($"[UI-LEVEL] Auto-requesting signature for reconnected wallet");
         
         var nftVerifyUI = FindObjectOfType<NFTVerifyUI>();
         if (nftVerifyUI != null)
@@ -510,18 +473,15 @@ public class ChogTanksNFTManager : MonoBehaviour
         PlayerPrefs.Save();
         HideLevelUI();
         
-        Debug.Log("[WARM-UP] Warm-up system preserved during wallet disconnection (web session scope)");
         
         pendingEvolutionCost = 0;
         lastConsumedPoints = 0;
         isProcessingEvolution = false;
-        Debug.Log("[EVOLUTION] Evolution state reset after wallet disconnection");
         
         var nftPanel = FindObjectOfType<NFTDisplayPanel>();
         if (nftPanel != null)
         {
             nftPanel.CleanupAllSimpleNFTButtons();
-            Debug.Log("[NFTManager] NFT buttons cleaned up after wallet disconnection");
         }
         
         Debug.Log("[NFTManager] Wallet disconnected - UI hidden");
@@ -529,7 +489,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     public void ForceRefreshAfterMatch(int matchScore = 0)
     {
-        Debug.Log($"[NFTManager] ForceRefreshAfterMatch called with matchScore={matchScore}");
         RefreshWalletAddress();
         
         bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
@@ -540,18 +499,15 @@ public class ChogTanksNFTManager : MonoBehaviour
         {
             if (matchScore > 0)
             {
-                Debug.Log($"[NFTManager] Match completed with score {matchScore} - refreshing from Firebase (no local update to avoid double counting)");
                 StartCoroutine(DelayedFirebaseRefresh());
             }
             else
             {
-                Debug.Log("[NFTManager] No match score, loading NFT state with delay");
                 StartCoroutine(DelayedFirebaseRefresh());
             }
         }
         else
         {
-            Debug.Log("[NFTManager] No valid wallet connection, updating UI to level 0");
             UpdateLevelUI(0);
         }
     }
@@ -563,31 +519,26 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         currentNFTState.score = newScore;
         
-        Debug.Log($"[NFTManager] Local score updated: {oldScore} -> {newScore}");
         UpdateLevelUI(currentNFTState.level);
     }
     
     System.Collections.IEnumerator DelayedFirebaseRefresh()
     {
         yield return new WaitForSeconds(2f);
-        Debug.Log("[NFTManager] Loading NFT state from Firebase after delay");
         LoadNFTStateFromFirebase();
     }
     
     System.Collections.IEnumerator DelayedReconnection()
     {
-        Debug.Log($"[NFT-DEBUG] DelayedReconnection started, waiting for AppKit initialization...");
         
         yield return new WaitForSeconds(3f);
         
         if (Reown.AppKit.Unity.AppKit.IsInitialized)
         {
-            Debug.Log($"[NFT-DEBUG] AppKit initialized, proceeding with reconnection for wallet: {currentPlayerWallet}");
             
             if (Reown.AppKit.Unity.AppKit.IsAccountConnected && Reown.AppKit.Unity.AppKit.Account != null)
             {
                 string appKitAddress = Reown.AppKit.Unity.AppKit.Account.Address;
-                Debug.Log($"[NFT-DEBUG] AppKit reports wallet: {appKitAddress}");
                 
                 if (!string.IsNullOrEmpty(appKitAddress))
                 {
@@ -595,14 +546,11 @@ public class ChogTanksNFTManager : MonoBehaviour
                     PlayerPrefs.Save();
                     currentPlayerWallet = appKitAddress;
                     
-                    Debug.Log($"[NFT-DEBUG] PlayerPrefs synchronized with AppKit address: {appKitAddress}");
-                    
                     ShowLevelUI();
                 }
             }
             else
             {
-                Debug.LogWarning($"[NFT-DEBUG] AppKit initialized but no account connected, clearing PlayerPrefs");
                 if (string.IsNullOrEmpty(currentPlayerWallet))
     {
         currentPlayerWallet = PlayerPrefs.GetString("walletAddress", "");
@@ -619,13 +567,9 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     System.Collections.IEnumerator DelayedBlockchainRefresh()
     {
-        Debug.Log("[NFT] Waiting 3 seconds for evolution transaction confirmation...");
         yield return new WaitForSeconds(3f);
         
-        Debug.Log("[NFT] SKIPPING immediate blockchain refresh to avoid level desync");
-        Debug.Log("[NFT] Level synchronization will be handled by OnPointsConsumedAfterSuccess");
-        
-        isProcessingEvolution = false; // Reset evolution flag
+        isProcessingEvolution = false; 
         
         Debug.Log("[NFT] Evolution flow completed - level sync in progress!");
     }
@@ -2288,14 +2232,11 @@ public class ChogTanksNFTManager : MonoBehaviour
                     signatureBytes[i] = System.Convert.ToByte(hexSignature.Substring(i * 2, 2), 16);
                 }
                 
-                Debug.Log($"[NFT] Converted signature '{authData.signature}' to {signatureBytes.Length} bytes");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"[NFT] Failed to convert signature '{authData.signature}' to bytes: {ex.Message}");
                 signatureBytes = new byte[65];
                 for (int i = 0; i < 65; i++) signatureBytes[i] = (byte)(i % 256);
-                Debug.Log($"[NFT] Using fallback signature of {signatureBytes.Length} bytes");
             }
             
             var result = await Reown.AppKit.Unity.AppKit.Evm.WriteContractAsync(
@@ -2310,7 +2251,6 @@ public class ChogTanksNFTManager : MonoBehaviour
                 }
             );
             
-            Debug.Log($"[NFT] Evolution transaction sent: {result}");
             UpdateStatusUI("Evolution transaction confirmed!");
             
             if (!string.IsNullOrEmpty(result))
@@ -2318,19 +2258,16 @@ public class ChogTanksNFTManager : MonoBehaviour
                 OnEvolveTransactionSuccess(result, authData.targetLevel);
             }
             
-            Debug.Log("[NFT] Refreshing blockchain data after successful evolution...");
             
             uint newLevel = (uint)(authData.targetLevel);
             UpdateStatusUI($"Evolution completed! Refreshing NFT state...");
             
             StartCoroutine(DelayedBlockchainRefresh());
             
-            Debug.Log("[NFT] Evolution flow completed - blockchain refresh initiated!");
             
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"[NFT] Evolution transaction failed: {ex.Message}");
             UpdateStatusUI($"Evolution failed: {ex.Message}");
             isProcessingEvolution = false;
         }
@@ -2344,17 +2281,13 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (response.success)
             {
-                Debug.Log($"[POINTS-CONSUME] Points consumed successfully: {response.consumedPoints}");
-                Debug.Log($"[POINTS-CONSUME] New score: {response.newScore}");
                 
                 currentNFTState.score = response.newScore;
                 
-                Debug.Log($"[POINTS-CONSUME] Refreshing NFT panel after successful evolution...");
                 
                 var nftPanel = FindObjectOfType<NFTDisplayPanel>(true);
                 if (nftPanel != null)
                 {
-                    Debug.Log($"[POINTS-CONSUME] Panel found, triggering delayed refresh");
                     nftPanel.RefreshAfterEvolution();
                 }
                 else
@@ -2362,11 +2295,9 @@ public class ChogTanksNFTManager : MonoBehaviour
                     Debug.LogWarning($"[POINTS-CONSUME] NFT panel not found");
                 }
                 
-                Debug.Log($"[POINTS-CONSUME] Local state updated with new score: {response.newScore}");
             }
             else
             {
-                Debug.LogError($"[POINTS-CONSUME] Failed to consume points: {response.error}");
                 
                 UpdateStatusUI($"Evolution completed but points may not be properly consumed");
             }
@@ -2385,8 +2316,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (response.success && response.authorized)
             {
-                Debug.Log($"[PRE-EVOLUTION] Points verified and consumed! New score: {response.newScore}");
-                Debug.Log($"[PRE-EVOLUTION] Proceeding with blockchain evolution for NFT #{response.tokenId} to level {response.targetLevel}");
                 
                 currentNFTState.score = response.newScore;
                 
@@ -2397,14 +2326,12 @@ public class ChogTanksNFTManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError($"[PRE-EVOLUTION] Evolution blocked: {response.error}");
                 UpdateStatusUI($"Evolution failed: {response.error}");
                 isProcessingEvolution = false;
             }
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"[PRE-EVOLUTION] Error parsing pre-evolution response: {ex.Message}");
             UpdateStatusUI("Evolution failed: Invalid response");
             isProcessingEvolution = false;
         }
@@ -2412,8 +2339,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private void RequestEvolutionAuthorizationDirectly(int tokenId, int targetLevel, int originalScore)
     {
-        Debug.Log($"[EVOLUTION-DIRECT] Requesting evolution authorization for NFT #{tokenId} to level {targetLevel}");
-        Debug.Log($"[EVOLUTION-DIRECT] Using original score: {originalScore} (before consumption)");
         
         var evolutionData = new
         {
@@ -2423,7 +2348,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             targetLevel = targetLevel
         };
         
-        Debug.Log($"[EVOLUTION-DIRECT] Calling signature server with data: {JsonUtility.ToJson(evolutionData)}");
         
         RequestEvolutionSignatureJS(currentPlayerWallet, tokenId, originalScore, targetLevel);
     }
@@ -2436,19 +2360,16 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (response.success)
             {
-                Debug.Log($"[NFT] Points consumption successful! New score: {response.newScore}");
                 
                 currentNFTState.score = response.newScore;
                 
                 UpdateStatusUI($"Evolution completed! New score: {response.newScore} points");
                 
-                Debug.Log("[NFT] Refreshing all data after successful evolution...");
                 
                 RefreshNFTData();
                 
                 if (response.updatedNFT != null)
                 {
-                    Debug.Log($"[NFT] Syncing new level {response.updatedNFT.newLevel} for NFT #{response.updatedNFT.tokenId} with Firebase");
                     SyncNFTLevelWithFirebaseJS(currentPlayerWallet, (int)response.updatedNFT.newLevel, (int)response.updatedNFT.tokenId);
                 }
                 
@@ -2456,17 +2377,14 @@ public class ChogTanksNFTManager : MonoBehaviour
                 
                 UpdateLevelUI(currentNFTState.level);
                 
-                Debug.Log($"[NFT] Evolution flow completed successfully!");
             }
             else
             {
-                Debug.LogError($"[NFT] Points consumption failed: {response.error}");
                 UpdateStatusUI($"Points consumption failed: {response.error}");
             }
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"[NFT] Error parsing points consumption response: {ex.Message}");
             UpdateStatusUI("Points consumption failed");
         }
         finally
@@ -2505,7 +2423,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             
             if (result != null && int.TryParse(result.ToString(), out int level))
             {
-                Debug.Log($"[NFT] Token #{tokenId} level from blockchain: {level}");
                 UpdateNFTLevelDisplay(tokenId, level);
             }
             
@@ -2533,7 +2450,6 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private void CreateSimpleNFTButtons(int nftCount)
     {
-        Debug.Log($"[NFT-BUTTONS] Creating {nftCount} simple NFT buttons (coexist with panel)");
         
         ClearNFTButtons();
         
@@ -2557,13 +2473,11 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         if (nftButtonPrefab != null)
         {
-            Debug.Log($"[NFT-BUTTONS] Using prefab for NFT #{nftIndex}");
             buttonObj = Instantiate(nftButtonPrefab, nftButtonContainer);
             buttonObj.name = $"SimpleNFT_Button_{nftIndex}";
         }
         else
         {
-            Debug.Log($"[NFT-BUTTONS] Creating basic button for NFT #{nftIndex}");
             buttonObj = CreateBasicNFTButton(nftIndex);
         }
         
@@ -2584,7 +2498,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         nftButtons.Add(button);
         
-        Debug.Log($"[NFT-BUTTONS] Simple NFT button #{nftIndex} created with level {nftLevel}");
     }
     
     private GameObject CreateBasicNFTButton(int nftIndex)
@@ -2620,7 +2533,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         if (textComponents.Length > 0)
         {
             textComponents[0].text = $"NFT #{nftIndex}";
-            Debug.Log($"[NFT-BUTTONS] Updated text to 'NFT #{nftIndex}'");
         }
         else
         {
@@ -2628,7 +2540,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             if (legacyText.Length > 0)
             {
                 legacyText[0].text = $"NFT #{nftIndex}";
-                Debug.Log($"[NFT-BUTTONS] Updated legacy text to 'NFT #{nftIndex}'");
             }
         }
     }
@@ -2664,13 +2575,11 @@ public class ChogTanksNFTManager : MonoBehaviour
             rectTransform.sizeDelta = new UnityEngine.Vector2(120, 40); 
             rectTransform.anchoredPosition = new UnityEngine.Vector2((nftIndex - 1) * 130, 0); 
             
-            Debug.Log($"[NFT-BUTTONS] Positioned NFT #{nftIndex} at {rectTransform.anchoredPosition} (horizontal layout)");
         }
     }
     
     private void ClearNFTButtons()
     {
-        Debug.Log($"[NFT-BUTTONS] Clearing {nftButtons.Count} existing simple NFT buttons");
         
         foreach (var button in nftButtons)
         {
@@ -2685,18 +2594,15 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private void OnSimpleNFTButtonClicked(int nftIndex)
     {
-        Debug.Log($"[NFT-BUTTONS] Simple NFT #{nftIndex} button clicked");
         
         UpdateStatusUI($"Selected NFT #{nftIndex} - Level {currentNFTState.level}");
         selectedTokenId = nftIndex;
         
-        Debug.Log($"[NFT-BUTTONS] Opening detailed view for NFT #{nftIndex}");
         OnEvolutionButtonClicked(); 
     }
 
     public void OnRealMintSuccess(string transactionHash)
     {
-        Debug.Log($"[REAL-TX] REAL mint transaction succeeded on blockchain: {transactionHash}");
         
         OnMintTransactionSuccess(transactionHash);
     }
@@ -2706,7 +2612,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         try
         {
             var evolveData = JsonUtility.FromJson<RealEvolveSuccess>(evolveDataJson);
-            Debug.Log($"[REAL-TX] REAL evolve transaction succeeded on blockchain: {evolveData.hash} to level {evolveData.level}");
             
             OnEvolveTransactionSuccess(evolveData.hash, evolveData.level);
         }
@@ -2755,31 +2660,25 @@ public class ChogTanksNFTManager : MonoBehaviour
 
     private System.Collections.IEnumerator SimulateRealTransactionSuccess(string txHash, int targetLevel)
     {
-        Debug.Log($"[REAL-TX] Simulating real transaction success in editor after 3 seconds...");
         yield return new WaitForSeconds(3f);
         
-        Debug.Log($"[REAL-TX] Simulated blockchain confirmation for {txHash}");
         OnEvolveTransactionSuccess(txHash, targetLevel);
     }
 
     private System.Collections.IEnumerator SimulateRealMintSuccess(string txHash)
     {
-        Debug.Log($"[REAL-TX] Simulating real mint success in editor after 3 seconds...");
         yield return new WaitForSeconds(3f);
         
-        Debug.Log($"[REAL-TX] Simulated mint blockchain confirmation for {txHash}");
         OnMintTransactionSuccess(txHash);
     }
 
     private void InitializeRealTransactionDetection()
     {
-        Debug.Log("[REAL-TX] Setting up real transaction detection system...");
         
 #if UNITY_WEBGL && !UNITY_EDITOR
         try
         {
             SetupRealTransactionDetection(); 
-            Debug.Log("[REAL-TX] Real transaction detection initialized");
         }
         catch (System.Exception ex)
         {
@@ -2792,23 +2691,19 @@ public class ChogTanksNFTManager : MonoBehaviour
 
     private void ForceAllUIComponentsRefresh()
     {
-        Debug.Log("[NFT-SYNC] Forcing refresh of all UI components after wallet connection");
         
-        // Forcer NFTVerification à se mettre à jour
         var nftVerification = FindObjectOfType<NFTVerification>();
         if (nftVerification != null)
         {
             nftVerification.ForceNFTCheck();
         }
         
-        // Forcer NFTDisplayPanel à se mettre à jour
         var nftDisplayPanel = FindObjectOfType<NFTDisplayPanel>();
         if (nftDisplayPanel != null)
         {
             nftDisplayPanel.RefreshNFTList();
         }
         
-        // Forcer ShowLevelUI après un délai pour s'assurer que tout est synchronisé
         StartCoroutine(DelayedUIRefresh());
     }
     
@@ -2819,10 +2714,6 @@ public class ChogTanksNFTManager : MonoBehaviour
         Debug.Log("[NFT-SYNC] Delayed UI refresh completed");
     }
 
-    /// <summary>
-    /// Soumission simple à Monad Games ID après mint/évolution réussi
-    /// Utilise le wallet Privy (MonadGamesID_WalletAddress) pour l'identification
-    /// </summary>
     private void SubmitToMonadGamesID(int scoreAmount, string transactionAmount, string actionType, string transactionHash)
     {
         string playerAddress = PlayerPrefs.GetString("MonadGamesID_WalletAddress", "");
@@ -2833,8 +2724,6 @@ public class ChogTanksNFTManager : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[MONAD-GAMES] 📤 Soumission score: {scoreAmount} points, wallet: {playerAddress}");
-        Debug.Log($"[MONAD-GAMES] Action: {actionType}, TX: {transactionHash}");
         StartCoroutine(SubmitToMonadGamesIDCoroutine(playerAddress, scoreAmount, transactionAmount, actionType));
     }
 
@@ -2842,15 +2731,7 @@ public class ChogTanksNFTManager : MonoBehaviour
     {
         string currentAppKitWallet = PlayerPrefs.GetString("walletAddress", "");
         
-        // Debug: Log tous les paramètres avant création JSON
-        Debug.Log($"[MONAD-GAMES] 🔍 Paramètres avant JSON:");
-        Debug.Log($"[MONAD-GAMES] playerAddress: '{playerAddress}'");
-        Debug.Log($"[MONAD-GAMES] appKitWallet: '{currentAppKitWallet}'");
-        Debug.Log($"[MONAD-GAMES] scoreAmount: {scoreAmount}");
-        Debug.Log($"[MONAD-GAMES] transactionAmount: '{transactionAmount}'");
-        Debug.Log($"[MONAD-GAMES] actionType: '{actionType}'");
         
-        // Créer les données pour l'API
         var requestData = new MonadGamesIDRequest
         {
             playerAddress = playerAddress,
@@ -2869,25 +2750,65 @@ public class ChogTanksNFTManager : MonoBehaviour
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
-            request.timeout = 15;
+            request.timeout = 30; 
 
             yield return request.SendWebRequest();
+
+            Debug.Log($"[MONAD-GAMES] 🔍 Requête terminée - Result: {request.result}");
+            Debug.Log($"[MONAD-GAMES] 🔍 Response Code: {request.responseCode}");
 
             if (request.result == UnityWebRequest.Result.Success)
             {
                 Debug.Log($"[MONAD-GAMES] ✅ Score soumis avec succès!");
                 Debug.Log($"[MONAD-GAMES] Réponse: {request.downloadHandler.text}");
+                
+                ShowMonadSuccessFeedback(scoreAmount);
             }
             else
             {
                 Debug.LogError($"[MONAD-GAMES] ❌ Erreur: {request.error}");
                 Debug.LogError($"[MONAD-GAMES] Code réponse: {request.responseCode}");
                 Debug.LogError($"[MONAD-GAMES] Texte réponse: {request.downloadHandler.text}");
+                
+                ShowMonadSuccessFeedback(scoreAmount);
             }
         }
     }
 
-    // Classe sérialisable pour JsonUtility
+    private void ShowMonadSuccessFeedback(int scoreAmount)
+    {
+        if (monadSuccessText != null)
+        {
+            monadSuccessText.text = $"+ {scoreAmount} Monad ID points";
+            monadSuccessText.gameObject.SetActive(true);
+            
+            StartCoroutine(HideMonadSuccessTextAfterDelay(3f));
+        }
+        
+        if (monadSuccessSound != null)
+        {
+            if (audioSource == null)
+                audioSource = GetComponent<AudioSource>();
+            
+            if (audioSource != null)
+            {
+                audioSource.PlayOneShot(monadSuccessSound);
+            }
+        }
+        
+        Debug.Log($"[MONAD-FEEDBACK] Feedback affiché: {scoreAmount} points");
+    }
+    
+    private System.Collections.IEnumerator HideMonadSuccessTextAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        
+        if (monadSuccessText != null)
+        {
+            monadSuccessText.gameObject.SetActive(false);
+        }
+    }
+
     [System.Serializable]
     public class MonadGamesIDRequest
     {

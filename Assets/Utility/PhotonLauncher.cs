@@ -53,7 +53,6 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             spawner.SpawnTank();
         }
         
-        // Reset sound flag for next match
         soundAlreadyPlayed = false;
     }
 
@@ -79,7 +78,6 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             spawner.SpawnTank();
         }
         
-        // Reset sound flag for next match
         soundAlreadyPlayed = false;
     }
 
@@ -90,9 +88,6 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
     [PunRPC]
     public void ShowWinnerToAllRPC(string winnerName, int winnerActorNumber)
     {
-        Debug.Log($"[WINNER-RPC] ShowWinnerToAllRPC appelé pour {winnerName}");
-        
-        // Joue le son de victoire localement
         PlayWinnerSoundLocal();
         
         bool isWinner = PhotonNetwork.LocalPlayer.ActorNumber == winnerActorNumber;
@@ -149,43 +144,36 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
 
     private void PlayWinnerSoundLocal()
     {
-        Debug.Log("[PHOTON-WINNER-SOUND] PlayWinnerSoundLocal() appelé");
         
         if (soundAlreadyPlayed)
         {
-            Debug.Log("[PHOTON-WINNER-SOUND] Son déjà joué, ignoré");
             return;
         }
         
         if (winnerSoundClips == null) 
         {
-            Debug.LogWarning("[PHOTON-WINNER-SOUND] winnerSoundClips est null !");
             return;
         }
         
         if (winnerSoundClips.Length == 0)
         {
-            Debug.LogWarning("[PHOTON-WINNER-SOUND] Aucun clip audio assigné dans winnerSoundClips !");
             return;
         }
         
-        Debug.Log($"[PHOTON-WINNER-SOUND] {winnerSoundClips.Length} clips audio trouvés");
         soundAlreadyPlayed = true;
         
         foreach (AudioClip clip in winnerSoundClips)
         {
             if (clip != null)
             {
-                Debug.Log($"[PHOTON-WINNER-SOUND] Lecture du clip : {clip.name}");
                 AudioSource.PlayClipAtPoint(clip, Camera.main.transform.position);
             }
             else
             {
-                Debug.LogWarning("[PHOTON-WINNER-SOUND] Clip audio null détecté !");
+                //Debug.LogWarning("[PHOTON-WINNER-SOUND] Clip audio null détecté !");
             }
         }
         
-        Debug.Log("[PHOTON-WINNER-SOUND] Lecture des sons de victoire terminée");
     }
 
     private System.Collections.IEnumerator ReturnToLobbyAfterDelay(int seconds)
@@ -268,17 +256,15 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
 
     [Header("Admin System")]
     [SerializeField] private string[] adminWallets = { 
-        "0xD20CC1610BB0D0CF0daacb159AB6Cc4787D9e6D4" // Replace with your actual wallet address
+        " " 
     };
     
     public void JoinRoomByCode(string code)
     {
         roomName = code.ToUpper();
         
-        // Check if current player is admin and room might be full
         if (IsAdminWallet(PlayerSession.WalletAddress))
         {
-            // Try to join normally first
             PhotonNetwork.JoinRoom(roomName);
         }
         else
@@ -304,21 +290,16 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
     [PunRPC]
     private void RequestAdminAccess(string adminWallet)
     {
-        // Only master client can handle admin requests
         if (!PhotonNetwork.IsMasterClient) return;
         
-        // Verify the requesting wallet is actually an admin
         if (!IsAdminWallet(adminWallet))
         {
-            Debug.LogWarning($"[ADMIN] Non-admin wallet {adminWallet} attempted admin access!");
             return;
         }
         
-        // Find the last non-admin player to kick
         Player playerToKick = null;
         foreach (Player player in PhotonNetwork.PlayerList)
         {
-            // Skip if this player is an admin
             string playerWallet = player.CustomProperties.ContainsKey("wallet") ? 
                 player.CustomProperties["wallet"].ToString() : "";
             
@@ -330,33 +311,28 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         
         if (playerToKick != null)
         {
-            Debug.Log($"[ADMIN] Kicking player {playerToKick.NickName} to make room for admin");
             PhotonNetwork.CloseConnection(playerToKick);
             
-            // Notify the admin that they can now join
             photonView.RPC("NotifyAdminCanJoin", RpcTarget.All, adminWallet);
         }
         else
         {
-            Debug.LogWarning("[ADMIN] No non-admin players found to kick!");
+            //Debug.LogWarning("[ADMIN] No non-admin players found to kick!");
         }
     }
     
     [PunRPC]
     private void NotifyAdminCanJoin(string adminWallet)
     {
-        // Only the admin who requested access should act on this
         if (PlayerSession.WalletAddress == adminWallet)
         {
-            Debug.Log("[ADMIN] Slot available, joining room...");
-            // Wait a moment for the kicked player to disconnect, then join
             StartCoroutine(DelayedJoinRoom());
         }
     }
     
     private System.Collections.IEnumerator DelayedJoinRoom()
     {
-        yield return new WaitForSeconds(1f); // Wait for disconnect to process
+        yield return new WaitForSeconds(1f); 
         PhotonNetwork.JoinRoom(roomName);
     }
 
@@ -376,7 +352,7 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
     {
         if (GetComponent<PhotonView>() == null)
         {
-            Debug.LogError("[PhotonLauncher] PhotonView manquant sur l'objet PhotonLauncher ! Merci d'ajouter un PhotonView dans l'inspecteur AVANT de lancer la scène.");
+            //Debug.LogError("[PhotonLauncher] PhotonView manquant sur l'objet PhotonLauncher ! Merci d'ajouter un PhotonView dans l'inspecteur AVANT de lancer la scène.");
         }
         
         if (!PhotonNetwork.IsConnected)
@@ -429,7 +405,7 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogError("[PHOTON LAUNCHER] lobbyUI est null dans OnConnectedToMaster !");
+            //Debug.LogError("[PHOTON LAUNCHER] lobbyUI est null dans OnConnectedToMaster !");
         }
     }
 
@@ -453,7 +429,7 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogWarning("[PhotonLauncher] reconnectionNotificationPrefab non assigné");
+            //Debug.LogWarning("[PhotonLauncher] reconnectionNotificationPrefab non assigné");
         }
     }
     
@@ -473,7 +449,7 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogWarning("[PHOTON] LobbyUI non trouvé pour le retour au lobby après déconnexion");
+            //Debug.LogWarning("[PHOTON] LobbyUI non trouvé pour le retour au lobby après déconnexion");
         }
     }
 
@@ -502,17 +478,14 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogError("[PhotonLauncher] PhotonTankSpawner non trouvé dans la scène !");
+            //Debug.LogError("[PhotonLauncher] PhotonTankSpawner non trouvé dans la scène !");
         }
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        // Check if admin trying to join a full room (return code 32765 = room full)
         if (returnCode == 32765 && IsAdminWallet(PlayerSession.WalletAddress))
         {
-            Debug.Log("[ADMIN] Room is full, attempting admin override...");
-            // Request admin access to the room
             photonView.RPC("RequestAdminAccess", RpcTarget.MasterClient, PlayerSession.WalletAddress);
             return;
         }
@@ -546,17 +519,11 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
 
     public void JoinRandomPublicRoom()
     {
-        // Stratégie GlobalBrawl : d'abord essayer de rejoindre une room aléatoire existante
-        // Si aucune room n'est trouvée, fallback vers une room globale "GlobalBrawl"
-        Debug.Log("[MATCHMAKING] Tentative de rejoindre une room publique aléatoire...");
         PhotonNetwork.JoinRandomRoom();
     }
     
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
-        Debug.Log($"[MATCHMAKING] Aucune room aléatoire trouvée (Code: {returnCode}). Création de la room globale...");
-        
-        // Fallback : créer/rejoindre la room globale pour tous les joueurs
         string globalRoomName = "GlobalBrawl";
         roomName = globalRoomName;
         

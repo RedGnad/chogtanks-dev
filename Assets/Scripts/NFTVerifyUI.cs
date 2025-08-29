@@ -8,7 +8,7 @@ public class NFTVerifyUI : MonoBehaviour
     [SerializeField] private NFTVerification nftVerification;
     [SerializeField] private TextMeshProUGUI statusText;
     
-    [Header("Panel de saisie de nom")]
+    [Header("Name Input Panel")]
     [SerializeField] private GameObject nameInputPanel;
 
     private void Start()
@@ -67,9 +67,7 @@ public class NFTVerifyUI : MonoBehaviour
                 string oldPrefsAddress = PlayerPrefs.GetString("walletAddress", "");
                 if (!string.IsNullOrEmpty(oldPrefsAddress))
                 {
-                    // NE PAS effacer - peut être un wallet Privy !
                     Debug.Log("[NFT-VERIFY] Keeping wallet address - may be Privy connection");
-                    // PlayerPrefs.DeleteKey("walletAddress"); // DÉSACTIVÉ
                 }
                 
                 try
@@ -147,11 +145,9 @@ public class NFTVerifyUI : MonoBehaviour
 
     public void OnVerifyButtonClick()
     {
-        Debug.Log("[NFT-DEBUG] OnVerifyButtonClick appelé");
         
         if (nftVerification == null)
         {
-            Debug.LogError("[NFT-DEBUG] ERREUR: NFTVerification not found!");
             if (statusText != null)
             {
                 ShowStatus("Erreur: Référence manquante", true);
@@ -161,7 +157,6 @@ public class NFTVerifyUI : MonoBehaviour
 
         if (!IsWalletConnected())
         {
-            Debug.LogError("[NFT-DEBUG] ERREUR: Pas de wallet connecté!");
             if (statusText != null)
             {
                 ShowStatus("no wallet connected", true);
@@ -190,12 +185,7 @@ public class NFTVerifyUI : MonoBehaviour
     }
     
     private void OnDestroy()
-    {
-        // Dapp.cs désactivé - migration vers Privy
-        // var dapp = FindObjectOfType<Sample.Dapp>();
-        // if (dapp != null)
-        //     dapp.OnPersonalSignCompleted -= OnPersonalSignApproved;
-        
+    {   
         CancelInvoke(nameof(CheckWalletAndUpdateUI));
     }
 }

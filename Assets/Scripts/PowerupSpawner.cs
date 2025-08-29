@@ -6,7 +6,7 @@ public class PowerupSpawner : MonoBehaviourPun
 {
     [Header("Spawn Settings")]
     [SerializeField] private Transform[] spawnPoints;
-    [SerializeField] private float spawnInterval = 30f; // 30 seconds between spawns
+    [SerializeField] private float spawnInterval = 30f; 
     [SerializeField] private int maxPowerupsInScene = 3;
     
     [Header("Powerup Prefabs (must be in Resources/Powerups/)")]
@@ -20,7 +20,6 @@ public class PowerupSpawner : MonoBehaviourPun
     
     void Start()
     {
-        // Only master client spawns power-ups
         if (PhotonNetwork.IsMasterClient)
         {
             StartCoroutine(SpawnPowerupsRoutine());
@@ -29,7 +28,6 @@ public class PowerupSpawner : MonoBehaviourPun
     
     void OnEnable()
     {
-        // Listen for master client changes
         PhotonNetwork.NetworkingClient.EventReceived += OnMasterClientSwitched;
     }
     
@@ -40,7 +38,7 @@ public class PowerupSpawner : MonoBehaviourPun
     
     private void OnMasterClientSwitched(ExitGames.Client.Photon.EventData eventData)
     {
-        if (eventData.Code == 208) // Master client switched event
+        if (eventData.Code == 208) 
         {
             if (PhotonNetwork.IsMasterClient)
             {
@@ -66,18 +64,15 @@ public class PowerupSpawner : MonoBehaviourPun
     {
         if (powerupPrefabNames.Length == 0 || spawnPoints.Length == 0) return;
         
-        // Choose random powerup and spawn point
         string randomPowerup = powerupPrefabNames[Random.Range(0, powerupPrefabNames.Length)];
         Transform randomSpawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
         
-        // Check if spawn point is clear
         Collider2D existingPowerup = Physics2D.OverlapCircle(randomSpawnPoint.position, 2f);
         if (existingPowerup != null && existingPowerup.GetComponent<MonoBehaviourPun>() != null)
         {
-            return; // Spawn point occupied
+            return;
         }
         
-        // Spawn the powerup
         string prefabPath = "Powerups/" + randomPowerup;
         GameObject powerup = PhotonNetwork.Instantiate(prefabPath, randomSpawnPoint.position, Quaternion.identity);
         
@@ -86,7 +81,6 @@ public class PowerupSpawner : MonoBehaviourPun
             currentPowerupCount++;
             Debug.Log($"[PowerupSpawner] Spawned {randomPowerup} at {randomSpawnPoint.name}. Total: {currentPowerupCount}");
             
-            // Listen for powerup destruction to decrease count
             StartCoroutine(WaitForPowerupDestruction(powerup));
         }
     }
@@ -99,10 +93,8 @@ public class PowerupSpawner : MonoBehaviourPun
         }
         
         currentPowerupCount--;
-        Debug.Log($"[PowerupSpawner] Powerup destroyed. Remaining: {currentPowerupCount}");
     }
     
-    // Method to manually spawn a specific powerup (for testing)
     [ContextMenu("Spawn Random Powerup")]
     public void SpawnRandomPowerupManual()
     {

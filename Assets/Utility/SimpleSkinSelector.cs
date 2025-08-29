@@ -18,7 +18,7 @@ public class SimpleSkinSelector : MonoBehaviour
         
         for (int i = 0; i < skinButtons.Length && i < spriteNames.Length; i++)
         {
-            int index = i;  // Pour capture dans lambda
+            int index = i;  
             if (skinButtons[i] != null)
             {
                 skinButtons[i].onClick.AddListener(() => SelectSkin(index));
@@ -87,7 +87,6 @@ public class SimpleSkinSelector : MonoBehaviour
                 int savedSkinIndex = PlayerPrefs.GetInt(SELECTED_SKIN_KEY, 0);
                 if (savedSkinIndex >= 0 && savedSkinIndex < spriteNames.Length)
                 {
-                    Debug.Log($"[SKIN] Application du skin sauvegardé: {spriteNames[savedSkinIndex]}");
                     view.RPC("ChangeTankSprite", RpcTarget.AllBuffered, spriteNames[savedSkinIndex]);
                 }
             }

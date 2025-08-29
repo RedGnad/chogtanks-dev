@@ -9,26 +9,19 @@ using Newtonsoft.Json.Linq;
 [Serializable]
 public class ButtonUnlockRule
 {
-    [Tooltip("Le bouton à activer/désactiver")]
     public UnityEngine.UI.Button button;
     
-    [Tooltip("Texte TMP à afficher quand le bouton est verrouillé (optionnel)")]
     public TMPro.TextMeshProUGUI lockedText;
     
-    [Tooltip("Message à afficher quand verrouillé")]
     public string lockedMessage = "NFT requis";
     
-    [Tooltip("Liste des adresses de contrats NFT")]
     public List<string> requiredNFTContracts = new List<string>();
     
-    [Tooltip("Nombre minimum de NFTs différents requis pour débloquer")]
     [Range(1, 10)]
     public int minNFTsRequired = 1;
     
-    [Tooltip("Couleur du bouton quand débloqué")]
     public Color unlockedColor = Color.white;
     
-    [Tooltip("Couleur du bouton quand verrouillé")]
     public Color lockedColor = Color.gray;
 }
 
@@ -38,43 +31,32 @@ public class NFTCondition
     public enum Standard { ERC721, ERC1155 }
     public enum UnlockMode { AnyToken, SpecificToken }
 
-    [Tooltip("ERC-721 ou ERC-1155")]
     public Standard standard = Standard.ERC1155;
 
-    [Tooltip("AnyToken = n'importe quel jeton | SpecificToken = IDs listés")]
     public UnlockMode unlockMode = UnlockMode.AnyToken;
 
-    [Tooltip("Adresse du contrat NFT")]
     public string contractAddress;
 
-    [Tooltip("Liste des tokenIds (pour SpecificToken), ou vide pour AnyToken")]
     public List<string> tokenIds = new List<string>();
 
-    [Tooltip("Texte à afficher si la condition est remplie")]
-    public string successMessage = "NFT détecté !";
+    public string successMessage = "NFT detected !";
 }
 
 public class NFTVerification : MonoBehaviour
 {
     [Header("Configuration")]
-    [Tooltip("URL du RPC (par défaut: Monad Testnet)")]
     public string rpcUrl = "https://testnet-rpc.monad.xyz";
 
-    [Tooltip("Liste des conditions NFT à vérifier")]
     public List<NFTCondition> conditions = new List<NFTCondition>();
 
     [Header("UI Elements")]
-    [Tooltip("Texte UI (TMP) qui s'affichera uniquement si les conditions NFT sont remplies")]
     public TextMeshProUGUI statusText;
     
-    [Tooltip("Message à afficher quand le NFT est détecté (laisser vide pour utiliser le message de la condition)")]
     public string customSuccessMessage = "";
     
-    [Tooltip("Message à afficher quand aucun NFT n'est détecté")]
     public string noNFTOwnedMessage = "";
 
     [Header("Button Management")]
-    [Tooltip("Configuration des boutons à débloquer selon les NFTs")]
     public List<ButtonUnlockRule> buttonUnlockRules = new List<ButtonUnlockRule>();
 
     const string SEL_ERC1155_BALANCE = "0x00fdd58e";  
@@ -94,7 +76,6 @@ public class NFTVerification : MonoBehaviour
         currentWallet = PlayerPrefs.GetString("walletAddress", "");
         if (!string.IsNullOrEmpty(currentWallet))
         {
-            // Vérifier personal sign avant de charger les NFTs
             bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
             if (signApproved)
             {
@@ -121,20 +102,17 @@ public class NFTVerification : MonoBehaviour
 
     IEnumerator CheckAllNFTs()
     {
-        Debug.Log("[NFT-DEBUG] Début de CheckAllNFTs");
         UpdateStatus("Verifying NFTs...", true);
         
         if (string.IsNullOrEmpty(currentWallet))
         {
             string error = "No Connected Wallet";
-            Debug.Log("[NFT-DEBUG] Erreur: pas de wallet connecté");
             UpdateStatus(error, true);
             
             LockAllButtons();
             yield break;
         }
 
-        Debug.Log($"[NFT-DEBUG] Vérification avec wallet: {currentWallet}");
         bool anyNFTFound = false;
         
         foreach (var condition in conditions)
@@ -558,13 +536,6 @@ public class NFTVerification : MonoBehaviour
             }
         }
         
-        // DÉSACTIVÉ: Ne plus cacher automatiquement l'UI NFT/XP depuis NFTVerification
-        // car cela créait une boucle infinie avec Privy wallet
-        // ChogTanksNFTManager nftManager = FindObjectOfType<ChogTanksNFTManager>();
-        // if (nftManager != null)
-        // {
-        //     nftManager.HideLevelUI();
-        // }
     }
 
     private void CheckWalletUpdate()
@@ -575,7 +546,6 @@ public class NFTVerification : MonoBehaviour
         
         if (!string.IsNullOrEmpty(savedWallet) && signApproved && savedWallet != currentWallet)
         {
-            Debug.Log($"[NFT-VERIFICATION] Wallet update detected: {currentWallet} → {savedWallet}");
             currentWallet = savedWallet;
             StartCoroutine(CheckAllNFTs());
         }
@@ -585,7 +555,6 @@ public class NFTVerification : MonoBehaviour
         }
         else if (!signApproved && !string.IsNullOrEmpty(currentWallet))
         {
-            Debug.Log("[NFT-VERIFICATION] Personal sign required - locking buttons");
             currentWallet = "";
             LockAllButtons();
         }
@@ -599,7 +568,6 @@ public class NFTVerification : MonoBehaviour
             
             if (!string.IsNullOrEmpty(currentWallet) && rule.lockedText.text == "Connect Wallet")
             {
-                Debug.Log($"[NFT-VERIFICATION] Fixing UI text for button, showing: {rule.lockedMessage}");
                 rule.lockedText.text = rule.lockedMessage;
             }
         }

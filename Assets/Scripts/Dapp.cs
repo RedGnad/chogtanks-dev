@@ -6,7 +6,6 @@ namespace Sample
     {
         private void Awake()
         {
-            // Script complètement désactivé - migration vers Privy
             Destroy(gameObject);
         }
     }

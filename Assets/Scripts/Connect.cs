@@ -25,14 +25,12 @@ namespace Sample
 
         private void OnPersonalSignApproved()
         {
-            Debug.Log("[Connect] Signature personnelle approuvée !");
             var nftManager = FindObjectOfType<ChogTanksNFTManager>();
             if (nftManager != null)
             {
                 nftManager.RefreshWalletAddress(); 
                 nftManager.LoadNFTStateFromBlockchain(); 
                 nftManager.ForceLevelTextDisplay();   
-                Debug.Log("[Connect] RefreshWalletAddress + LoadNFTStateFromBlockchain appelé après personal sign");
             }
             var nftVerification = FindObjectOfType<NFTVerification>();
             if (nftVerification != null)
@@ -60,10 +58,8 @@ namespace Sample
 
                 if (!AppKit.IsInitialized)
                 {
-                    Debug.Log("[Connect] AppKit non initialisé, tentative d'initialisation...");
                     await AppKitInit.TryInitializeAsync();
                     await System.Threading.Tasks.Task.Delay(500);
-                    Debug.Log("[Connect] AppKit initialisé avec succès");
                 }
 
                 string initialAddress = "";
@@ -154,14 +150,12 @@ namespace Sample
                     try
                     {
                         PlayerSession.SetWalletAddress(finalAddress);
-                        Debug.Log("[Connect] Adresse enregistrée dans PlayerSession");
                     }
                     catch (System.Exception playerEx)
                     {
                         Debug.LogWarning($"[Connect] PlayerSession non disponible : {playerEx.Message}");
                     }
 
-                    Debug.Log("[Connect] Préparation de la signature différée...");
                     StartCoroutine(TriggerPersonalSignAfterDelay());
                 }
                 catch (System.Exception e)
@@ -183,31 +177,25 @@ namespace Sample
 #if UNITY_WEBGL && !UNITY_EDITOR
             string message = "Hello Choggie! (Request #1)";
             var signatureTask = AppKit.Evm.SignMessageAsync(message);
-            Debug.Log("[Connect] Signature personnelle demandée");
             yield return new WaitUntil(() => signatureTask.IsCompleted);
             
-            // CRITIQUE: Vérifier si la signature a VRAIMENT réussi
             if (signatureTask.IsCompletedSuccessfully && !string.IsNullOrEmpty(signatureTask.Result))
             {
-                Debug.Log("[Connect] Signature personnelle RÉUSSIE !");
                 try
                 {
                     PlayerPrefs.SetInt("personalSignApproved", 1);
                     PlayerPrefs.Save();
-                    Debug.Log($"[Connect] personalSignApproved flag set to {PlayerPrefs.GetInt("personalSignApproved", 0)}");
                     OnPersonalSignCompleted?.Invoke(); 
                     var nftVerification = FindObjectOfType<NFTVerification>();
                     if (nftVerification != null)
                     {
                         nftVerification.ForceNFTCheck();
-                        Debug.Log("[Connect] ForceNFTCheck lancé après signature !");
                     }
                     var nftManager = FindObjectOfType<ChogTanksNFTManager>();
                     if (nftManager != null)
                     {
                         nftManager.LoadNFTStateFromBlockchain(); 
                         nftManager.ForceLevelTextDisplay();
-                        Debug.Log("[Connect] LoadNFTStateFromBlockchain + ForceLevelTextDisplay appelé après personal sign (dans coroutine)");
                     }
                 }
                 catch (System.Exception signEx)
@@ -218,19 +206,14 @@ namespace Sample
             else
             {
                 Debug.LogWarning("[Connect] Signature personnelle REFUSÉE ou FERMÉE - wallet non autorisé");
-                // NE PAS définir personalSignApproved = 1
-                // Les fonctionnalités blockchain restent bloquées
             }
 #else
-            // dapp.OnPersonalSignButton(); // Désactivé - migration vers Privy
+            // dapp.OnPersonalSignButton(); // Désactivated
 #endif
-            Debug.Log("[Connect] Traitement de signature terminé");
         }
         
-        // MÉTHODE PUBLIQUE pour permettre à Privy de déclencher le flux UI
         public void TriggerPersonalSignCompleted()
         {
-            Debug.Log("[Connect] TriggerPersonalSignCompleted appelé par Privy");
             OnPersonalSignCompleted?.Invoke();
         }
     }

@@ -25,7 +25,6 @@ public class PhotonTankSpawner : MonoBehaviourPunCallbacks
     
     public void SpawnTank()
     {
-        // Vérifier si le match est terminé avant de spawner un tank
         if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
         {
             return;
@@ -72,11 +71,11 @@ public class PhotonTankSpawner : MonoBehaviourPunCallbacks
         var nameDisplay = tank.GetComponent<PlayerNameDisplay>();
         if (nameDisplay != null)
         {
-            Debug.Log("[SPAWN DEBUG] PlayerNameDisplay trouvé et configuré pour " + PhotonNetwork.LocalPlayer.NickName);
+            //Debug.Log("[SPAWN DEBUG] PlayerNameDisplay trouvé et configuré pour " + PhotonNetwork.LocalPlayer.NickName);
         }
         else
         {
-            Debug.LogWarning("[SPAWN DEBUG] PlayerNameDisplay non trouvé sur le prefab TankPrefab");
+            //Debug.LogWarning("[SPAWN DEBUG] PlayerNameDisplay non trouvé sur le prefab TankPrefab");
         }
 
         var lobbyUI = FindObjectOfType<LobbyUI>();

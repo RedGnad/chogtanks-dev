@@ -15,14 +15,8 @@ namespace Sample
 
         private void Start()
         {
-            // Debug console and Mixpanel integrations removed
             SceneManager.LoadScene(_mainScene);
         }
 
-        // Debug console initialization removed
-
-        // Mixpanel configuration removed
-
-        // Console methods have been removed as they required the debug console package
     }
 }

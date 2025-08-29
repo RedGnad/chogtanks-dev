@@ -1,8 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Script de parallaxe avec variété visuelle - Crée des éléments espacés avec tailles et rotations variées
-/// </summary>
 public class ParallaxVariety : MonoBehaviour
 {
     [Header("Parallax Settings")]
@@ -18,7 +15,7 @@ public class ParallaxVariety : MonoBehaviour
     public float minDistance = 3f;
     
     [Header("Visual Settings")]
-    public Vector2 alphaRange = new Vector2(0.4f, 1f); // Min et Max de transparence
+    public Vector2 alphaRange = new Vector2(0.4f, 1f); 
     public Color[] colorPalette = { Color.white, new Color(1f, 0.8f, 0.6f), new Color(0.8f, 1f, 0.9f) };
     public bool useRandomColors = true;
     
@@ -48,41 +45,33 @@ public class ParallaxVariety : MonoBehaviour
         SpriteRenderer originalSR = GetComponent<SpriteRenderer>();
         if (originalSR == null) return;
         
-        // Cache l'objet original
         originalSR.enabled = false;
         
         for (int i = 0; i < elementCount; i++)
         {
-            // Crée une copie
             elements[i] = new GameObject($"ParallaxElement_{i}");
             elements[i].transform.parent = transform;
             
-            // Ajoute SpriteRenderer avec la même texture
             SpriteRenderer sr = elements[i].AddComponent<SpriteRenderer>();
             sr.sprite = originalSR.sprite;
             sr.sortingOrder = originalSR.sortingOrder;
             
             
-            // Position aléatoire avec espacement
             Vector3 position = GetRandomPosition(i);
             elements[i].transform.position = position;
             originalPositions[i] = position;
             
-            // Taille aléatoire
             float scale = Random.Range(sizeRange.x, sizeRange.y);
             elements[i].transform.localScale = Vector3.one * scale;
             
-            // Rotation aléatoire
             float rotation = Random.Range(rotationRange.x, rotationRange.y);
             elements[i].transform.rotation = Quaternion.Euler(0, 0, rotation);
             
-            // Applique d'abord l'effet de blur si nécessaire
             if (enableBlur && blurIntensity > 0)
             {
                 ApplyBlurEffect(sr);
             }
             
-            // Couleur et transparence variées (après le blur)
             Color color = useRandomColors ? GetRandomColor() : Color.white;
             color.a = Random.Range(alphaRange.x, alphaRange.y);
             sr.color = color;
@@ -122,16 +111,13 @@ public class ParallaxVariety : MonoBehaviour
     {
         if (colorPalette.Length == 0) return Color.white;
         
-        // Sélectionne une couleur aléatoire de la palette
         Color baseColor = colorPalette[Random.Range(0, colorPalette.Length)];
         
-        // Ajoute une légère variation pour créer un gradient
         float variation = 0.2f;
         baseColor.r += Random.Range(-variation, variation);
         baseColor.g += Random.Range(-variation, variation);
         baseColor.b += Random.Range(-variation, variation);
         
-        // S'assure que les valeurs restent dans la plage [0,1]
         baseColor.r = Mathf.Clamp01(baseColor.r);
         baseColor.g = Mathf.Clamp01(baseColor.g);
         baseColor.b = Mathf.Clamp01(baseColor.b);
@@ -143,13 +129,11 @@ public class ParallaxVariety : MonoBehaviour
     {
         if (blurIntensity <= 0) return;
         
-        // Utilise le shader UI/Default qui supporte mieux les effets
         Material blurMaterial = new Material(Shader.Find("UI/Default"));
         blurMaterial.mainTexture = sr.sprite.texture;
         
-        // Applique le blur via la couleur (méthode simple et efficace)
         Color blurColor = sr.color;
-        blurColor.a *= (1f - (blurIntensity * 0.1f)); // Réduit l'opacité pour simuler le flou
+        blurColor.a *= (1f - (blurIntensity * 0.1f));
         sr.color = blurColor;
         
         sr.material = blurMaterial;
@@ -167,7 +151,6 @@ public class ParallaxVariety : MonoBehaviour
         
         Vector3 deltaMovement = cam.transform.position - lastCamPos;
         
-        // Applique le mouvement de parallaxe à tous les éléments
         if (elements != null)
         {
             for (int i = 0; i < elements.Length; i++)
@@ -198,7 +181,6 @@ public class ParallaxVariety : MonoBehaviour
     
     void OnDestroy()
     {
-        // Nettoie les éléments créés
         if (elements != null)
         {
             for (int i = 0; i < elements.Length; i++)

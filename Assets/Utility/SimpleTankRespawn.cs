@@ -111,7 +111,7 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
         
         if (TankComponentAdder.Instance != null && PhotonNetwork.IsConnected)
         {
-            Debug.Log($"[TANK] Vérification des composants via TankComponentAdder pour {photonView.Owner?.NickName}");
+            //Debug.Log($"[TANK] Vérification des composants via TankComponentAdder pour {photonView.Owner?.NickName}");
         }
     }
     
@@ -134,7 +134,6 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
     {
         yield return new WaitForSeconds(0.2f);
         
-        // Double vérification après le délai
         if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
         {
             yield break;
@@ -181,10 +180,8 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
         
         SetTankActive(false);
         
-        // Gérer le kill et les notifications
         if (PhotonNetwork.IsConnected && killerActorNumber > 0 && killerActorNumber != photonView.OwnerActorNr)
         {
-            // Attribuer le kill au tueur
             if (ScoreManager.Instance != null)
             {
                 ScoreManager.Instance.AddKill(killerActorNumber);
@@ -194,7 +191,6 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
                 Debug.LogError("[TANK] ScoreManager.Instance est null, impossible d'attribuer le kill");
             }
             
-            // Afficher la notification de kill
             KillNotificationManager killManager = KillNotificationManager.Instance;
             if (killManager != null)
             {

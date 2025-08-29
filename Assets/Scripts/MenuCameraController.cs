@@ -14,7 +14,7 @@ public class MenuCameraController : MonoBehaviour
     [Header("Menu Music")]
     public AudioSource musicSource;
     public AudioClip menuMusic;
-    public AudioClip[] gameMusicPlaylist; // Changed to an array for the playlist
+    public AudioClip[] gameMusicPlaylist; 
     [Range(0f, 1f)]
     public float musicVolume = 0.3f;
     
@@ -39,14 +39,12 @@ public class MenuCameraController : MonoBehaviour
     
     void Start()
     {
-        // Setup camera
         if (targetCamera == null)
             targetCamera = Camera.main;
             
         if (targetCamera != null)
             originalCameraPosition = targetCamera.transform.position;
         
-        // Setup audio
         if (musicSource == null)
         {
             musicSource = GetComponent<AudioSource>();
@@ -58,13 +56,11 @@ public class MenuCameraController : MonoBehaviour
         musicSource.loop = true;
         musicSource.volume = musicVolume;
         
-        // Essayer de lancer la musique après quelques frames
         StartCoroutine(TryAutoStartMusic());
     }
     
     private System.Collections.IEnumerator TryAutoStartMusic()
     {
-        // Attendre 10 frames comme suggéré
         for (int i = 0; i < 10; i++)
         {
             yield return null;
@@ -73,34 +69,26 @@ public class MenuCameraController : MonoBehaviour
         if (menuMusic != null && musicSource != null)
         {
             musicSource.Play();
-            Debug.Log("[MenuCameraController] Tentative de lancement automatique de la musique");
             
-            // Si ça ne marche pas, simuler une interaction utilisateur
             yield return new WaitForSeconds(0.1f);
             if (!musicSource.isPlaying)
             {
-                // Simuler un clic en déclenchant l'événement d'interaction
                 Application.RequestUserAuthorization(UserAuthorization.Microphone);
                 musicSource.Play();
-                Debug.Log("[MenuCameraController] Simulation d'interaction pour la musique");
             }
         }
     }
     
-    // Called directly by LobbyUI when joinPanel becomes active
     public void EnableMenuMode()
     {
         if (isMenuModeActive) return;
         
         isMenuModeActive = true;
-        Debug.Log("[MenuCameraController] Menu mode enabled");
         
-        // Start camera movement
         if (movementCoroutine != null)
             StopCoroutine(movementCoroutine);
         movementCoroutine = StartCoroutine(MenuCameraMovement());
         
-        // Start menu music
         if (musicSource != null && menuMusic != null)
         {
             musicSource.clip = menuMusic;
@@ -109,47 +97,37 @@ public class MenuCameraController : MonoBehaviour
         }
     }
     
-    // Called directly by LobbyUI when joinPanel becomes inactive
     public void DisableMenuMode()
     {
         if (!isMenuModeActive) return;
         
         isMenuModeActive = false;
-        Debug.Log("[MenuCameraController] Menu mode disabled");
         
-        // Stop camera movement IMMEDIATELY
         if (movementCoroutine != null)
         {
             StopCoroutine(movementCoroutine);
             movementCoroutine = null;
         }
         
-        // Stop music
         if (musicSource != null && musicSource.isPlaying)
         {
             musicSource.Stop();
         }
         
-        // DON'T reset camera position - let the game camera take over immediately
-        // This prevents the conflict/trembling
     }
     
-    // Method to freeze camera immediately (called before any button action)
     public void FreezeCameraImmediately()
     {
         if (isMenuModeActive)
         {
-            // Stop movement coroutine instantly
             if (movementCoroutine != null)
             {
                 StopCoroutine(movementCoroutine);
                 movementCoroutine = null;
             }
             
-            // Mark as inactive to prevent any further movement
             isMenuModeActive = false;
             
-            Debug.Log("[MenuCameraController] Camera frozen immediately");
         }
     }
     
@@ -157,31 +135,26 @@ public class MenuCameraController : MonoBehaviour
     {
         if (targetCamera == null) yield break;
         
-        // Initialize noise offsets for smooth random movement
         noiseOffsetX = Random.Range(0f, 100f);
         noiseOffsetY = Random.Range(0f, 100f);
         
         while (isMenuModeActive)
         {
-            // Generate smooth continuous movement using Perlin noise
             float noiseX = (Mathf.PerlinNoise(noiseOffsetX, 0f) - 0.5f) * 2f; // -1 to 1
             float noiseY = (Mathf.PerlinNoise(0f, noiseOffsetY) - 0.5f) * 2f; // -1 to 1
             
-            // Calculate target position on 2D plane (X and Y, keeping Z constant)
             Vector3 targetPos = originalCameraPosition + new Vector3(
                 noiseX * moveRange,
-                noiseY * moveRange, // Equal vertical and horizontal movement
-                0f // Keep Z constant for 2D plane
+                noiseY * moveRange, 
+                0f 
             );
             
-            // Smooth movement towards target
             targetCamera.transform.position = Vector3.Lerp(
                 targetCamera.transform.position,
                 targetPos,
                 smoothness * Time.deltaTime
             );
             
-            // Increment noise offsets for continuous movement
             noiseOffsetX += moveSpeed * Time.deltaTime * 0.1f;
             noiseOffsetY += moveSpeed * Time.deltaTime * 0.08f; // Slightly different speed for more organic movement
             
@@ -189,7 +162,6 @@ public class MenuCameraController : MonoBehaviour
         }
     }
     
-    // Removed GenerateNewTarget - using continuous Perlin noise instead
     
     private IEnumerator ResetCameraPosition()
     {
@@ -217,18 +189,15 @@ public class MenuCameraController : MonoBehaviour
         return isMenuModeActive;
     }
     
-    // Method to start game music when entering waitingPanel
     public void StartGameMusic()
     {
         if (musicSource != null && gameMusicPlaylist != null && gameMusicPlaylist.Length > 0)
         {
-            // Stop any currently playing music first
             if (musicSource.isPlaying)
             {
                 musicSource.Stop();
             }
 
-            // Select a random clip from the playlist
             int randomIndex = Random.Range(0, gameMusicPlaylist.Length);
             AudioClip clipToPlay = gameMusicPlaylist[randomIndex];
 
@@ -237,7 +206,6 @@ public class MenuCameraController : MonoBehaviour
                 musicSource.clip = clipToPlay;
                 musicSource.volume = musicVolume;
                 musicSource.Play();
-                Debug.Log($"[MenuCameraController] Game music started with clip: {clipToPlay.name}");
             }
             else
             {
@@ -250,13 +218,11 @@ public class MenuCameraController : MonoBehaviour
         }
     }
     
-    // Method to stop any music
     public void StopMusic()
     {
         if (musicSource != null && musicSource.isPlaying)
         {
             musicSource.Stop();
-            Debug.Log("[MenuCameraController] Music stopped");
         }
     }
 }

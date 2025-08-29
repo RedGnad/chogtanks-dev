@@ -8,6 +8,10 @@ TagManager:
   - Projectile
   - GameOverUI
   - MinimapCamera
+  - Shell
+  - Enemy
+  - Wall
+  - Obstacle
   layers:
   - Default
   - TransparentFX

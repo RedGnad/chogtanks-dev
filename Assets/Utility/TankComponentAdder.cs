@@ -42,7 +42,7 @@ public class TankComponentAdder : MonoBehaviourPunCallbacks
     private void AddComponentToTank(PhotonView view)
     {
         TankHealth2D health = view.GetComponent<TankHealth2D>();
-        if (health == null) return; // Pas un tank, on ignore
+        if (health == null) return;
         
         SimpleTankRespawn respawn = view.GetComponent<SimpleTankRespawn>();
         if (respawn == null)

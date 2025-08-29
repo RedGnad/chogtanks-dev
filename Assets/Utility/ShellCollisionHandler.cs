@@ -86,7 +86,7 @@ public class ShellCollisionHandler : MonoBehaviourPun
     }
     
     private float lastPierceCheckTime = 0f;
-    private const float PIERCE_CHECK_INTERVAL = 0.05f; // Check every 50ms instead of every frame
+    private const float PIERCE_CHECK_INTERVAL = 0.05f; 
     private HashSet<int> hitTankIds = new HashSet<int>(); 
     
     private void Update()
@@ -101,9 +101,8 @@ public class ShellCollisionHandler : MonoBehaviourPun
     private void CheckForTankPiercing()
     {
         Vector2 velocity = rb.velocity;
-        if (velocity.magnitude < 0.1f) return; // Not moving
+        if (velocity.magnitude < 0.1f) return; 
         
-        // Cast a ray in the direction of movement
         RaycastHit2D hit = Physics2D.Raycast(transform.position, velocity.normalized, 0.8f, tankLayerMask);
         
         if (hit.collider != null)
@@ -113,23 +112,18 @@ public class ShellCollisionHandler : MonoBehaviourPun
             {
                 int tankId = tankHealth.photonView.ViewID;
                 
-                // Don't hit the same tank twice
                 if (hitTankIds.Contains(tankId)) return;
                 
-                // Check if it's not self-damage
                 bool isSelfDamage = tankHealth.photonView.Owner != null && photonView.Owner != null && 
                                   tankHealth.photonView.Owner.ActorNumber == photonView.Owner.ActorNumber;
                 
                 if (!isSelfDamage)
                 {
-                    // Check shield
                     TankShield tankShield = tankHealth.GetComponent<TankShield>();
                     if (tankShield == null || !tankShield.IsShieldActive() || isPrecisionShot)
                     {
-                        // Mark tank as hit
                         hitTankIds.Add(tankId);
                         
-                        // Instant kill with high damage
                         int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;
                         tankHealth.photonView.RPC("TakeDamageRPC", RpcTarget.All, 999f, attackerId);
                     }
@@ -144,7 +138,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
         canRicochet = true;
         ricochetsRemaining = maxRicochets;
         
-        // Update visual appearance
         if (sr != null && ricochetSprite != null)
             sr.sprite = ricochetSprite;
         
@@ -152,7 +145,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
         ApplyShellScale(ricochetShellScale);
         ApplyShellColor(ricochetShellColor);
         
-        // Auto-destroy after 10 seconds to prevent resource accumulation
         Invoke("AutoDestroyRicochetShell", 17f);
         
     }
@@ -162,7 +154,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
     {
         isExplosiveShot = true;
         
-        // Update visual appearance
         if (sr != null && explosiveSprite != null)
             sr.sprite = explosiveSprite;
         
@@ -185,7 +176,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
         
         SetupTrail(isPrecision);
         
-        // Apply appropriate scale and color
         float targetScale = isPrecision ? precisionShellScale : normalShellScale;
         Color targetColor = isPrecision ? precisionShellColor : normalShellColor;
         ApplyShellScale(targetScale);
@@ -233,32 +223,61 @@ public class ShellCollisionHandler : MonoBehaviourPun
 
 
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (!photonView.IsMine) return;
 
-        // For explosive shots, handle tank hits differently (piercing)
-        if (isExplosiveShot)
+        if (other.CompareTag("Player"))
         {
-            TankHealth2D tankHealth = collision.collider.GetComponentInParent<TankHealth2D>();
+            TankHealth2D tankHealth = other.GetComponentInParent<TankHealth2D>();
             if (tankHealth != null)
             {
-                // Check if it's not self-damage
                 bool isSelfDamage = tankHealth.photonView.Owner != null && photonView.Owner != null && 
                                   tankHealth.photonView.Owner.ActorNumber == photonView.Owner.ActorNumber;
                 
                 if (!isSelfDamage)
                 {
-                    // Check shield
                     TankShield tankShield = tankHealth.GetComponent<TankShield>();
                     if (tankShield == null || !tankShield.IsShieldActive() || isPrecisionShot)
                     {
-                        // Instant kill with high damage
+                        int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;
+                        tankHealth.photonView.RPC("TakeDamageRPC", RpcTarget.All, explosionDamage, attackerId);
+                    }
+                }
+            }
+            PhotonNetwork.Destroy(gameObject);
+        }
+        else if (other.CompareTag("Enemy"))
+        {
+            HandleEnemyHit(other);
+        }
+        else if (other.CompareTag("Wall") || other.CompareTag("Obstacle"))
+        {
+            PhotonNetwork.Destroy(gameObject);
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!photonView.IsMine) return;
+
+        if (isExplosiveShot)
+        {
+            TankHealth2D tankHealth = collision.collider.GetComponentInParent<TankHealth2D>();
+            if (tankHealth != null)
+            {
+                bool isSelfDamage = tankHealth.photonView.Owner != null && photonView.Owner != null && 
+                                  tankHealth.photonView.Owner.ActorNumber == photonView.Owner.ActorNumber;
+                
+                if (!isSelfDamage)
+                {
+                    TankShield tankShield = tankHealth.GetComponent<TankShield>();
+                    if (tankShield == null || !tankShield.IsShieldActive() || isPrecisionShot)
+                    {
                         int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;
                         tankHealth.photonView.RPC("TakeDamageRPC", RpcTarget.All, 999f, attackerId);
                     }
                 }
-                // Don't stop - continue trajectory through the tank
                 return;
             }
         }
@@ -273,7 +292,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
             }
         }
 
-        // --- Ricochet Logic ---
         if (canRicochet && ricochetsRemaining > 0)
         {
             int layer = 1 << collision.gameObject.layer;
@@ -285,18 +303,15 @@ public class ShellCollisionHandler : MonoBehaviourPun
                 Vector2 inNormal = collision.contacts[0].normal;
                 Vector2 newVelocity = Vector2.Reflect(inDirection, inNormal);
                 
-                // Conserver l'élan et même l'amplifier légèrement
                 float currentSpeed = inDirection.magnitude;
                 float bounceSpeedMultiplier = 0.9f; // Garde 90% de la vitesse
                 rb.velocity = newVelocity.normalized * (currentSpeed * bounceSpeedMultiplier);
                 
-                // Réduire temporairement la gravité pour un rebond plus naturel
                 rb.gravityScale = 0.1f;
                 Invoke("RestoreGravity", 0.5f);
 
-                // Optional: Play a bounce sound
                 SFXManager.Instance.PlaySFX("ricochet_bounce", 0.5f, Random.Range(0.9f, 1.1f));
-                return; // Don't explode yet
+                return; 
             }
         }
 
@@ -306,8 +321,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
 
         Vector2 explosionPos = transform.position;
 
-        // Normal explosion logic (walls or non-explosive shots)
-        // Use explosive shot parameters if active
         float currentExplosionRadius = isExplosiveShot ? explosiveRadius : explosionRadius;
         float currentExplosionDamage = isExplosiveShot ? explosiveDamage : explosionDamage;
 
@@ -333,20 +346,16 @@ public class ShellCollisionHandler : MonoBehaviourPun
             
             int attackerId = photonView.Owner != null ? photonView.Owner.ActorNumber : -1;
             
-            // Ricochet shots should always be instant kill
             float finalDamage = canRicochet ? 999f : currentExplosionDamage;
             health.photonView.RPC("TakeDamageRPC", RpcTarget.All, finalDamage, attackerId);
             
-            // Ricochet shots use instant kill damage
         }
 
-        // Choose appropriate explosion effect
         GameObject explosionPrefab = isExplosiveShot && explosiveVFXPrefab != null ? explosiveVFXPrefab : particleOnlyExplosionPrefab;
         
         if (explosionPrefab != null) {
             GameObject explosion = Instantiate(explosionPrefab, explosionPos, Quaternion.identity);
             
-            // Scale explosion effect for explosive shots
             if (isExplosiveShot)
             {
                 explosion.transform.localScale = Vector3.one * (explosiveRadius / 2f);
@@ -357,6 +366,21 @@ public class ShellCollisionHandler : MonoBehaviourPun
         
         photonView.RPC("PlayParticlesRPC", RpcTarget.Others, explosionPos);
         
+        PhotonNetwork.Destroy(gameObject);
+    }
+
+    private void HandleEnemyHit(Collider2D enemyCollider)
+    {
+        Debug.Log("[SHELL] Hit enemy, destroying both shell and enemy");
+        
+        // Tell the enemy it was hit by a shell
+        Enemy enemy = enemyCollider.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.OnHitByShell();
+        }
+        
+        // Destroy the shell
         PhotonNetwork.Destroy(gameObject);
     }
 
@@ -371,38 +395,33 @@ public class ShellCollisionHandler : MonoBehaviourPun
     {
         if (rb != null)
         {
-            rb.gravityScale = 1f; // Restaurer la gravité normale
+            rb.gravityScale = 1f; 
         }
     }
     
     private void ApplyShellScale(float scale)
     {
-        // Scale the visual (sprite)
         transform.localScale = Vector3.one * scale;
         
-        // Scale the collider if enabled
         if (autoScaleCollider)
         {
             Collider2D collider = GetComponent<Collider2D>();
             if (collider != null)
             {
-                // For CircleCollider2D
                 CircleCollider2D circleCollider = collider as CircleCollider2D;
                 if (circleCollider != null)
                 {
-                    circleCollider.radius = circleCollider.radius * scale / transform.localScale.x; // Adjust for current scale
+                    circleCollider.radius = circleCollider.radius * scale / transform.localScale.x; 
                 }
                 
-                // For BoxCollider2D
                 BoxCollider2D boxCollider = collider as BoxCollider2D;
                 if (boxCollider != null)
                 {
-                    boxCollider.size = boxCollider.size * scale / transform.localScale.x; // Adjust for current scale
+                    boxCollider.size = boxCollider.size * scale / transform.localScale.x;
                 }
             }
         }
         
-        // Debug.Log($"[ShellCollisionHandler] Applied scale {scale} to shell (visual + collider)");
     }
     
     private void ApplyShellColor(Color color)
@@ -417,7 +436,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
     {
         if (gameObject != null && photonView.IsMine)
         {
-            // Debug.Log("[ShellCollisionHandler] Auto-destroying ricochet shell after 10s");
             PhotonNetwork.Destroy(gameObject);
         }
     }

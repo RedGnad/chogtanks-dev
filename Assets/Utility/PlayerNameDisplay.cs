@@ -9,6 +9,7 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     [Header("UI References")]
     public TextMeshProUGUI nameText;
     public Canvas nameCanvas;
+    public UnityEngine.UI.Image monadBadgeImage; // Badge Monad ID verified
     
     [Header("Position Settings")]
     public float heightOffset = 1.5f;
@@ -63,19 +64,7 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
                 playerName = $"Player {photonView.Owner.ActorNumber}";
             }
 
-            if (photonView.IsMine)
-            {
-                var nftManager = FindObjectOfType<ChogTanksNFTManager>();
-                if (nftManager != null && nftManager.currentNFTState != null)
-                {
-                    int nftLevel = nftManager.currentNFTState.level;
-                    
-                    ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
-                    playerProps["level"] = nftLevel;
-                    PhotonNetwork.LocalPlayer.SetCustomProperties(playerProps);
-                }
-            }
-
+            // Get player level
             int playerLevel = 0;
             if (photonView.Owner.CustomProperties.ContainsKey("level"))
             {
@@ -86,8 +75,31 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
             {
                 playerName += $" lvl {playerLevel}";
             }
-
+            
             nameText.text = playerName;
+
+            // Show/hide Monad ID verified badge image
+            bool isMonadVerified = IsPlayerMonadVerified(photonView.Owner);
+            Debug.Log($"[BADGE-DEBUG] Player {photonView.Owner.NickName} - Monad verified: {isMonadVerified}");
+        
+            if (monadBadgeImage != null)
+            {
+                monadBadgeImage.gameObject.SetActive(isMonadVerified);
+                
+                // Ajouter rotation au badge si visible
+                if (isMonadVerified)
+                {
+                    StartCoroutine(RotateBadge());
+                }
+                
+                Debug.Log($"[BADGE-DEBUG] Badge set to: {isMonadVerified} - Image: {monadBadgeImage.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[BADGE-DEBUG] monadBadgeImage is NULL for {photonView.Owner.NickName}");
+            }
+
+            // Set text color
             if (photonView.IsMine)
             {
                 nameText.color = localPlayerColor;
@@ -175,6 +187,44 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
         if (!photonView.IsMine)
         {
             nameText.color = color;
+        }
+    }
+    
+    /// <summary>
+    /// Vérifie si un joueur a un Monad ID verified
+    /// </summary>
+    private bool IsPlayerMonadVerified(Player player)
+    {
+        if (player == null) return false;
+        
+        // Vérifier dans les Custom Properties Photon
+        if (player.CustomProperties.ContainsKey("monadVerified"))
+        {
+            return (bool)player.CustomProperties["monadVerified"];
+        }
+        
+        // Pour le joueur local, vérifier aussi dans PlayerPrefs si pas encore synchronisé
+        if (player == PhotonNetwork.LocalPlayer)
+        {
+            return PlayerPrefs.GetInt("MonadVerified", 0) == 1;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Coroutine pour faire tourner le badge Monad ID
+    /// </summary>
+    private System.Collections.IEnumerator RotateBadge()
+    {
+        if (monadBadgeImage == null) yield break;
+        
+        float rotationSpeed = 90f; // Degrés par seconde
+        
+        while (monadBadgeImage.gameObject.activeInHierarchy)
+        {
+            monadBadgeImage.transform.Rotate(0, 0, rotationSpeed * Time.deltaTime);
+            yield return null;
         }
     }
 }

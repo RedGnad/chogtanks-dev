@@ -50,7 +50,7 @@ public class TankHealth2D : MonoBehaviourPun
         
         if (currentHealth <= 0 && !_isDead)
         {
-            _isDead = true; // Marquer comme mort immédiatement
+            _isDead = true; 
             
             SimpleTankRespawn respawnHandler = GetComponent<SimpleTankRespawn>();
             if (respawnHandler != null)

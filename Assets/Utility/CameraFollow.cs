@@ -45,7 +45,6 @@ public class CameraFollow : MonoBehaviour
 
         Vector3 desiredPosition = target.position + offset;
         
-        // Apply camera shake offset if available
         Vector3 shakeOffset = Vector3.zero;
         if (CameraShake2D.Instance != null)
         {

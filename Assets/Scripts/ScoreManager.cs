@@ -123,7 +123,7 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         float timeLeft = ROOM_LIFETIME;
         bool waitingForSync = !PhotonNetwork.IsMasterClient;
-        int lastCountdownSecond = -1; // Pour éviter de jouer le son plusieurs fois par seconde
+        int lastCountdownSecond = -1; 
         
         if (LobbyUI.Instance != null)
         {
@@ -147,7 +147,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 LobbyUI.Instance.UpdateTimer(currentSecond);
             }
             
-            // Jouer le son de décompte pour les 5 dernières secondes
             if (currentSecond <= 5 && currentSecond >= 1 && currentSecond != lastCountdownSecond)
             {
                 if (SFXManager.Instance != null)
@@ -157,7 +156,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 lastCountdownSecond = currentSecond;
             }
             
-            // Spawn des coins (Master Client seulement) - avec protection contre les erreurs
             if (PhotonNetwork.IsMasterClient && Time.time >= nextCoinSpawnTime && !matchEnded)
             {
                 try
@@ -167,13 +165,10 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 }
                 catch (System.Exception e)
                 {
-                    // Debug.LogError($"[COIN] ❌ Erreur lors du spawn de coin: {e.Message}");
-                    // Réessayer dans 20 secondes même en cas d'erreur
                     nextCoinSpawnTime = Time.time + COIN_SPAWN_INTERVAL;
                 }
             }
             
-            // Spawn des power-ups (Master Client seulement)
             if (PhotonNetwork.IsMasterClient && Time.time >= nextPowerupSpawnTime && !matchEnded)
             {
                 try
@@ -183,7 +178,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 }
                 catch (System.Exception e)
                 {
-                    // Debug.LogError($"[POWERUP] ❌ Erreur lors du spawn de power-up: {e.Message}");
                     nextPowerupSpawnTime = Time.time + powerupSpawnInterval;
                 }
             }
@@ -208,12 +202,15 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         AddScore(killerActorNumber, 1);
     }
     
-    /// <summary>
-    /// Ajoute des points au score d'un joueur (générique pour kills, coins, etc.)
-    /// </summary>
     public void AddScore(int playerActorNumber, int points)
     {
-        if (matchEnded) return;
+        if (matchEnded) 
+        {
+            Debug.Log($"[SCOREMANAGER] Score blocked - matchEnded=true. Player: {playerActorNumber}, Points: {points}");
+            return;
+        }
+        
+        Debug.Log($"[SCOREMANAGER] Adding {points} points to player {playerActorNumber}");
 
         int scoreBefore = playerScores.ContainsKey(playerActorNumber) ? playerScores[playerActorNumber] : 0;
         if (playerScores.ContainsKey(playerActorNumber))
@@ -226,11 +223,13 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         int scoreAfter = playerScores[playerActorNumber];
         
-        // Debug.Log($"[SCOREMANAGER] ✅ {points} points ajoutés à ActorNumber {playerActorNumber} (Score: {scoreBefore} → {scoreAfter})");
+        Debug.Log($"[SCOREMANAGER] Score updated: {scoreBefore} -> {scoreAfter}");
         
         RaiseEventOptions options = new RaiseEventOptions { Receivers = ReceiverGroup.All };
         object[] content = new object[] { playerActorNumber, playerScores[playerActorNumber] };
         PhotonNetwork.RaiseEvent(SCORE_UPDATE_EVENT, content, options, SendOptions.SendReliable);
+
+        Debug.Log($"[SCOREMANAGER] RaiseEvent sent for player {playerActorNumber} with score {scoreAfter}");
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -239,7 +238,13 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         if (LobbyUI.Instance != null)
         {
+            Debug.Log($"[SCOREMANAGER] Calling LobbyUI.Instance.UpdatePlayerList()");
             LobbyUI.Instance.UpdatePlayerList();
+            Debug.Log($"[SCOREMANAGER] UpdatePlayerList call completed");
+        }
+        else
+        {
+            Debug.LogWarning("[SCOREMANAGER] LobbyUI.Instance is null!");
         }
     }
     
@@ -256,36 +261,27 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     
     public void PlayerDied(int victimActorNumber, int killerActorNumber, int victimViewID)
     {
-        Debug.Log($"[SCOREMANAGER] PlayerDied appelé - Victim: {victimActorNumber}, Killer: {killerActorNumber}, ViewID: {victimViewID}");
-        Debug.Log($"[SCOREMANAGER] IsMasterClient: {PhotonNetwork.IsMasterClient}");
         
         if (!PhotonNetwork.IsMasterClient) return;
 
         if (killerActorNumber > 0 && killerActorNumber != victimActorNumber)
         {
-            Debug.Log($"[SCOREMANAGER] Condition killer remplie - Ajout du kill et affichage killfeed");
             AddKill(killerActorNumber);
 
             string killerName = GetPlayerName(killerActorNumber);
             string victimName = GetPlayerName(victimActorNumber);
             if (LobbyUI.Instance != null && LobbyUI.Instance.killFeedText != null)
             {
-                Debug.Log($"[KILLFEED] 📺 Affichage du killfeed: '{killerName} a tué {victimName} !'");
                 LobbyUI.Instance.killFeedText.text = $"{killerName} a tué {victimName} !";
                 LobbyUI.Instance.StartCoroutine(HideKillFeedAfterDelay(3f));
                 
-                // Jouer un son de killfeed aléatoire pour tous les joueurs via RPC
-                Debug.Log("[KILLFEED] 🔊 Envoi du RPC PlayKillFeedSoundRPC à tous les joueurs...");
                 photonView.RPC("PlayKillFeedSoundRPC", RpcTarget.All);
             }
         }
         else
         {
-            Debug.Log($"[SCOREMANAGER] Condition killer NON remplie - killerActorNumber: {killerActorNumber}, victimActorNumber: {victimActorNumber}");
-            if (killerActorNumber <= 0)
-                Debug.Log("[SCOREMANAGER] Raison: killerActorNumber <= 0 (suicide ou dégâts environnementaux)");
-            if (killerActorNumber == victimActorNumber)
-                Debug.Log("[SCOREMANAGER] Raison: killerActorNumber == victimActorNumber (suicide)");
+            if (killerActorNumber <= 0);
+            if (killerActorNumber == victimActorNumber);
         }
 
         PhotonView victimView = PhotonView.Find(victimViewID);
@@ -317,74 +313,66 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
             LobbyUI.Instance.killFeedText.text = "";
     }
     
-    /// <summary>
-    /// Spawn un power-up aléatoire à une position aléatoire (Master Client seulement)
-    /// </summary>
     private void SpawnPowerup()
     {
         if (!PhotonNetwork.IsMasterClient) 
         {
-            // Debug.LogWarning("[POWERUP] ⚠️ SpawnPowerup appelé mais ce client n'est pas Master Client");
+            // Debug.LogWarning("[POWERUP] SpawnPowerup appelé mais ce client n'est pas Master Client");
             return;
         }
         
         if (powerupPrefabs == null || powerupPrefabs.Length == 0)
         {
-            // Debug.LogWarning("[POWERUP] ⚠️ Aucun power-up prefab assigné dans l'inspecteur - spawn ignoré");
+            // Debug.LogWarning("[POWERUP] Aucun power-up prefab assigné dans l'inspecteur - spawn ignoré");
             return;
         }
         
         if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
         {
-            // Debug.LogWarning("[POWERUP] ⚠️ Pas connecté à Photon ou pas dans une room - spawn ignoré");
+            // Debug.LogWarning("[POWERUP] Pas connecté à Photon ou pas dans une room - spawn ignoré");
             return;
         }
         
-        // Choisir un power-up aléatoire
         int randomPowerupIndex = Random.Range(0, powerupPrefabs.Length);
         GameObject selectedPowerup = powerupPrefabs[randomPowerupIndex];
         
         if (selectedPowerup == null)
         {
-            // Debug.LogWarning($"[POWERUP] ⚠️ Power-up prefab à l'index {randomPowerupIndex} est null");
+            // Debug.LogWarning($"[POWERUP] Power-up prefab à l'index {randomPowerupIndex} est null");
             return;
         }
         
         Vector3 spawnPosition;
         
-        // Utiliser les mêmes points de spawn que les coins
         if (coinSpawnPoints != null && coinSpawnPoints.Length > 0)
         {
-            // Choisir un point de spawn aléatoire
             int randomIndex = Random.Range(0, coinSpawnPoints.Length);
             Transform spawnPoint = coinSpawnPoints[randomIndex];
             spawnPosition = spawnPoint.position;
             
-            // Debug.Log($"[POWERUP] ⚡ Spawn {selectedPowerup.name} au point {randomIndex}: {spawnPosition}");
+            // Debug.Log($"[POWERUP] Spawn {selectedPowerup.name} au point {randomIndex}: {spawnPosition}");
         }
         else
         {
-            // Position aléatoire dans une zone définie (fallback)
             spawnPosition = new Vector3(
-                Random.Range(-8f, 8f),  // X aléatoire
-                Random.Range(-4f, 4f),  // Y aléatoire
-                0f                      // Z fixe pour 2D
+                Random.Range(-8f, 8f), 
+                Random.Range(-4f, 4f), 
+                0f                     
             );
-            // Debug.Log($"[POWERUP] ⚡ Spawn {selectedPowerup.name} à position aléatoire: {spawnPosition}");
+            // Debug.Log($"[POWERUP] Spawn {selectedPowerup.name} à position aléatoire: {spawnPosition}");
         }
         
-        // Spawner le power-up via Photon pour synchronisation réseau
         try
         {
             GameObject powerup = PhotonNetwork.Instantiate(selectedPowerup.name, spawnPosition, Quaternion.identity);
             if (powerup != null)
             {
-                // Debug.Log($"[POWERUP] ✅ Power-up {selectedPowerup.name} spawné avec succès ! NetworkID: {powerup.GetComponent<PhotonView>()?.ViewID}");
+                // Debug.Log($"[POWERUP] Power-up {selectedPowerup.name} spawné avec succès ! NetworkID: {powerup.GetComponent<PhotonView>()?.ViewID}");
             }
         }
         catch (System.Exception e)
         {
-            // Debug.LogError($"[POWERUP] ❌ Erreur lors de PhotonNetwork.Instantiate: {e.Message}");
+            // Debug.LogError($"[POWERUP] Erreur lors de PhotonNetwork.Instantiate: {e.Message}");
         }
     }
     
@@ -397,72 +385,60 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         else
         {
-            Debug.LogError("[KILLFEED] ❌ SFXManager.Instance est null sur ce client !");
+            Debug.LogError("[KILLFEED] SFXManager.Instance est null sur ce client !");
         }
     }
     
-    /// <summary>
-    /// Spawn un coin à une position aléatoire (Master Client seulement)
-    /// </summary>
     private void SpawnCoin()
     {
         if (!PhotonNetwork.IsMasterClient) 
         {
-            // Debug.LogWarning("[COIN] ⚠️ SpawnCoin appelé mais ce client n'est pas Master Client");
+            // Debug.LogWarning("[COIN] SpawnCoin appelé mais ce client n'est pas Master Client");
             return;
         }
         
         if (coinPrefab == null)
         {
-            // Debug.LogWarning("[COIN] ⚠️ Coin prefab non assigné dans l'inspecteur - spawn ignoré");
+            // Debug.LogWarning("[COIN] Coin prefab non assigné dans l'inspecteur - spawn ignoré");
             return;
         }
         
         if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
         {
-            // Debug.LogWarning("[COIN] ⚠️ Pas connecté à Photon ou pas dans une room - spawn ignoré");
+            // Debug.LogWarning("[COIN] Pas connecté à Photon ou pas dans une room - spawn ignoré");
             return;
         }
         
         Vector3 spawnPosition;
         
-        // Utiliser les points de spawn définis ou une position aléatoire
         if (coinSpawnPoints != null && coinSpawnPoints.Length > 0)
         {
-            // Choisir un point de spawn aléatoire
             int randomIndex = Random.Range(0, coinSpawnPoints.Length);
             Transform spawnPoint = coinSpawnPoints[randomIndex];
             spawnPosition = spawnPoint.position;
             
-            // Debug.Log($"[COIN] 🪙 Spawn coin au point {randomIndex}:");
-            // Debug.Log($"[COIN]   - Transform name: {spawnPoint.name}");
-            // Debug.Log($"[COIN]   - Position: {spawnPosition}");
-            // Debug.Log($"[COIN]   - Local position: {spawnPoint.localPosition}");
         }
         else
         {
-            // Position aléatoire dans une zone définie (fallback)
-            // ⚠️ Modifie ces valeurs selon la taille de ta map
             spawnPosition = new Vector3(
-                Random.Range(-8f, 8f),  // X aléatoire (ajuste selon ta map)
-                Random.Range(-4f, 4f),  // Y aléatoire (ajuste selon ta map)
-                0f                      // Z fixe pour 2D
+                Random.Range(-8f, 8f), 
+                Random.Range(-4f, 4f), 
+                0f                    
             );
-            // Debug.Log($"[COIN] 🪙 Spawn coin à position aléatoire: {spawnPosition}");
+            // Debug.Log($"[COIN] Spawn coin à position aléatoire: {spawnPosition}");
         }
         
-        // Spawner le coin via Photon pour synchronisation réseau
         try
         {
             GameObject coin = PhotonNetwork.Instantiate(coinPrefab.name, spawnPosition, Quaternion.identity);
             if (coin != null)
             {
-                // Debug.Log($"[COIN] ✅ Coin spawné avec succès ! NetworkID: {coin.GetComponent<PhotonView>()?.ViewID}");
+                // Debug.Log($"[COIN] Coin spawné avec succès ! NetworkID: {coin.GetComponent<PhotonView>()?.ViewID}");
             }
         }
         catch (System.Exception e)
         {
-            // Debug.LogError($"[COIN] ❌ Erreur lors de PhotonNetwork.Instantiate: {e.Message}");
+            // Debug.LogError($"[COIN] Erreur lors de PhotonNetwork.Instantiate: {e.Message}");
         }
     }
     
@@ -566,7 +542,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
             RaiseEventOptions options = new RaiseEventOptions { Receivers = ReceiverGroup.All };
             PhotonNetwork.RaiseEvent(MATCH_END_EVENT, content, options, SendOptions.SendReliable);
             
-            // Fallback: Also call ShowWinnerToAllRPC directly in case the event fails
             StartCoroutine(FallbackShowWinner(winnerActorNumber, winnerName, highestScore));
         }
         else
@@ -590,11 +565,9 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         
         if (gameOverUIs.Length == 0)
         {
-            Debug.Log("[WINNER-DEBUG] Recherche de PhotonLauncher...");
             PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
             if (launcher != null)
             {
-                Debug.Log($"[WINNER-DEBUG] PhotonLauncher trouvé, appel ShowWinnerToAllRPC pour {winnerName}");
                 launcher.ShowWinnerToAllRPC(winnerName, winnerActorNumber);
             }
             else
@@ -704,14 +677,11 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     
     private IEnumerator FallbackShowWinner(int winnerActorNumber, string winnerName, int highestScore)
     {
-        // Wait 2 seconds to see if the event was received
         yield return new WaitForSeconds(2f);
         
-        // If no GameOverUI was created, the event probably failed
         GameObject[] gameOverUIs = GameObject.FindGameObjectsWithTag("GameOverUI");
         if (gameOverUIs.Length == 0)
         {
-            Debug.LogWarning("[SCOREMANAGER] Photon event may have failed, calling ShowWinnerToAllRPC directly");
             PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
             if (launcher != null && launcher.photonView != null)
             {
@@ -819,6 +789,11 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public Dictionary<int, int> GetPlayerScores()
     {
         return playerScores;
+    }
+    
+    public int GetPlayerScore(int actorNumber)
+    {
+        return playerScores.ContainsKey(actorNumber) ? playerScores[actorNumber] : 0;
     }
     
     public bool IsMatchEnded()

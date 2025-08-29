@@ -19,7 +19,6 @@ public class CoinCollectible : MonoBehaviourPun
     
     void Update()
     {
-        // Rotation continue pour l'effet visuel
         if (!isCollected)
         {
             transform.Rotate(0f, 0f, rotationSpeed * Time.deltaTime);

@@ -26,14 +26,14 @@ public class SFXManager : MonoBehaviourPun
     public SFXClip[] sfxClips;
     
     [Header("Killfeed Sounds")]
-    public AudioClip[] killFeedSounds; // Tableau flexible pour les sons de killfeed
+    public AudioClip[] killFeedSounds; 
     [Range(0f, 1f)]
-    public float killFeedVolume = 0.8f; // Volume réglable pour les sons de killfeed
+    public float killFeedVolume = 0.8f; 
     
     [Header("Countdown Sounds")]
-    public AudioClip countdownBeepSound; // Son pour le décompte 5-4-3-2-1
+    public AudioClip countdownBeepSound;
     [Range(0f, 1f)]
-    public float countdownVolume = 0.9f; // Volume pour le son de décompte
+    public float countdownVolume = 0.9f; 
     
     private static SFXManager instance;
     private Dictionary<string, SFXClip> sfxDictionary;
@@ -82,7 +82,6 @@ public class SFXManager : MonoBehaviourPun
     
     public void PlaySFX(string sfxName, float volumeMultiplier = 1f)
     {
-        // Appelle la surcharge plus complète avec un pitch par défaut de 1.0f
         PlaySFX(sfxName, volumeMultiplier, 1.0f);
     }
 
@@ -112,7 +111,7 @@ public class SFXManager : MonoBehaviourPun
         {
             audioSource.pitch = pitch;
             audioSource.PlayOneShot(clip, volume * masterVolume);
-            audioSource.pitch = 1f; // Reset pitch to default after playing
+            audioSource.pitch = 1f; 
         }
     }
     
@@ -152,15 +151,9 @@ public class SFXManager : MonoBehaviourPun
     
     public void PlayRandomKillFeedSoundLocal()
     {
-        Debug.Log("[SFX] 🎵 PlayRandomKillFeedSoundLocal() appelé");
-        
-        // Version simplifiée : joue seulement localement, pas de RPC
-        // Le RPC sera géré par ScoreManager pour synchroniser entre tous les joueurs
         
         if (killFeedSounds == null || killFeedSounds.Length == 0)
         {
-            Debug.LogWarning("[SFX] ⚠️ Aucun son de killfeed configuré dans l'inspecteur !");
-            Debug.LogWarning($"[SFX] killFeedSounds = {(killFeedSounds == null ? "null" : $"array de {killFeedSounds.Length} éléments")}");
             return;
         }
         
@@ -170,7 +163,6 @@ public class SFXManager : MonoBehaviourPun
         if (randomClip != null && audioSource != null)
         {
             audioSource.PlayOneShot(randomClip, killFeedVolume * masterVolume);
-            Debug.Log($"[SFX] ✅ Son de killfeed joué avec succès ! Clip: {randomClip.name}, Index: {randomIndex}");
         }
         else
         {
@@ -178,17 +170,12 @@ public class SFXManager : MonoBehaviourPun
         }
     }
     
-    /// <summary>
-    /// Joue le son de décompte localement (5-4-3-2-1)
-    /// </summary>
     public void PlayCountdownBeep()
     {
-        Debug.Log("[SFX] ⏰ PlayCountdownBeep() appelé");
         
         if (countdownBeepSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(countdownBeepSound, countdownVolume * masterVolume);
-            Debug.Log("[SFX] ✅ Son de décompte joué avec succès !");
         }
         else
         {

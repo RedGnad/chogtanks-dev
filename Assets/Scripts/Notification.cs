@@ -27,7 +27,6 @@ namespace Sample
 
         private void Awake()
         {
-            // Script désactivé - migration vers Privy
             this.enabled = false;
             return;
             

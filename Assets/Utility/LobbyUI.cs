@@ -26,7 +26,11 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     public TMP_Text killFeedText;
     
     [Header("Player Name Display")]
-    public TMP_Text mainScreenPlayerNameText; 
+    public TMP_Text mainScreenPlayerNameText;
+    
+    [Header("Monad Badge System")]
+    public GameObject monadBadgePrefab; // Prefab avec Image pour badge Monad
+    private Dictionary<string, GameObject> playerBadges = new Dictionary<string, GameObject>(); 
     
     [Header("Match UI")]
     public TMP_Text timerText;
@@ -251,7 +255,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     void OnCreateRoom()
     {
-        // Freeze camera BEFORE any other action
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.FreezeCameraImmediately();
@@ -261,7 +264,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         joinPanel.SetActive(false);
         waitingPanel.SetActive(true);
         
-        // Complete disable after panel change and start game music
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.DisableMenuMode();
@@ -274,7 +276,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         string code = joinCodeInput.text.Trim().ToUpper();
         if (code.Length == 4)
         {
-            // Freeze camera BEFORE any other action
             if (MenuCameraController.Instance != null)
             {
                 MenuCameraController.Instance.FreezeCameraImmediately();
@@ -284,7 +285,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             joinPanel.SetActive(false);
             waitingPanel.SetActive(true);
             
-            // Complete disable after panel change and start game music
             if (MenuCameraController.Instance != null)
             {
                 MenuCameraController.Instance.DisableMenuMode();
@@ -299,7 +299,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     void OnGoButtonClicked()
     {
-        // Freeze camera BEFORE any other action
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.FreezeCameraImmediately();
@@ -317,7 +316,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             if (goText != null) goText.text = "WAIT ";
         }
         
-        // Complete disable after panel change and start game music
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.DisableMenuMode();
@@ -473,18 +471,12 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         
         if (loadingPanel != null)
         {
-            Debug.Log($"[LOADING-PANEL] Masquage automatique après {loadingPanelDuration} secondes");
             loadingPanel.SetActive(false);
         }
     }
 
     public void OnPhotonReady()
     {
-        // SUPPRIMÉ: Plus de masquage basé sur Photon - utilise maintenant le timer fixe
-        // if (loadingPanel != null)
-        // {
-        //     loadingPanel.SetActive(false);
-        // }
         
         if (!string.IsNullOrEmpty(PhotonNetwork.NickName))
         {
@@ -504,7 +496,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
         
-        // Enable menu camera when returning to joinPanel
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.EnableMenuMode();
@@ -548,29 +539,66 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     public void UpdatePlayerList()
     {
-        if (playerListText == null || PhotonNetwork.CurrentRoom == null)
+        if (playerListText == null) 
         {
-            if(playerListText != null) playerListText.text = "";
+            Debug.LogWarning("[LOBBYUI] playerListText is null!");
             return;
         }
         
-        StringBuilder sb = new StringBuilder();
-        Dictionary<int, int> playerScores = ScoreManager.Instance ? ScoreManager.Instance.GetPlayerScores() : new Dictionary<int, int>();
+        Debug.Log("[LOBBYUI] UpdatePlayerList called");
+        
+        // Clear existing badges
+        foreach (var badge in playerBadges.Values)
+        {
+            if (badge != null) Destroy(badge);
+        }
+        playerBadges.Clear();
+        
+        playerListText.text = "";
         
         foreach (Player p in PhotonNetwork.PlayerList)
         {
-            string playerName = string.IsNullOrEmpty(p.NickName) ? $"Player {p.ActorNumber}" : p.NickName;
             int score = 0;
-            
-            if (playerScores.ContainsKey(p.ActorNumber))
+            if (p.CustomProperties.ContainsKey("score"))
             {
-                score = playerScores[p.ActorNumber];
+                score = (int)p.CustomProperties["score"];
+                Debug.Log($"[LOBBYUI] Player {p.ActorNumber} score from CustomProperties: {score}");
+            }
+            else
+            {
+                // Try to get score from ScoreManager
+                if (ScoreManager.Instance != null)
+                {
+                    score = ScoreManager.Instance.GetPlayerScore(p.ActorNumber);
+                    Debug.Log($"[LOBBYUI] Player {p.ActorNumber} score from ScoreManager: {score}");
+                }
+                else
+                {
+                    Debug.LogWarning("[LOBBYUI] ScoreManager.Instance is null!");
+                }
             }
             
-            sb.AppendLine($"{playerName} - {score} pts");
+            string playerName = string.IsNullOrEmpty(p.NickName) ? $"Player {p.ActorNumber}" : p.NickName;
+            playerListText.text += $"{playerName} - {score} pts\n";
+            Debug.Log($"[LOBBYUI] Added to display: {playerName} - {score} pts");
+            
+            // Create Monad badge if verified and prefab exists
+            if (IsPlayerMonadVerified(p) && monadBadgePrefab != null && playerListText.transform.parent != null)
+            {
+                GameObject badge = Instantiate(monadBadgePrefab, playerListText.transform.parent);
+                playerBadges[p.UserId] = badge;
+                
+                Debug.Log($"[LOBBY-BADGE] Badge créé pour {p.NickName} (Monad verified) - GameObject: {badge.name}");
+                
+                // Position badge next to player name
+                RectTransform badgeRect = badge.GetComponent<RectTransform>();
+                if (badgeRect != null)
+                {
+                    badgeRect.anchoredPosition = new Vector2(-20f, -20f * (PhotonNetwork.PlayerList.Length - 1));
+                    Debug.Log($"[LOBBY-BADGE] Badge positionné à: {badgeRect.anchoredPosition}");
+                }
+            }
         }
-        
-        playerListText.text = sb.ToString();
     }
 
     public void OnDisconnectedUI()
@@ -609,7 +637,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             Destroy(ui);
         }
         
-        // Enable menu camera when returning to joinPanel
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.EnableMenuMode();
@@ -737,7 +764,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
         
-        // Enable menu camera when returning to joinPanel
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.EnableMenuMode();
@@ -792,5 +818,27 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         CombineAndSetPlayerName();
         
         Debug.Log($"[LOBBY-UI] Player name set to: {monadUsername}");
+    }
+    
+    /// <summary>
+    /// Vérifie si un joueur a un Monad ID verified
+    /// </summary>
+    private bool IsPlayerMonadVerified(Player player)
+    {
+        if (player == null) return false;
+        
+        // Vérifier dans les Custom Properties Photon
+        if (player.CustomProperties.ContainsKey("monadVerified"))
+        {
+            return (bool)player.CustomProperties["monadVerified"];
+        }
+        
+        // Pour le joueur local, vérifier aussi dans PlayerPrefs si pas encore synchronisé
+        if (player == PhotonNetwork.LocalPlayer)
+        {
+            return PlayerPrefs.GetInt("MonadVerified", 0) == 1;
+        }
+        
+        return false;
     }
 }

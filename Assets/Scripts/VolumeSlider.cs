@@ -7,7 +7,6 @@ public enum AudioChannel { Music, SFX }
 public class VolumeSlider : MonoBehaviour
 {
     [Header("Audio Channel")]
-    [Tooltip("Définit si ce slider contrôle la musique ou les effets sonores (SFX).")]
     public AudioChannel channel;
 
     private Slider slider;
@@ -16,7 +15,6 @@ public class VolumeSlider : MonoBehaviour
     void Start()
     {
         slider = GetComponent<Slider>();
-        // Attendre que VolumeController soit prêt
         StartCoroutine(WaitForVolumeController());
     }
 
@@ -33,7 +31,6 @@ public class VolumeSlider : MonoBehaviour
     {
         if (slider != null && VolumeController.Instance != null)
         {
-            // Régler la valeur initiale du slider et créer le listener approprié
             switch (channel)
             {
                 case AudioChannel.Music:
@@ -46,15 +43,12 @@ public class VolumeSlider : MonoBehaviour
                     break;
             }
             
-            // Ajouter le listener
             slider.onValueChanged.AddListener(volumeListener);
-            Debug.Log($"[VolumeSlider] for {channel} connected to VolumeController");
         }
     }
 
     private void OnDestroy()
     {
-        // Nettoyer le listener pour éviter les erreurs
         if (slider != null && volumeListener != null)
         {
             slider.onValueChanged.RemoveListener(volumeListener);

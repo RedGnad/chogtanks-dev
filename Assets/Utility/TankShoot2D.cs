@@ -29,10 +29,7 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
     [SerializeField] private float cloakDuration = 8f; // Duration of cloak effect
 
     [Header("SFX")]
-    // [SerializeField] private AudioSource fireNormalSFX;
-    // [SerializeField] private AudioSource firePrecisionSFX;
-    // [SerializeField] private AudioSource chargeReadySFX;
-
+    
     [Header("Tir chargé")]
     [SerializeField] private float chargeTimeThreshold = 0.66f;
     [SerializeField] private float precisionShellSpeedMultiplier = 2f;
@@ -64,7 +61,7 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.Log("[TankShoot2D] Script actif (tank local) sur " + PhotonNetwork.LocalPlayer.NickName);
+            //Debug.Log("[TankShoot2D] Script actif (tank local) sur " + PhotonNetwork.LocalPlayer.NickName);
         }
     }
 
@@ -142,24 +139,20 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
         if (Time.time - lastFireTime < fireCooldown) return;
         lastFireTime = Time.time;
 
-        // --- Gamefeel: Camera Shake ---
         if (CameraShake2D.Instance != null)
         {
             float shakeMagnitude = isPrecision ? 1.5f : 0f;
             float shakeDuration = isPrecision ? 0.08f : 0f;
             CameraShake2D.Instance.Shake(shakeMagnitude, shakeDuration);
-            // Debug.Log($"[CameraShake] Shake triggered! Magnitude: {shakeMagnitude}, Duration: {shakeDuration}");
         }
         else
         {
             Debug.LogWarning("[CameraShake] CameraShake2D.Instance is null! Make sure the script is attached to the Main Camera.");
         }
 
-        // --- Gamefeel: Pitch Variation & SFX ---
         string sfxToPlay;
         if (isPrecision)
         {
-            // Different sounds for power-up precision shots
             if (hasRicochetPowerup)
                 sfxToPlay = "fireRicochet";
             else if (hasExplosivePowerup)
@@ -230,52 +223,41 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
             shellHandler.photonView.RPC("SetPrecision", RpcTarget.AllBuffered, isPrecision);
             shellHandler.photonView.RPC("SetShooter", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.ActorNumber);
 
-            // Apply power-ups only on charged shots (precision shots)
             if (isPrecision)
             {
                 if (hasRicochetPowerup)
                 {
                     shellHandler.photonView.RPC("ActivateRicochetRPC", RpcTarget.AllBuffered);
-                    hasRicochetPowerup = false; // Consume the power-up
-                    // Debug.Log("[TankShoot2D] Ricochet power-up applied to charged shot!");
+                    hasRicochetPowerup = false; 
                     
-                    // Fire additional shells in fan pattern for ricochet
                     FireRicochetFanShells(shootDir, shellSpeedFinal, isPrecision);
                 }
                 else if (hasExplosivePowerup)
                 {
                     shellHandler.photonView.RPC("ActivateExplosiveShotRPC", RpcTarget.AllBuffered);
-                    hasExplosivePowerup = false; // Consume the power-up
-                    // Debug.Log("[TankShoot2D] Explosive power-up applied to charged shot!");
+                    hasExplosivePowerup = false;
                 }
             }
         }
 
     }
 
-    /// <summary>
-    /// Fire additional shells in a fan pattern for ricochet power-up
-    /// </summary>
     private void FireRicochetFanShells(Vector2 baseDirection, float speed, bool isPrecision)
     {
-        // Fire 4 additional shells at different angles (-30°, -15°, +15°, +30°)
         float[] fanAngles = { -30f, -15f, 15f, 30f };
         
         foreach (float angleOffset in fanAngles)
         {
-            // Calculate the rotated direction
             float angleRad = angleOffset * Mathf.Deg2Rad;
             Vector2 rotatedDir = new Vector2(
                 baseDirection.x * Mathf.Cos(angleRad) - baseDirection.y * Mathf.Sin(angleRad),
                 baseDirection.x * Mathf.Sin(angleRad) + baseDirection.y * Mathf.Cos(angleRad)
             );
             
-            // Spawn the shell
             GameObject fanShell = PhotonNetwork.Instantiate(shellPrefab.name, firePoint.position, firePoint.rotation);
             Rigidbody2D fanShellRb = fanShell.GetComponent<Rigidbody2D>();
             fanShellRb.linearVelocity = rotatedDir * speed;
             
-            // Configure the shell
             var fanShellHandler = fanShell.GetComponent<ShellCollisionHandler>();
             if (fanShellHandler != null)
             {
@@ -285,7 +267,6 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
             }
         }
         
-        // Debug.Log("[TankShoot2D] Fired ricochet fan pattern with 4 additional shells!");
     }
 
     [PunRPC]
@@ -313,7 +294,6 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
         {
             hasCloakPowerup = true;
             
-            // Find and activate cloak on minimap icon
             MinimapIcon minimapIcon = GetComponent<MinimapIcon>();
             if (minimapIcon != null)
             {
