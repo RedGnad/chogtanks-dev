@@ -47,7 +47,16 @@ public class EnemyManager : MonoBehaviourPunCallbacks
         {
             yield return new WaitForSeconds(1f);
             
-            if (!PhotonNetwork.InRoom) continue;
+            if (!PhotonNetwork.InRoom) 
+            {
+                // If not in room, reset state
+                if (isPlayerSolo)
+                {
+                    Debug.Log("[ENEMY MANAGER] Not in room anymore, resetting solo state");
+                    isPlayerSolo = false;
+                }
+                continue;
+            }
             
             int playerCount = PhotonNetwork.CurrentRoom.PlayerCount;
             bool shouldBeSolo = playerCount == 1;
@@ -211,6 +220,39 @@ public class EnemyManager : MonoBehaviourPunCallbacks
         }
     }
     
+    public void CleanupAllEnemies()
+    {
+        Debug.Log($"[ENEMY MANAGER] Cleaning up {activeEnemies.Count} enemies");
+        
+        // Destroy all active enemies
+        for (int i = activeEnemies.Count - 1; i >= 0; i--)
+        {
+            if (activeEnemies[i] != null)
+            {
+                Destroy(activeEnemies[i]);
+            }
+        }
+        
+        activeEnemies.Clear();
+        
+        // Stop spawning coroutines
+        if (enemySpawningCoroutine != null)
+        {
+            StopCoroutine(enemySpawningCoroutine);
+            enemySpawningCoroutine = null;
+        }
+        
+        if (soloDetectionCoroutine != null)
+        {
+            StopCoroutine(soloDetectionCoroutine);
+            soloDetectionCoroutine = null;
+        }
+        
+        // Reset state completely
+        isPlayerSolo = false;
+        Debug.Log("[ENEMY MANAGER] All enemies cleaned up and state reset");
+    }
+    
     private void DestroyAllEnemies()
     {
         if (enableDebugLogs && activeEnemies.Count > 0)
@@ -227,6 +269,14 @@ public class EnemyManager : MonoBehaviourPunCallbacks
         activeEnemies.Clear();
     }
     
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("[ENEMY MANAGER] Joined room - resetting enemy state");
+        // Clean up any leftover enemies from previous sessions
+        CleanupAllEnemies();
+        // The MonitorPlayerCount coroutine will handle solo detection
+    }
+    
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         // This will be caught by the MonitorPlayerCount coroutine
@@ -235,6 +285,13 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         // This will be caught by the MonitorPlayerCount coroutine
+        Debug.Log($"[ENEMY MANAGER] Player left room: {otherPlayer.NickName}");
+    }
+    
+    public override void OnLeftRoom()
+    {
+        Debug.Log("[ENEMY MANAGER] Local player left room - cleaning up all enemies");
+        CleanupAllEnemies();
     }
     
     private void OnDestroy()

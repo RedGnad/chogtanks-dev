@@ -219,6 +219,32 @@ public class Enemy : MonoBehaviour
     {
         Debug.Log("[ENEMY] Touched player, ejecting player from room");
         
+        // Clean up all enemies before ejecting player
+        EnemyManager enemyManager = FindObjectOfType<EnemyManager>();
+        if (enemyManager != null)
+        {
+            Debug.Log("[ENEMY] Cleaning up all enemies before player ejection");
+            enemyManager.CleanupAllEnemies();
+        }
+        
+        // Send score to Firebase before ejecting player using proper ScoreManager method
+        if (ScoreManager.Instance != null)
+        {
+            int currentScore = ScoreManager.Instance.GetPlayerScore(PhotonNetwork.LocalPlayer.ActorNumber);
+            Debug.Log($"[ENEMY] Sending score {currentScore} to Firebase before ejection");
+            
+            // Use the proper Firebase score submission method from ScoreManager
+            ScoreManager.Instance.SubmitScoreToFirebase(currentScore, 0); // 0 bonus for enemy kill
+            
+            // Trigger NFT manager refresh to update UI
+            ChogTanksNFTManager nftManager = FindObjectOfType<ChogTanksNFTManager>();
+            if (nftManager != null)
+            {
+                Debug.Log("[ENEMY] Triggering NFT manager refresh for UI update");
+                nftManager.ForceRefreshAfterMatch(currentScore);
+            }
+        }
+        
         // Eject the player using the same mechanism as end of match
         PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
         if (launcher != null)

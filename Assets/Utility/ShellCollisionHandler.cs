@@ -324,6 +324,7 @@ public class ShellCollisionHandler : MonoBehaviourPun
         float currentExplosionRadius = isExplosiveShot ? explosiveRadius : explosionRadius;
         float currentExplosionDamage = isExplosiveShot ? explosiveDamage : explosionDamage;
 
+        // Check for tank damage in explosion radius
         Collider2D[] hits = Physics2D.OverlapCircleAll(explosionPos, currentExplosionRadius, tankLayerMask);
         foreach (var hit in hits)
         {
@@ -349,6 +350,21 @@ public class ShellCollisionHandler : MonoBehaviourPun
             float finalDamage = canRicochet ? 999f : currentExplosionDamage;
             health.photonView.RPC("TakeDamageRPC", RpcTarget.All, finalDamage, attackerId);
             
+        }
+
+        // Check for enemies in explosion radius
+        Collider2D[] enemyHits = Physics2D.OverlapCircleAll(explosionPos, currentExplosionRadius);
+        foreach (var hit in enemyHits)
+        {
+            if (hit.CompareTag("Enemy"))
+            {
+                Debug.Log($"[SHELL EXPLOSION] Enemy hit by explosion at distance {Vector2.Distance(explosionPos, hit.transform.position)}");
+                Enemy enemy = hit.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.OnHitByShell();
+                }
+            }
         }
 
         GameObject explosionPrefab = isExplosiveShot && explosiveVFXPrefab != null ? explosiveVFXPrefab : particleOnlyExplosionPrefab;

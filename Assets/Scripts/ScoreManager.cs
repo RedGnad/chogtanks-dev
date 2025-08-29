@@ -596,7 +596,7 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
     }
     
-    private void SubmitScoreToFirebase(int score, int bonus)
+    public void SubmitScoreToFirebase(int score, int bonus)
     {
         string walletAddress = "";
         

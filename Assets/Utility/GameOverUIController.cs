@@ -55,6 +55,13 @@ public class GameOverUIController : MonoBehaviourPunCallbacks
             winnerText.text = $"{winnerName} Wins!";
         }
         
+        // Ensure GameObject is active before starting coroutine
+        if (!gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning("[GAMEOVERUI] GameObject inactive, activating before starting coroutine");
+            gameObject.SetActive(true);
+        }
+        
         StartCoroutine(CountdownAndReturnToLobby(6));
     }
     

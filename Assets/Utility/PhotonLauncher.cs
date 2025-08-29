@@ -442,6 +442,12 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             PhotonNetwork.Disconnect();
         }
         
+        // Cleanup enemies when disconnected
+        if (EnemyManager.Instance != null)
+        {
+            EnemyManager.Instance.CleanupAllEnemies();
+        }
+        
         LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
         {
