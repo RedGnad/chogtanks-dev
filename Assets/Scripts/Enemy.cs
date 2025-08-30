@@ -30,42 +30,35 @@ public class Enemy : MonoBehaviour
             rb = gameObject.AddComponent<Rigidbody2D>();
         }
         
-        // Configure rigidbody for smooth movement
         rb.gravityScale = 0f;
         rb.drag = 1f;
         rb.angularDrag = 5f;
         
-        // Set up collider if not present
         if (GetComponent<Collider2D>() == null)
         {
             CircleCollider2D collider = gameObject.AddComponent<CircleCollider2D>();
             collider.radius = 0.3f;
-            collider.isTrigger = true; // Trigger for player collision detection
+            collider.isTrigger = true; 
         }
         
-        // Set up visual appearance
         if (spriteRenderer == null)
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
         }
         
-        // Debug sprite setup
         if (spriteRenderer != null)
         {
-            Debug.Log($"[ENEMY] SpriteRenderer found - Enabled: {spriteRenderer.enabled}, Sprite: {spriteRenderer.sprite?.name}, Color: {spriteRenderer.color}");
             
-            // Ensure sprite is visible
             if (spriteRenderer.sprite == null)
             {
-                Debug.LogWarning("[ENEMY] No sprite assigned to SpriteRenderer!");
+                //Debug.LogWarning("[ENEMY] No sprite assigned to SpriteRenderer!");
             }
             
-            // Set enemy color
             spriteRenderer.color = enemyColor;
         }
         else
         {
-            Debug.LogError("[ENEMY] No SpriteRenderer component found!");
+            //Debug.LogError("[ENEMY] No SpriteRenderer component found!");
         }
         
         if (spriteRenderer != null)
@@ -73,10 +66,8 @@ public class Enemy : MonoBehaviour
             spriteRenderer.color = enemyColor;
         }
         
-        // Start targeting system
         targetUpdateCoroutine = StartCoroutine(UpdateTargetPeriodically());
         
-        Debug.Log("[ENEMY] Enemy spawned and initialized");
     }
     
     private IEnumerator UpdateTargetPeriodically()
@@ -120,17 +111,14 @@ public class Enemy : MonoBehaviour
     {
         if (targetPlayer == null) return;
         
-        // Simple direct movement towards player
         Vector2 directionToTarget = (targetPlayer.position - transform.position).normalized;
         
-        // Move directly towards the player
         rb.velocity = directionToTarget * moveSpeed;
         
-        // Rotate towards movement direction
         if (directionToTarget != Vector2.zero)
         {
             float angle = Mathf.Atan2(directionToTarget.y, directionToTarget.x) * Mathf.Rad2Deg;
-            float targetAngle = angle - 90f; // Adjust for sprite orientation
+            float targetAngle = angle - 90f; 
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation, 
                 Quaternion.AngleAxis(targetAngle, Vector3.forward), 
@@ -153,7 +141,6 @@ public class Enemy : MonoBehaviour
     
     private Vector2 FindAlternativeDirection(Vector2 originalDirection)
     {
-        // Try different angles to find a clear path
         float[] angles = { -45f, 45f, -90f, 90f, -135f, 135f, 180f };
         
         foreach (float angle in angles)
@@ -165,7 +152,6 @@ public class Enemy : MonoBehaviour
             }
         }
         
-        // If no clear path found, stop moving
         return Vector2.zero;
     }
     
@@ -183,14 +169,12 @@ public class Enemy : MonoBehaviour
     
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Check if hit by shell
         if (other.CompareTag("Shell"))
         {
             OnHitByShell();
             return;
         }
         
-        // Check if touching player
         if (other.CompareTag("Player"))
         {
             PhotonView playerView = other.GetComponent<PhotonView>();
@@ -203,57 +187,53 @@ public class Enemy : MonoBehaviour
     
     public void OnHitByShell()
     {
-        Debug.Log("[ENEMY] Hit by shell, destroying enemy");
-        
-        // Notify EnemyManager
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.OnEnemyDestroyed(gameObject);
         }
         
-        // Destroy the enemy (local object, no networking needed)
         Destroy(gameObject);
     }
     
     private void OnTouchPlayer(GameObject player)
     {
-        Debug.Log("[ENEMY] Touched player, ejecting player from room");
+        if (PhotonNetwork.InRoom)
+        {
+            PhotonNetwork.LeaveRoom();
+        }
         
-        // Clean up all enemies before ejecting player
         EnemyManager enemyManager = FindObjectOfType<EnemyManager>();
         if (enemyManager != null)
         {
-            Debug.Log("[ENEMY] Cleaning up all enemies before player ejection");
             enemyManager.CleanupAllEnemies();
         }
         
-        // Send score to Firebase before ejecting player using proper ScoreManager method
         if (ScoreManager.Instance != null)
         {
             int currentScore = ScoreManager.Instance.GetPlayerScore(PhotonNetwork.LocalPlayer.ActorNumber);
-            Debug.Log($"[ENEMY] Sending score {currentScore} to Firebase before ejection");
             
-            // Use the proper Firebase score submission method from ScoreManager
             ScoreManager.Instance.SubmitScoreToFirebase(currentScore, 0); // 0 bonus for enemy kill
             
-            // Trigger NFT manager refresh to update UI
             ChogTanksNFTManager nftManager = FindObjectOfType<ChogTanksNFTManager>();
             if (nftManager != null)
             {
-                Debug.Log("[ENEMY] Triggering NFT manager refresh for UI update");
                 nftManager.ForceRefreshAfterMatch(currentScore);
             }
         }
         
-        // Eject the player using the same mechanism as end of match
+        // Mark that next OnLeftRoom should have delay (enemy kill ejection)
+        LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
+        if (lobbyUI != null)
+        {
+            lobbyUI.SetDelayOnNextReturn();
+        }
+        
         PhotonLauncher launcher = FindObjectOfType<PhotonLauncher>();
         if (launcher != null)
         {
-            // Show game over UI and return to lobby
             launcher.photonView.RPC("ShowWinnerToAllRPC", RpcTarget.All, "Enemy Victory!", -1);
         }
         
-        // Destroy this enemy after touching player (local object)
         Destroy(gameObject);
     }
     
@@ -264,7 +244,6 @@ public class Enemy : MonoBehaviour
             StopCoroutine(targetUpdateCoroutine);
         }
         
-        // Notify EnemyManager
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.OnEnemyDestroyed(gameObject);
@@ -273,18 +252,15 @@ public class Enemy : MonoBehaviour
     
     private void OnDrawGizmosSelected()
     {
-        // Draw wall detection range
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, wallCheckDistance);
         
-        // Draw direction to target
         if (targetPlayer != null)
         {
             Gizmos.color = Color.green;
             Gizmos.DrawLine(transform.position, targetPlayer.position);
         }
         
-        // Draw current movement direction
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, moveDirection * 2f);
     }

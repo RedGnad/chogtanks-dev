@@ -18,6 +18,13 @@ public class SettingsPanelManager : MonoBehaviour
     [Tooltip("Boutons additionnels pour fermer le panel")]
     public Button[] additionalCloseButtons;
     
+    [Header("Powerup SFX Volume")]
+    [Tooltip("Slider pour régler le volume des SFX pickup powerup")]
+    public Slider powerupVolumeSlider;
+    
+    [Tooltip("Texte pour afficher la valeur du volume")]
+    public Text powerupVolumeText;
+    
     void Start()
     {
         if (settingsPanel != null)

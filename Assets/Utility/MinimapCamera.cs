@@ -81,7 +81,7 @@ public class MinimapCamera : MonoBehaviour
         InvokeRepeating(nameof(FindPlayerTarget), 0f, 1.0f); 
     }
     
-    private void ExitGameMode()
+    public void ExitGameMode()
     {
         
         isInGameMode = false;
@@ -145,5 +145,12 @@ public class MinimapCamera : MonoBehaviour
         wasInGameMode = false;
         
         Invoke(nameof(CheckForTanks), 0.1f);
+    }
+    
+    public void ForceExitForEnemy()
+    {
+        ExitGameMode();
+        wasInGameMode = false;
+        // Don't restart CheckForTanks for enemy contact
     }
 }

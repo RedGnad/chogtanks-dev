@@ -9,7 +9,7 @@ public class ShellCollisionHandler : MonoBehaviourPun
     [SerializeField] private LayerMask collisionLayers;
 
     [Header("Explosion par Raycast (shell)")]
-    [SerializeField] private float explosionRadius = 2f;
+    [SerializeField] private float explosionRadius = 3f;
     [Header("Dégâts")]
     [SerializeField] private float normalDamage = 25f;
     [SerializeField] private float precisionDamage = 50f;
@@ -22,7 +22,7 @@ public class ShellCollisionHandler : MonoBehaviourPun
     private int ricochetsRemaining;
 
     [Header("Explosive Shot Settings")]
-    [SerializeField] private float explosiveRadius = 4f;
+    [SerializeField] private float explosiveRadius = 5f;
     [SerializeField] private float explosiveDamage = 75f;
     [SerializeField] private GameObject explosiveVFXPrefab;
     [SerializeField] private GameObject aoeIndicatorPrefab;
@@ -324,7 +324,6 @@ public class ShellCollisionHandler : MonoBehaviourPun
         float currentExplosionRadius = isExplosiveShot ? explosiveRadius : explosionRadius;
         float currentExplosionDamage = isExplosiveShot ? explosiveDamage : explosionDamage;
 
-        // Check for tank damage in explosion radius
         Collider2D[] hits = Physics2D.OverlapCircleAll(explosionPos, currentExplosionRadius, tankLayerMask);
         foreach (var hit in hits)
         {
@@ -352,13 +351,12 @@ public class ShellCollisionHandler : MonoBehaviourPun
             
         }
 
-        // Check for enemies in explosion radius
         Collider2D[] enemyHits = Physics2D.OverlapCircleAll(explosionPos, currentExplosionRadius);
         foreach (var hit in enemyHits)
         {
             if (hit.CompareTag("Enemy"))
             {
-                Debug.Log($"[SHELL EXPLOSION] Enemy hit by explosion at distance {Vector2.Distance(explosionPos, hit.transform.position)}");
+                float distance = Vector2.Distance(explosionPos, hit.transform.position);
                 Enemy enemy = hit.GetComponent<Enemy>();
                 if (enemy != null)
                 {
@@ -387,16 +385,13 @@ public class ShellCollisionHandler : MonoBehaviourPun
 
     private void HandleEnemyHit(Collider2D enemyCollider)
     {
-        Debug.Log("[SHELL] Hit enemy, destroying both shell and enemy");
         
-        // Tell the enemy it was hit by a shell
         Enemy enemy = enemyCollider.GetComponent<Enemy>();
         if (enemy != null)
         {
             enemy.OnHitByShell();
         }
         
-        // Destroy the shell
         PhotonNetwork.Destroy(gameObject);
     }
 
@@ -460,5 +455,11 @@ public class ShellCollisionHandler : MonoBehaviourPun
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, explosionRadius);
+        
+        if (isExplosiveShot)
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0f, 1f); // Orange color
+            Gizmos.DrawWireSphere(transform.position, explosiveRadius);
+        }
     }
 }

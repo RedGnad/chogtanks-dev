@@ -1114,11 +1114,10 @@ public class ChogTanksNFTManager : MonoBehaviour
         {
             string levelMessage = level > 0 ? $"Level: {level} " : "Ready to mint           ";
             levelText.text = levelMessage;
-            Debug.LogError($"[UI-TRACE] levelText set to: '{levelMessage}'");
         }
         else
         {
-            Debug.LogError($"[UI-TRACE] levelText is NULL! Cannot update level display!");
+            //Debug.LogError($"[UI-TRACE] levelText is NULL! Cannot update level display!");
         }
         
         if (scoreProgressText != null)
@@ -1126,42 +1125,35 @@ public class ChogTanksNFTManager : MonoBehaviour
             if (hasWallet)
             {
                 int currentScore = currentNFTState.score;
-                Debug.LogError($"[UI-TRACE] Current player score from Firebase: {currentScore}");
                 if (level >= 10)
                 {
                     scoreProgressText.text = $"XP: {currentScore}/MAX";
-                    Debug.LogError($"[UI-TRACE] scoreProgressText set to: 'XP: {currentScore}/MAX'");
                 }
                 else if (level == 0)
                 {
                     scoreProgressText.text = "XP: 0/0";
-                    Debug.LogError($"[UI-TRACE] scoreProgressText set to: 'XP: 0/0'");
                 }
                 else
                 {
                     int nextLevelCost = GetEvolutionCost(level + 1);
                     string scoreMessage = $"XP: {currentScore}/{nextLevelCost}";
                     scoreProgressText.text = scoreMessage;
-                    Debug.LogError($"[UI-TRACE] scoreProgressText set to: '{scoreMessage}'");
                 }
             }
             else
             {
                 scoreProgressText.text = "";
-                Debug.LogError($"[UI-TRACE] scoreProgressText cleared due to no wallet");
             }
         }
         else
         {
-            Debug.LogError($"[UI-TRACE] scoreProgressText is NULL! Cannot update score display!");
+            //Debug.LogError($"[UI-TRACE] scoreProgressText is NULL! Cannot update score display!");
         }
         
-        Debug.LogError($"[UI-TRACE] UpdateLevelUI completed: hasWallet={hasWallet}, blockchainLevel={level}");
     }
 
     public void OnEvolutionButtonClicked()
     {
-        Debug.Log("[NFT-DEBUG] OnEvolutionButtonClicked() called!");
         
         if (string.IsNullOrEmpty(currentPlayerWallet))
         {
@@ -2795,8 +2787,6 @@ public class ChogTanksNFTManager : MonoBehaviour
                 audioSource.PlayOneShot(monadSuccessSound);
             }
         }
-        
-        Debug.Log($"[MONAD-FEEDBACK] Feedback affiché: {scoreAmount} points");
     }
     
     private System.Collections.IEnumerator HideMonadSuccessTextAfterDelay(float delay)

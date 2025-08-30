@@ -48,6 +48,9 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     private bool isShieldCooldownActive = false; 
     private string shieldDefaultText = ""; 
 
+    // Flag to track if we need delay (for automatic ejections)
+    private bool needsDelayOnReturn = false;
+
     private void Awake()
     {
         if (Instance == null)
@@ -474,10 +477,9 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             loadingPanel.SetActive(false);
         }
     }
-
+    
     public void OnPhotonReady()
     {
-        
         if (!string.IsNullOrEmpty(PhotonNetwork.NickName))
         {
             createRoomButton.interactable = true;
@@ -623,6 +625,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     public void OnBackToLobby()
     {
+        // Manual quit - no delay needed, so don't set the flag
         if (PhotonNetwork.InRoom)
         {
             PhotonNetwork.LeaveRoom();
@@ -761,8 +764,18 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             settingsManager.HideSettingsPanel();
         }
         
-        joinPanel.SetActive(true);
-        waitingPanel.SetActive(false);
+        if (needsDelayOnReturn)
+        {
+            // Add delay for automatic ejections (end of match or enemy kill)
+            StartCoroutine(EnableUIAfterDelay());
+            needsDelayOnReturn = false; // Reset flag
+        }
+        else
+        {
+            // Immediate return for manual quit
+            joinPanel.SetActive(true);
+            waitingPanel.SetActive(false);
+        }
         
         if (MenuCameraController.Instance != null)
         {
@@ -770,6 +783,19 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         }
         
         UpdateMainScreenPlayerName();
+    }
+    
+    public void SetDelayOnNextReturn()
+    {
+        needsDelayOnReturn = true;
+    }
+    
+    private System.Collections.IEnumerator EnableUIAfterDelay()
+    {
+        yield return new WaitForSeconds(4.2f);
+        
+        joinPanel.SetActive(true);
+        waitingPanel.SetActive(false);
     }
     
     public void OnFriendListUpdate(System.Collections.Generic.List<FriendInfo> friendList) { }
@@ -793,47 +819,34 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         }
     }
     
-    /// <summary>
-    /// Méthode publique pour définir le nom de joueur depuis Monad Games ID
-    /// </summary>
     public void SetPlayerNameFromMonadID(string monadUsername)
     {
         if (string.IsNullOrEmpty(monadUsername)) return;
         
-        Debug.Log($"[LOBBY-UI] Setting player name from Monad ID: {monadUsername}");
         
-        // Mettre à jour le premier champ d'input avec le username Monad
         if (playerNameInput != null)
         {
             playerNameInput.text = monadUsername;
         }
         
-        // Vider le second champ
         if (playerNameInput2 != null)
         {
             playerNameInput2.text = "";
         }
         
-        // Appeler la méthode existante pour traiter le changement
         CombineAndSetPlayerName();
         
-        Debug.Log($"[LOBBY-UI] Player name set to: {monadUsername}");
     }
     
-    /// <summary>
-    /// Vérifie si un joueur a un Monad ID verified
-    /// </summary>
     private bool IsPlayerMonadVerified(Player player)
     {
         if (player == null) return false;
         
-        // Vérifier dans les Custom Properties Photon
         if (player.CustomProperties.ContainsKey("monadVerified"))
         {
             return (bool)player.CustomProperties["monadVerified"];
         }
         
-        // Pour le joueur local, vérifier aussi dans PlayerPrefs si pas encore synchronisé
         if (player == PhotonNetwork.LocalPlayer)
         {
             return PlayerPrefs.GetInt("MonadVerified", 0) == 1;

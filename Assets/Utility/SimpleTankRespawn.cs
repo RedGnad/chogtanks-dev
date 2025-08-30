@@ -12,6 +12,7 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
     [SerializeField] public GameObject gameOverUIPrefab; 
     
     private bool isDead = false;
+    private bool killedByEnemy = false;
     private GameObject gameOverUI;
     
     private List<Renderer> renderers;
@@ -36,7 +37,13 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
         PhotonNetwork.AddCallbackTarget(this);
         
         isDead = false;
+        killedByEnemy = false;
         
+    }
+    
+    public void SetKilledByEnemy()
+    {
+        killedByEnemy = true;
     }
     
     private void InitializeComponents()
@@ -117,6 +124,8 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
     
     public void OnJoinedRoom()
     {
+        isDead = false;
+        killedByEnemy = false; // Reset for new match
         if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
         {
             return;
@@ -246,6 +255,11 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
     private IEnumerator RespawnCoroutine()
     {
         yield return new WaitForSeconds(respawnTime);
+        
+        if (killedByEnemy)
+        {
+            yield break;
+        }
         
         if (GameManager.Instance != null && GameManager.Instance.isGameOver)
         {

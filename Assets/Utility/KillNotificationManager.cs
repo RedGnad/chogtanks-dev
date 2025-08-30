@@ -100,14 +100,13 @@ public class KillNotificationManager : MonoBehaviourPunCallbacks
         
         string notificationText = $"{killerName} shot {killedName}";
         
-        // Jouer le son killfeed pour tous les joueurs
         if (SFXManager.Instance != null)
         {
             SFXManager.Instance.PlayRandomKillFeedSoundLocal();
         }
         else
         {
-            Debug.LogWarning("[KILLFEED] ⚠️ SFXManager.Instance est null, impossible de jouer le son killfeed");
+            //Debug.LogWarning("[KILLFEED] ⚠️ SFXManager.Instance est null, impossible de jouer le son killfeed");
         }
         
         notificationQueue.Enqueue(notificationText);

@@ -223,14 +223,12 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
         int scoreAfter = playerScores[playerActorNumber];
         
-        Debug.Log($"[SCOREMANAGER] Score updated: {scoreBefore} -> {scoreAfter}");
         
         RaiseEventOptions options = new RaiseEventOptions { Receivers = ReceiverGroup.All };
         object[] content = new object[] { playerActorNumber, playerScores[playerActorNumber] };
         PhotonNetwork.RaiseEvent(SCORE_UPDATE_EVENT, content, options, SendOptions.SendReliable);
 
-        Debug.Log($"[SCOREMANAGER] RaiseEvent sent for player {playerActorNumber} with score {scoreAfter}");
-
+        
         if (PhotonNetwork.IsMasterClient)
         {
             SyncScores();
@@ -238,9 +236,7 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         if (LobbyUI.Instance != null)
         {
-            Debug.Log($"[SCOREMANAGER] Calling LobbyUI.Instance.UpdatePlayerList()");
             LobbyUI.Instance.UpdatePlayerList();
-            Debug.Log($"[SCOREMANAGER] UpdatePlayerList call completed");
         }
         else
         {
@@ -317,19 +313,16 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (!PhotonNetwork.IsMasterClient) 
         {
-            // Debug.LogWarning("[POWERUP] SpawnPowerup appelé mais ce client n'est pas Master Client");
             return;
         }
         
         if (powerupPrefabs == null || powerupPrefabs.Length == 0)
         {
-            // Debug.LogWarning("[POWERUP] Aucun power-up prefab assigné dans l'inspecteur - spawn ignoré");
             return;
         }
         
         if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
         {
-            // Debug.LogWarning("[POWERUP] Pas connecté à Photon ou pas dans une room - spawn ignoré");
             return;
         }
         
@@ -338,7 +331,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
         
         if (selectedPowerup == null)
         {
-            // Debug.LogWarning($"[POWERUP] Power-up prefab à l'index {randomPowerupIndex} est null");
             return;
         }
         
@@ -350,7 +342,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
             Transform spawnPoint = coinSpawnPoints[randomIndex];
             spawnPosition = spawnPoint.position;
             
-            // Debug.Log($"[POWERUP] Spawn {selectedPowerup.name} au point {randomIndex}: {spawnPosition}");
         }
         else
         {
@@ -359,7 +350,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 Random.Range(-4f, 4f), 
                 0f                     
             );
-            // Debug.Log($"[POWERUP] Spawn {selectedPowerup.name} à position aléatoire: {spawnPosition}");
         }
         
         try
@@ -393,19 +383,16 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (!PhotonNetwork.IsMasterClient) 
         {
-            // Debug.LogWarning("[COIN] SpawnCoin appelé mais ce client n'est pas Master Client");
             return;
         }
         
         if (coinPrefab == null)
         {
-            // Debug.LogWarning("[COIN] Coin prefab non assigné dans l'inspecteur - spawn ignoré");
             return;
         }
         
         if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
         {
-            // Debug.LogWarning("[COIN] Pas connecté à Photon ou pas dans une room - spawn ignoré");
             return;
         }
         
@@ -425,7 +412,6 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
                 Random.Range(-4f, 4f), 
                 0f                    
             );
-            // Debug.Log($"[COIN] Spawn coin à position aléatoire: {spawnPosition}");
         }
         
         try

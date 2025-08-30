@@ -47,6 +47,9 @@ public class GameOverUIController : MonoBehaviourPunCallbacks
 
     public void ShowWinner(string winnerName)
     {
+        // Don't show winner UI if we're already leaving room (enemy contact)
+        if (!PhotonNetwork.InRoom) return;
+        
         if (gameOverText != null) gameOverText.gameObject.SetActive(false);
         if (winText      != null) winText.gameObject.SetActive(false);
         if (winnerText   != null) 
@@ -76,7 +79,7 @@ public class GameOverUIController : MonoBehaviourPunCallbacks
         {
             if (countdownText != null)
             {
-                countdownText.text = $"Match ended: returning to lobby in {i}...";
+                countdownText.text = $" .";
             }
             
             yield return new WaitForSeconds(1.0f);
@@ -95,7 +98,7 @@ public class GameOverUIController : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogError("[GAMEOVER] LobbyUI non trouvé ! Impossible de simuler le bouton Back");
+            //Debug.LogError("[GAMEOVER] LobbyUI non trouvé ! Impossible de simuler le bouton Back");
         }
     }
     

@@ -37,7 +37,6 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     
     private void Start()
     {
-        // Start monitoring player count
         StartCoroutine(MonitorPlayerCount());
     }
     
@@ -49,10 +48,8 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             
             if (!PhotonNetwork.InRoom) 
             {
-                // If not in room, reset state
                 if (isPlayerSolo)
                 {
-                    Debug.Log("[ENEMY MANAGER] Not in room anymore, resetting solo state");
                     isPlayerSolo = false;
                 }
                 continue;
@@ -63,12 +60,10 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             
             if (shouldBeSolo && !isPlayerSolo)
             {
-                // Player just became solo
                 OnPlayerBecameSolo();
             }
             else if (!shouldBeSolo && isPlayerSolo)
             {
-                // Player is no longer solo
                 OnPlayerNoLongerSolo();
             }
         }
@@ -81,7 +76,6 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             
         isPlayerSolo = true;
         
-        // Start the 5-second delay before spawning first enemy
         if (soloDetectionCoroutine != null)
             StopCoroutine(soloDetectionCoroutine);
             
@@ -95,7 +89,6 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             
         isPlayerSolo = false;
         
-        // Stop all enemy-related coroutines
         if (soloDetectionCoroutine != null)
         {
             StopCoroutine(soloDetectionCoroutine);
@@ -108,25 +101,20 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             enemySpawningCoroutine = null;
         }
         
-        // Destroy all active enemies
         DestroyAllEnemies();
     }
     
     private IEnumerator StartEnemySpawning()
     {
-        // Wait 5 seconds before spawning first enemy
         yield return new WaitForSeconds(soloDetectionDelay);
         
-        // Check if player is still solo
         if (!isPlayerSolo || !PhotonNetwork.InRoom || PhotonNetwork.CurrentRoom.PlayerCount > 1)
         {
             yield break;
         }
         
-        // Spawn first enemy
         SpawnEnemy();
         
-        // Start continuous spawning every 4 seconds
         enemySpawningCoroutine = StartCoroutine(ContinuousEnemySpawning());
     }
     
@@ -143,35 +131,29 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     {
         if (enemyPrefab == null)
         {
-            Debug.LogError("[ENEMY MANAGER] Enemy prefab not assigned!");
             return;
         }
         
         if (!PhotonNetwork.IsMasterClient)
         {
-            return; // Only master client spawns enemies
+            return; 
         }
         
         Vector3 spawnPosition = GetRandomSpawnPosition();
         
-        if (enableDebugLogs)
-            Debug.Log($"[ENEMY MANAGER] Spawning enemy at position: {spawnPosition}");
             
         GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
         activeEnemies.Add(enemy);
         
-        // Debug enemy spawn
-        Debug.Log($"[ENEMY MANAGER] Enemy spawned at {spawnPosition}");
         
-        // Check if enemy has renderer components
         SpriteRenderer renderer = enemy.GetComponent<SpriteRenderer>();
         if (renderer != null)
         {
-            Debug.Log($"[ENEMY MANAGER] Enemy SpriteRenderer found - Enabled: {renderer.enabled}, Sprite: {renderer.sprite?.name}");
+            //Debug.Log($"[ENEMY MANAGER] Enemy SpriteRenderer found - Enabled: {renderer.enabled}, Sprite: {renderer.sprite?.name}");
         }
         else
         {
-            Debug.LogWarning("[ENEMY MANAGER] No SpriteRenderer found on enemy!");
+            //Debug.LogWarning("[ENEMY MANAGER] No SpriteRenderer found on enemy!");
         }
         
         // Clean up null references
@@ -187,23 +169,22 @@ public class EnemyManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            // Fallback to random position around the map edges
             float mapSize = 8f;
             Vector3 position = Vector3.zero;
             
             int side = Random.Range(0, 4);
             switch (side)
             {
-                case 0: // Top
+                case 0: 
                     position = new Vector3(Random.Range(-mapSize, mapSize), mapSize, 0);
                     break;
-                case 1: // Bottom
+                case 1:
                     position = new Vector3(Random.Range(-mapSize, mapSize), -mapSize, 0);
                     break;
-                case 2: // Left
+                case 2: 
                     position = new Vector3(-mapSize, Random.Range(-mapSize, mapSize), 0);
                     break;
-                case 3: // Right
+                case 3: 
                     position = new Vector3(mapSize, Random.Range(-mapSize, mapSize), 0);
                     break;
             }
@@ -222,9 +203,6 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     
     public void CleanupAllEnemies()
     {
-        Debug.Log($"[ENEMY MANAGER] Cleaning up {activeEnemies.Count} enemies");
-        
-        // Destroy all active enemies
         for (int i = activeEnemies.Count - 1; i >= 0; i--)
         {
             if (activeEnemies[i] != null)
@@ -235,7 +213,6 @@ public class EnemyManager : MonoBehaviourPunCallbacks
         
         activeEnemies.Clear();
         
-        // Stop spawning coroutines
         if (enemySpawningCoroutine != null)
         {
             StopCoroutine(enemySpawningCoroutine);
@@ -248,15 +225,11 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             soloDetectionCoroutine = null;
         }
         
-        // Reset state completely
         isPlayerSolo = false;
-        Debug.Log("[ENEMY MANAGER] All enemies cleaned up and state reset");
     }
     
     private void DestroyAllEnemies()
     {
-        if (enableDebugLogs && activeEnemies.Count > 0)
-            Debug.Log($"[ENEMY MANAGER] Destroying {activeEnemies.Count} active enemies");
             
         foreach (GameObject enemy in activeEnemies)
         {
@@ -271,10 +244,10 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     
     public override void OnJoinedRoom()
     {
-        Debug.Log("[ENEMY MANAGER] Joined room - resetting enemy state");
-        // Clean up any leftover enemies from previous sessions
         CleanupAllEnemies();
-        // The MonitorPlayerCount coroutine will handle solo detection
+        
+        isPlayerSolo = false;
+        
     }
     
     public override void OnPlayerEnteredRoom(Player newPlayer)
@@ -285,12 +258,10 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         // This will be caught by the MonitorPlayerCount coroutine
-        Debug.Log($"[ENEMY MANAGER] Player left room: {otherPlayer.NickName}");
     }
     
     public override void OnLeftRoom()
     {
-        Debug.Log("[ENEMY MANAGER] Local player left room - cleaning up all enemies");
         CleanupAllEnemies();
     }
     

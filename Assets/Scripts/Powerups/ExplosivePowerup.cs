@@ -6,7 +6,7 @@ public class ExplosivePowerup : MonoBehaviourPun
 {
     [Header("SFX")]
     [SerializeField] private AudioClip pickupSFX;
-    [SerializeField] private float pickupVolume = 0.8f;
+    [SerializeField] private float pickupVolume = 1.3f;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
