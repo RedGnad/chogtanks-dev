@@ -162,7 +162,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pickupSFX: {fileID: 8300000, guid: 2dfe271537f804c608facd749c4f9eeb, type: 3}
-  pickupVolume: 44
+  pickupVolume: 0.8
 --- !u!114 &4707197572908440001
 MonoBehaviour:
   m_ObjectHideFlags: 0

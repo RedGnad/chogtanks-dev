@@ -472,6 +472,8 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             GameManager.Instance.isGameOver = false;
         }
         
+        soundAlreadyPlayed = false;
+        
         if (ScoreManager.Instance != null) 
         {
             ScoreManager.Instance.ResetManager();

@@ -117,7 +117,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: 1e025127908a7436b928d2a298b20800, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.8946225, g: 1, b: 0.3254717, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -162,7 +162,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pickupSFX: {fileID: 8300000, guid: c48f9268140e34244b941f0b4ba71d7f, type: 3}
-  pickupVolume: 66
+  pickupVolume: 0.8
 --- !u!114 &2067118333573832852
 MonoBehaviour:
   m_ObjectHideFlags: 0

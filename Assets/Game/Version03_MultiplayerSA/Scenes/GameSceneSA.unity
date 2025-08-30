@@ -64022,7 +64022,7 @@ MonoBehaviour:
   - name: fireExplosive
     clip: {fileID: 8300000, guid: 74b4842c66c3b450d98369259baf895b, type: 3}
     shareInMultiplayer: 0
-    defaultVolume: 0.85
+    defaultVolume: 1.3
   killFeedSounds:
   - {fileID: 8300000, guid: 511e6fece51754e1886c989465dec225, type: 3}
   - {fileID: 8300000, guid: 57afb9275337648ca84ba2cf03815fae, type: 3}

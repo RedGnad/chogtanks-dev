@@ -792,7 +792,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     
     private System.Collections.IEnumerator EnableUIAfterDelay()
     {
-        yield return new WaitForSeconds(4.6f);
+        yield return new WaitForSeconds(4.83f);
         
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);

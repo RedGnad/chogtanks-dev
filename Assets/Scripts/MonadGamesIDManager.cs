@@ -361,6 +361,9 @@ namespace Sample
                 OnUsernameChanged?.Invoke(currentUsername);
                 
                 SetMonadUsernameAsPlayerName(currentUsername);
+                
+                // IMPORTANT: Restaurer le statut de vérification Monad
+                SetPlayerMonadVerifiedStatus(true);
             }
         }
 

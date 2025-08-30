@@ -111,6 +111,12 @@ public class Enemy : MonoBehaviour
     {
         if (targetPlayer == null) return;
         
+        if (IsAnyPlayerCloaked())
+        {
+            rb.velocity = Vector2.zero;
+            return;
+        }
+        
         Vector2 directionToTarget = (targetPlayer.position - transform.position).normalized;
         
         rb.velocity = directionToTarget * moveSpeed;
@@ -125,6 +131,22 @@ public class Enemy : MonoBehaviour
                 rotationSpeed * Time.deltaTime
             );
         }
+    }
+    
+    private bool IsAnyPlayerCloaked()
+    {
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        
+        foreach (GameObject player in players)
+        {
+            TankShoot2D tankShoot = player.GetComponent<TankShoot2D>();
+            if (tankShoot != null && tankShoot.hasCloakPowerup)
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     private bool IsWallInDirection(Vector2 direction)

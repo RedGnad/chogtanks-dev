@@ -1,7 +1,8 @@
 using Photon.Pun;
 using UnityEngine;
 using UnityEngine.EventSystems; 
-using System.Collections.Generic; 
+using System.Collections.Generic;
+using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
@@ -303,7 +304,16 @@ public class TankShoot2D : Photon.Pun.MonoBehaviourPunCallbacks
             {
                 Debug.LogWarning("[TankShoot2D] MinimapIcon component not found for cloak activation!");
             }
+            
+            // Start cloak timer
+            StartCoroutine(CloakTimer());
         }
+    }
+    
+    private IEnumerator CloakTimer()
+    {
+        yield return new WaitForSeconds(cloakDuration);
+        hasCloakPowerup = false;
     }
     
     private bool IsPointerOverButton()

@@ -6,7 +6,7 @@ public class CloakPowerup : MonoBehaviourPun
 {
     [Header("SFX")]
     [SerializeField] private AudioClip pickupSFX;
-    [SerializeField] private float pickupVolume = 1.3f;
+    [SerializeField] private float pickupVolume = 2.5f;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -29,11 +29,11 @@ public class CloakPowerup : MonoBehaviourPun
     }
 
     [PunRPC]
-    private void RPC_PlayPickupFX()
+    void RPC_PlayPickupFX()
     {
-        if (pickupSFX != null)
+        if (pickupSFX != null && SFXManager.Instance != null)
         {
-            AudioSource.PlayClipAtPoint(pickupSFX, transform.position, pickupVolume);
+            SFXManager.Instance.audioSource.PlayOneShot(pickupSFX, pickupVolume);
         }
     }
 }
