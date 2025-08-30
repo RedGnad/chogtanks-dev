@@ -11,6 +11,7 @@ namespace Sample
     {
         [Header("UI")]
         [SerializeField] private Button monadSignInButton;
+        [SerializeField] private Button monadSignInButton2; 
         [SerializeField] private TextMeshProUGUI usernameText;
         [SerializeField] private TextMeshProUGUI statusText;
         
@@ -26,7 +27,12 @@ namespace Sample
         
         [Header("UI Management")]
         [SerializeField] private TMP_Text mainScreenPlayerNameText;
-        [SerializeField] private GameObject panelToHide; 
+        [SerializeField] private GameObject panelToHide;
+        
+        [Header("UI Elements to Disable When Connected")]
+        [SerializeField] private TMP_InputField[] inputFieldsToDisable;
+        [SerializeField] private Button[] buttonsToDisable;
+        [SerializeField] private GameObject[] gameObjectsToDisable;
         
         private string currentUsername = "";
         private bool isSignedIn = false;
@@ -81,6 +87,11 @@ namespace Sample
             if (monadSignInButton != null)
             {
                 monadSignInButton.onClick.AddListener(OnMonadSignInButtonClicked);
+            }
+            
+            if (monadSignInButton2 != null)
+            {
+                monadSignInButton2.onClick.AddListener(OnMonadSignInButtonClicked);
             }
             
             UpdateUI();
@@ -303,6 +314,43 @@ namespace Sample
                     {
                         panelToHide.SetActive(false);
                     }
+                    
+                    // Disable UI elements when connected
+                    if (inputFieldsToDisable != null)
+                    {
+                        foreach (var inputField in inputFieldsToDisable)
+                        {
+                            if (inputField != null)
+                            {
+                                inputField.interactable = false;
+                                Debug.Log($"[MONAD-UI] Disabled input field: {inputField.name}");
+                            }
+                        }
+                    }
+                    
+                    if (buttonsToDisable != null)
+                    {
+                        foreach (var button in buttonsToDisable)
+                        {
+                            if (button != null)
+                            {
+                                button.interactable = false;
+                                Debug.Log($"[MONAD-UI] Disabled button: {button.name}");
+                            }
+                        }
+                    }
+                    
+                    if (gameObjectsToDisable != null)
+                    {
+                        foreach (var gameObject in gameObjectsToDisable)
+                        {
+                            if (gameObject != null)
+                            {
+                                gameObject.SetActive(false);
+                                Debug.Log($"[MONAD-UI] Disabled GameObject: {gameObject.name}");
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -317,12 +365,56 @@ namespace Sample
                     {
                         panelToHide.SetActive(true);
                     }
+                    
+                    // Enable UI elements when not connected
+                    if (inputFieldsToDisable != null)
+                    {
+                        foreach (var inputField in inputFieldsToDisable)
+                        {
+                            if (inputField != null)
+                            {
+                                inputField.interactable = true;
+                                Debug.Log($"[MONAD-UI] Enabled input field: {inputField.name}");
+                            }
+                        }
+                    }
+                    if (buttonsToDisable != null)
+                    {
+                        foreach (var button in buttonsToDisable)
+                        {
+                            if (button != null)
+                            {
+                                button.interactable = true;
+                                Debug.Log($"[MONAD-UI] Enabled button: {button.name}");
+                            }
+                        }
+                    }
+                    if (gameObjectsToDisable != null)
+                    {
+                        foreach (var gameObject in gameObjectsToDisable)
+                        {
+                            if (gameObject != null)
+                            {
+                                gameObject.SetActive(true);
+                                Debug.Log($"[MONAD-UI] Enabled GameObject: {gameObject.name}");
+                            }
+                        }
+                    }
                 }
             }
 
             if (monadSignInButton != null)
             {
                 var buttonText = monadSignInButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (buttonText != null)
+                {
+                    buttonText.text = isSignedIn ? "Connected" : "Monad ID";
+                }
+            }
+            
+            if (monadSignInButton2 != null)
+            {
+                var buttonText = monadSignInButton2.GetComponentInChildren<TextMeshProUGUI>();
                 if (buttonText != null)
                 {
                     buttonText.text = isSignedIn ? "Connected" : "Monad ID";

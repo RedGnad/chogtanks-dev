@@ -86,24 +86,26 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         if (loadingPanel != null)
         {
             loadingPanel.SetActive(true);
-            // Démarrer le timer pour cacher le panel après la durée configurée
             StartCoroutine(HideLoadingPanelAfterDelay());
         }
 
         if (playerNameInput != null)
         {
             playerNameInput.onEndEdit.AddListener(OnPlayerNameEndEdit);
+            
+            UpdatePlayerNameInputState();
         }
         
         if (playerNameInput2 != null)
         {
             playerNameInput2.onEndEdit.AddListener(OnPlayerNameEndEdit2);
+            
+            UpdatePlayerNameInputState();
         }
 
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);
         
-        // Enable menu camera when joinPanel is active
         if (MenuCameraController.Instance != null)
         {
             MenuCameraController.Instance.EnableMenuMode();
@@ -121,7 +123,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         }
         if (playerNameInput2 != null)
         {
-            playerNameInput2.text = ""; // Champ vide par défaut
+            playerNameInput2.text = "";
         }
         CombineAndSetPlayerName();
 
@@ -242,8 +244,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         {
             if(createdCodeText != null) createdCodeText.text = "Name cannot exceed 20 characters.";
             playerName = playerName.Substring(0, 20);
-            // Ne pas mettre à jour les champs de saisie ici pour éviter une boucle infinie
-        }
+    }
         
         launcher.SetPlayerName(playerName);
         
@@ -567,7 +568,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             }
             else
             {
-                // Try to get score from ScoreManager
                 if (ScoreManager.Instance != null)
                 {
                     score = ScoreManager.Instance.GetPlayerScore(p.ActorNumber);
@@ -583,7 +583,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             playerListText.text += $"{playerName} - {score} pts\n";
             Debug.Log($"[LOBBYUI] Added to display: {playerName} - {score} pts");
             
-            // Create Monad badge if verified and prefab exists
             if (IsPlayerMonadVerified(p) && monadBadgePrefab != null && playerListText.transform.parent != null)
             {
                 GameObject badge = Instantiate(monadBadgePrefab, playerListText.transform.parent);
@@ -591,7 +590,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
                 
                 Debug.Log($"[LOBBY-BADGE] Badge créé pour {p.NickName} (Monad verified) - GameObject: {badge.name}");
                 
-                // Position badge next to player name
                 RectTransform badgeRect = badge.GetComponent<RectTransform>();
                 if (badgeRect != null)
                 {
@@ -624,7 +622,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
     public void OnBackToLobby()
     {
-        // Manual quit - no delay needed, so don't set the flag
         if (PhotonNetwork.InRoom)
         {
             PhotonNetwork.LeaveRoom();
@@ -765,13 +762,11 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         
         if (needsDelayOnReturn)
         {
-            // Add delay for automatic ejections (end of match or enemy kill)
             StartCoroutine(EnableUIAfterDelay());
             needsDelayOnReturn = false; // Reset flag
         }
         else
         {
-            // Immediate return for manual quit
             joinPanel.SetActive(true);
             waitingPanel.SetActive(false);
         }
@@ -784,7 +779,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         UpdateMainScreenPlayerName();
     }
     
-    // Method to mark that next OnLeftRoom should have delay
     public void SetDelayOnNextReturn()
     {
         needsDelayOnReturn = true;
@@ -853,5 +847,18 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         }
         
         return false;
+    }
+    
+    private void UpdatePlayerNameInputState()
+    {
+        if (playerNameInput != null)
+        {
+            playerNameInput.interactable = !IsPlayerMonadVerified(PhotonNetwork.LocalPlayer);
+        }
+        
+        if (playerNameInput2 != null)
+        {
+            playerNameInput2.interactable = !IsPlayerMonadVerified(PhotonNetwork.LocalPlayer);
+        }
     }
 }

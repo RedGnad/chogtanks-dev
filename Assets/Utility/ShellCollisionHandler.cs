@@ -245,11 +245,47 @@ public class ShellCollisionHandler : MonoBehaviourPun
                     }
                 }
             }
-            PhotonNetwork.Destroy(gameObject);
+            
+            // Only destroy shell if it's NOT an explosive shot (explosive shots pierce through)
+            if (!isExplosiveShot)
+            {
+                // Trigger explosion effects for normal shots
+                Vector2 explosionPos = transform.position;
+                GameObject explosionPrefab = particleOnlyExplosionPrefab;
+                
+                if (explosionPrefab != null) {
+                    GameObject explosion = Instantiate(explosionPrefab, explosionPos, Quaternion.identity);
+                    Destroy(explosion, 3f);
+                }
+                
+                photonView.RPC("PlayParticlesRPC", RpcTarget.Others, explosionPos);
+                PhotonNetwork.Destroy(gameObject);
+            }
         }
         else if (other.CompareTag("Enemy"))
         {
-            HandleEnemyHit(other);
+            // Kill the enemy
+            Enemy enemy = other.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.OnHitByShell();
+            }
+            
+            // Only destroy shell if it's NOT an explosive shot (explosive shots pierce through)
+            if (!isExplosiveShot)
+            {
+                // Trigger explosion effects for normal shots
+                Vector2 explosionPos = transform.position;
+                GameObject explosionPrefab = particleOnlyExplosionPrefab;
+                
+                if (explosionPrefab != null) {
+                    GameObject explosion = Instantiate(explosionPrefab, explosionPos, Quaternion.identity);
+                    Destroy(explosion, 3f);
+                }
+                
+                photonView.RPC("PlayParticlesRPC", RpcTarget.Others, explosionPos);
+                PhotonNetwork.Destroy(gameObject);
+            }
         }
         else if (other.CompareTag("Wall") || other.CompareTag("Obstacle"))
         {
