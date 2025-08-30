@@ -221,7 +221,6 @@ public class Enemy : MonoBehaviour
             }
         }
         
-        // Mark that next OnLeftRoom should have delay (enemy kill ejection)
         LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
         {

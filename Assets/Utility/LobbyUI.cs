@@ -48,7 +48,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     private bool isShieldCooldownActive = false; 
     private string shieldDefaultText = ""; 
 
-    // Flag to track if we need delay (for automatic ejections)
     private bool needsDelayOnReturn = false;
 
     private void Awake()
@@ -785,6 +784,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         UpdateMainScreenPlayerName();
     }
     
+    // Method to mark that next OnLeftRoom should have delay
     public void SetDelayOnNextReturn()
     {
         needsDelayOnReturn = true;
@@ -792,7 +792,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     
     private System.Collections.IEnumerator EnableUIAfterDelay()
     {
-        yield return new WaitForSeconds(4.2f);
+        yield return new WaitForSeconds(4.6f);
         
         joinPanel.SetActive(true);
         waitingPanel.SetActive(false);

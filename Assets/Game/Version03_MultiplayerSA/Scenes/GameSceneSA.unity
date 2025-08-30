@@ -1179,6 +1179,8 @@ MonoBehaviour:
   closeButton: {fileID: 2008267928}
   additionalCloseButtons:
   - {fileID: 1019925325}
+  powerupVolumeSlider: {fileID: 0}
+  powerupVolumeText: {fileID: 0}
 --- !u!114 &42899735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69030,6 +69032,8 @@ MonoBehaviour:
   showPanelAtStartup: 0
   closeButton: {fileID: 1979205230}
   additionalCloseButtons: []
+  powerupVolumeSlider: {fileID: 0}
+  powerupVolumeText: {fileID: 0}
 --- !u!1 &1153238190
 GameObject:
   m_ObjectHideFlags: 0
@@ -73357,6 +73361,8 @@ MonoBehaviour:
   additionalCloseButtons:
   - {fileID: 1745516299}
   - {fileID: 1441165969}
+  powerupVolumeSlider: {fileID: 0}
+  powerupVolumeText: {fileID: 0}
 --- !u!114 &1562313994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -77254,6 +77260,8 @@ MonoBehaviour:
   showPanelAtStartup: 0
   closeButton: {fileID: 1167066464}
   additionalCloseButtons: []
+  powerupVolumeSlider: {fileID: 0}
+  powerupVolumeText: {fileID: 0}
 --- !u!114 &2072190787
 MonoBehaviour:
   m_ObjectHideFlags: 0

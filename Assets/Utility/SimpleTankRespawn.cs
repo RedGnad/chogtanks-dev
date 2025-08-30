@@ -125,7 +125,7 @@ public class SimpleTankRespawn : MonoBehaviourPun, IMatchmakingCallbacks
     public void OnJoinedRoom()
     {
         isDead = false;
-        killedByEnemy = false; // Reset for new match
+        killedByEnemy = false; 
         if (ScoreManager.Instance != null && ScoreManager.Instance.IsMatchEnded())
         {
             return;

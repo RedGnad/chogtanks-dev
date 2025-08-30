@@ -188,7 +188,6 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         LobbyUI lobbyUI = FindObjectOfType<LobbyUI>();
         if (lobbyUI != null)
         {
-            lobbyUI.SetDelayOnNextReturn();
             lobbyUI.OnBackToLobby();
         }
         else
