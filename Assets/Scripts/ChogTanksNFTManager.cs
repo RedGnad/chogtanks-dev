@@ -656,7 +656,7 @@ public class ChogTanksNFTManager : MonoBehaviour
             }
             else
             {
-                statusText.text = " ";
+                statusText.text = "Connect your wallet first";
             }
             return;
         }
@@ -1459,7 +1459,7 @@ public class ChogTanksNFTManager : MonoBehaviour
         }
     }
 
-    private void OnMintTransactionSuccess(string transactionHash)
+    public void OnMintTransactionSuccess(string transactionHash)
     {
         try
         {
@@ -2045,7 +2045,7 @@ public class ChogTanksNFTManager : MonoBehaviour
     
     private int GetNFTLevel(int tokenId)
     {
-        return currentNFTState.level;
+        return Mathf.Max(1, currentNFTState.level);
     }
     
     private int GetEvolutionCost(int targetLevel)
@@ -2754,7 +2754,7 @@ public class ChogTanksNFTManager : MonoBehaviour
                 Debug.Log($"[MONAD-GAMES] ✅ Score soumis avec succès!");
                 Debug.Log($"[MONAD-GAMES] Réponse: {request.downloadHandler.text}");
                 
-                ShowMonadSuccessFeedback(scoreAmount);
+                ShowMonadFeedback($"+ {scoreAmount} Monad ID points");
             }
             else
             {
@@ -2762,18 +2762,26 @@ public class ChogTanksNFTManager : MonoBehaviour
                 Debug.LogError($"[MONAD-GAMES] Code réponse: {request.responseCode}");
                 Debug.LogError($"[MONAD-GAMES] Texte réponse: {request.downloadHandler.text}");
                 
-                ShowMonadSuccessFeedback(scoreAmount);
+                // Vérifier si c'est spécifiquement une erreur anti-farming
+                if (request.responseCode == 403 && request.downloadHandler.text.Contains("Wallet farming detected"))
+                {
+                    ShowMonadFeedback("No monad points for you. Use only 1 wallet");
+                }
+                else
+                {
+                    // Pour les autres erreurs (400, 500, etc.) - afficher un espace vide
+                    ShowMonadFeedback(" ");
+                }
             }
         }
     }
 
-    private void ShowMonadSuccessFeedback(int scoreAmount)
+    private void ShowMonadFeedback(string message)
     {
         if (monadSuccessText != null)
         {
-            monadSuccessText.text = $"+ {scoreAmount} Monad ID points";
+            monadSuccessText.text = message;
             monadSuccessText.gameObject.SetActive(true);
-            
             StartCoroutine(HideMonadSuccessTextAfterDelay(3f));
         }
         

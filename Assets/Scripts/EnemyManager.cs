@@ -11,6 +11,7 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     public Transform[] enemySpawnPoints;
     public float soloDetectionDelay = 5f;
     public float enemySpawnInterval = 4f;
+    public float accelerationInterval = 60f; // Toutes les 60 secondes
     
     [Header("Debug")]
     public bool enableDebugLogs = true;
@@ -19,6 +20,8 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     private Coroutine soloDetectionCoroutine;
     private Coroutine enemySpawningCoroutine;
     private List<GameObject> activeEnemies = new List<GameObject>();
+    private float currentSpawnInterval;
+    private float soloStartTime;
     
     public static EnemyManager Instance { get; private set; }
     
@@ -75,6 +78,8 @@ public class EnemyManager : MonoBehaviourPunCallbacks
             Debug.Log("[ENEMY MANAGER] Player became solo, starting enemy spawn timer");
             
         isPlayerSolo = true;
+        currentSpawnInterval = enemySpawnInterval; // Reset à l'intervalle de base
+        soloStartTime = Time.time; // Enregistrer le moment où le joueur devient solo
         
         if (soloDetectionCoroutine != null)
             StopCoroutine(soloDetectionCoroutine);
@@ -122,8 +127,26 @@ public class EnemyManager : MonoBehaviourPunCallbacks
     {
         while (isPlayerSolo && PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
-            yield return new WaitForSeconds(enemySpawnInterval);
+            // Calculer l'intervalle actuel basé sur le temps écoulé en solo
+            UpdateSpawnInterval();
+            
+            yield return new WaitForSeconds(currentSpawnInterval);
             SpawnEnemy();
+        }
+    }
+    
+    private void UpdateSpawnInterval()
+    {
+        float timeInSolo = Time.time - soloStartTime;
+        int accelerationSteps = Mathf.FloorToInt(timeInSolo / accelerationInterval);
+        
+        // Diviser par 2 pour chaque minute écoulée, avec un minimum de 0.25s
+        currentSpawnInterval = enemySpawnInterval / Mathf.Pow(2f, accelerationSteps);
+        currentSpawnInterval = Mathf.Max(currentSpawnInterval, 0.25f);
+        
+        if (enableDebugLogs && accelerationSteps > 0)
+        {
+            Debug.Log($"[ENEMY MANAGER] Acceleration step {accelerationSteps}: spawn interval = {currentSpawnInterval:F2}s");
         }
     }
     

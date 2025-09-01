@@ -269,6 +269,24 @@ namespace Sample
         {
             isModalActive = false;
             EnableAllInteractions();
+            
+            // Nettoyer les PlayerPrefs lors de la déconnexion AppKit
+            if (!AppKit.IsAccountConnected)
+            {
+                Debug.Log("[AppKitInit] AppKit disconnected - clearing wallet PlayerPrefs");
+                PlayerPrefs.DeleteKey("walletAddress");
+                PlayerPrefs.SetInt("personalSignApproved", 0);
+                PlayerPrefs.Save();
+                
+                // Nettoyer le NFT Display Panel
+                var nftDisplayPanel = FindObjectOfType<NFTDisplayPanel>();
+                if (nftDisplayPanel != null)
+                {
+                    nftDisplayPanel.ClosePanel();
+                    nftDisplayPanel.UpdateStatus("Connect your wallet first");
+                }
+            }
+            
             var nftUI = FindObjectOfType<NFTVerifyUI>();
             if (nftUI != null)
                 nftUI.ForceCheckWalletStatus();

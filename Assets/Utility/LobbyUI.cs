@@ -43,6 +43,11 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     [Header("Loading Panel")]
     public GameObject loadingPanel;
     [SerializeField] private float loadingPanelDuration = 3f;
+    
+    [Header("Tap to Hide Text")]
+    public TMP_Text tapToHideText; // Texte qui se cache au premier touch dans le waiting panel
+    private bool tapToHideTextHidden = false;
+    private string originalTapToHideText = ""; // Stocker le texte original
 
     private PhotonLauncher launcher;
     private bool isShieldCooldownActive = false; 
@@ -155,16 +160,53 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         }
         
         UpdateMainScreenPlayerName();
+        
+        if (tapToHideText != null)
+        {
+            // Sauvegarder le texte original de l'Inspector AVANT de le modifier
+            if (string.IsNullOrEmpty(originalTapToHideText))
+            {
+                originalTapToHideText = tapToHideText.text;
+            }
+            // NE PAS activer ici - seulement dans ShowTapToHideText()
+            tapToHideText.gameObject.SetActive(false);
+            tapToHideTextHidden = true;
+        }
     }
     
     void Update()
     {
-        MonitorShieldState();
-        
-        if (Application.isMobilePlatform)
+        if (Screen.orientation != ScreenOrientation.LandscapeLeft)
         {
             CheckAndEnforceOrientation();
         }
+        
+        // Vérifier les touches/clics pour cacher le texte seulement si waiting panel est actif ET texte visible
+        if (!tapToHideTextHidden && tapToHideText != null && waitingPanel != null && 
+            waitingPanel.activeInHierarchy && tapToHideText.gameObject.activeInHierarchy)
+        {
+            bool inputDetected = false;
+            
+            // Détecter clic souris
+            if (Input.GetMouseButtonDown(0))
+            {
+                inputDetected = true;
+            }
+            
+            // Détecter touch sur mobile
+            if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            {
+                inputDetected = true;
+            }
+            
+            if (inputDetected)
+            {
+                tapToHideText.gameObject.SetActive(false);
+                tapToHideTextHidden = true;
+            }
+        }
+        
+        MonitorShieldState();
     }
     
     private void CheckAndEnforceOrientation()
@@ -526,6 +568,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         waitingPanel.SetActive(true);
         UpdatePlayerList();
         HideWaitingForPlayerTextIfRoomFull();
+        ShowTapToHideText();
     }
 
     public void OnJoinedRandomRoomUI()
@@ -537,6 +580,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         waitingPanel.SetActive(true);
         UpdatePlayerList();
         HideWaitingForPlayerTextIfRoomFull();
+        ShowTapToHideText();
     }
 
     public void UpdatePlayerList()
@@ -859,6 +903,28 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         if (playerNameInput2 != null)
         {
             playerNameInput2.interactable = !IsPlayerMonadVerified(PhotonNetwork.LocalPlayer);
+        }
+    }
+
+    public void ShowTapToHideText()
+    {
+        Debug.Log("[TAP-TO-HIDE] ShowTapToHideText() called");
+        if (tapToHideText != null)
+        {
+            Debug.Log("[TAP-TO-HIDE] tapToHideText found, showing text");
+            
+            if (string.IsNullOrEmpty(originalTapToHideText))
+            {
+                originalTapToHideText = tapToHideText.text;
+            }
+            
+            tapToHideText.text = originalTapToHideText;
+            tapToHideText.gameObject.SetActive(true);
+            tapToHideTextHidden = false; 
+        }
+        else
+        {
+            Debug.LogError("[TAP-TO-HIDE] ⚠️ ERREUR: tapToHideText est NULL! Veuillez l'assigner dans l'Inspector Unity sur le GameObject LobbyUI.");
         }
     }
 }

@@ -402,6 +402,13 @@ public class NFTVerification : MonoBehaviour
         PlayerPrefs.Save();
         UpdateStatus("Déconnecté");
         
+        // Appeler aussi ChogTanksNFTManager pour nettoyer l'UI complètement
+        var nftManager = FindObjectOfType<ChogTanksNFTManager>();
+        if (nftManager != null)
+        {
+            nftManager.DisconnectWallet();
+        }
+        
         LockAllButtons();
     }
     

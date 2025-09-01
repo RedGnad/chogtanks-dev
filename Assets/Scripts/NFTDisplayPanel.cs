@@ -304,7 +304,7 @@ public class NFTDisplayPanel : MonoBehaviour
         nftItem.SetActive(true);
         nftItem.transform.SetAsLastSibling(); 
         
-        
+        //var nftImage = nftItem.transform.Find("NFTImage")?.GetComponent<Image>();
         var nftImage = nftItem.transform.Find("NFTImage")?.GetComponent<Image>();
         var levelText = nftItem.transform.Find("LevelText")?.GetComponent<TextMeshProUGUI>();
         var evolveButton = nftItem.transform.Find("EvolveButton")?.GetComponent<Button>();
@@ -478,7 +478,7 @@ public class NFTDisplayPanel : MonoBehaviour
         
     }
     
-    private void UpdateStatus(string message)
+    public void UpdateStatus(string message)
     {
         if (statusText != null)
             statusText.text = message;
@@ -507,6 +507,14 @@ public class NFTDisplayPanel : MonoBehaviour
     {
         try
         {
+            // Vérification de la signature personnelle avant de charger depuis la blockchain
+            bool signApproved = PlayerPrefs.GetInt("personalSignApproved", 0) == 1;
+            if (!signApproved)
+            {
+                Debug.LogWarning("[NFT-PANEL] Personal signature not approved - blockchain loading blocked");
+                UpdateStatus("Complete personal signature to access NFTs");
+                return;
+            }
             
             if (!Reown.AppKit.Unity.AppKit.IsInitialized || !Reown.AppKit.Unity.AppKit.IsAccountConnected)
             {

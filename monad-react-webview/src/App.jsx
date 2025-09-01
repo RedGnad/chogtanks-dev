@@ -6,7 +6,6 @@ import { sendToUnity, closeWindowAfterDelay, isOpenedFromUnity } from './unityBr
 // Configuration Privy
 const PRIVY_APP_ID = "cmek64iqd02lql70b9fl64lm9";
 const MONAD_GAMES_ID = "cmd8euall0037le0my79qpz42";
-const PRIVY_CLIENT_ID = "client-WY6Ppw4LLAHEMShmi9brMwkW43C9mQfy9r7Z2RyJJojW8";
 
 function MonadLoginComponent() {
   const { ready, authenticated, user, login } = usePrivy();
@@ -14,6 +13,23 @@ function MonadLoginComponent() {
   const [status, setStatus] = useState('ready');
   const [error, setError] = useState('');
   const [walletInfo, setWalletInfo] = useState(null);
+  const [needsUsername, setNeedsUsername] = useState(false);
+
+  // Fonction pour vérifier l'username via l'API Monad Games ID
+  const checkUsernameFromAPI = async (walletAddress) => {
+    try {
+      const response = await fetch(`https://monad-games-id-site.vercel.app/api/check-wallet?wallet=${walletAddress}`);
+      const data = await response.json();
+      
+      if (data.hasUsername && data.user && data.user.username) {
+        return data.user.username;
+      }
+      return null;
+    } catch (error) {
+      console.error('[MONAD WEBVIEW] Error checking username:', error);
+      return null;
+    }
+  };
   const [sentToUnity, setSentToUnity] = useState(false);
 
   // Vérifier si l'utilisateur a déjà un compte cross-app lié
@@ -69,9 +85,22 @@ function MonadLoginComponent() {
       }
 
       const walletAddress = embeddedWallet.address;
-      const username = crossAppAccount.username || "Red_G";
+      
+      // Vérifier l'username via l'API Monad Games ID
+      console.log('[MONAD WEBVIEW] 🔍 Checking username for wallet:', walletAddress);
+      const apiUsername = await checkUsernameFromAPI(walletAddress);
+      
+      let username = crossAppAccount.username || apiUsername;
+      
+      if (!username) {
+        console.log('[MONAD WEBVIEW] ❌ No username found, user needs to create one');
+        setNeedsUsername(true);
+        setWalletInfo({ address: walletAddress, username: null });
+        setStatus('needs_username');
+        return;
+      }
 
-      console.log('[MONAD WEBVIEW] ✅ Success! Wallet:', walletAddress);
+      console.log('[MONAD WEBVIEW] ✅ Success! Wallet:', walletAddress, 'Username:', username);
       
       setWalletInfo({
         address: walletAddress,
@@ -144,21 +173,37 @@ function MonadLoginComponent() {
       const embeddedWallet = crossAppAccount.embeddedWallets?.[0];
       if (embeddedWallet?.address) {
         console.log('[MONAD WEBVIEW] 🔄 Updating UI with wallet info');
-        setWalletInfo({
-          address: embeddedWallet.address,
-          username: crossAppAccount.username || "Red_G"
-        });
-        setStatus('success');
         
-        // Envoyer automatiquement à Unity si pas déjà fait
-        if (!sentToUnity) {
-          handleSendToUnity({
-            success: true,
-            walletAddress: embeddedWallet.address,
-            username: crossAppAccount.username || "Red_G",
-            userId: user.id
+        // Fonction async pour vérifier l'username
+        const updateWalletInfo = async () => {
+          const apiUsername = await checkUsernameFromAPI(embeddedWallet.address);
+          const finalUsername = crossAppAccount.username || apiUsername;
+          
+          if (!finalUsername) {
+            setNeedsUsername(true);
+            setWalletInfo({ address: embeddedWallet.address, username: null });
+            setStatus('needs_username');
+            return;
+          }
+          
+          setWalletInfo({
+            address: embeddedWallet.address,
+            username: finalUsername
           });
-        }
+          setStatus('success');
+          
+          // Envoyer automatiquement à Unity si pas déjà fait
+          if (!sentToUnity) {
+            handleSendToUnity({
+              success: true,
+              walletAddress: embeddedWallet.address,
+              username: finalUsername,
+              userId: user.id
+            });
+          }
+        };
+        
+        updateWalletInfo();
       }
     }
   }, [ready, authenticated, crossAppAccount, status, user, sentToUnity]);
@@ -168,6 +213,7 @@ function MonadLoginComponent() {
       case 'logging_in': return 'Connecting to Privy...';
       case 'linking_account': return 'Linking Monad Games ID...';
       case 'getting_wallet': return 'Getting wallet address...';
+      case 'needs_username': return 'Username required - please create one';
       case 'success': return 'Success! Sending to Unity...';
       case 'error': return 'Error occurred';
       default: return 'Ready to connect';
@@ -205,19 +251,50 @@ function MonadLoginComponent() {
             {status === 'success' ? '✅ Connected' : isLoading ? getStatusMessage() : 'Sign in with Monad Games ID'}
           </button>
           
-          {status === 'success' && walletInfo && (
-            <div className="success">
-              <strong>✅ Connected Successfully!</strong>
-              <div className="wallet-info">
-                <div><strong>Username:</strong> {walletInfo.username}</div>
-                <div><strong>Wallet:</strong> {walletInfo.address}</div>
-              </div>
-              <div style={{fontSize: '14px', marginTop: '10px'}}>
-                Sending to Unity... Window will close automatically.
-              </div>
+          {status === 'needs_username' && walletInfo && (
+        <div className="error">
+          <strong>⚠️ Username Required</strong>
+          <div className="wallet-info">
+            <div><strong>Wallet:</strong> {walletInfo.address}</div>
+          </div>
+          <div style={{margin: '15px 0'}}>
+            You need to create a username to continue playing CHOGTANKS.
+          </div>
+          <button 
+            onClick={() => window.open('https://monad-games-id-site.vercel.app/', '_blank')}
+            style={{
+              background: '#A0055D',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Create Username
+          </button>
+          <div style={{fontSize: '12px', marginTop: '10px', color: '#666'}}>
+            After creating your username, refresh this page to continue.
+          </div>
+        </div>
+      )}
+
+      {status === 'success' && walletInfo && walletInfo.username && (
+        <>
+          <div className="success">
+            <strong>✅ Connected Successfully!</strong>
+            <div className="wallet-info">
+              <div><strong>Username:</strong> {walletInfo.username}</div>
+              <div><strong>Wallet:</strong> {walletInfo.address}</div>
             </div>
-          )}
-          
+            <div style={{fontSize: '14px', marginTop: '10px'}}>
+              {sentToUnity ? 'Data sent to Unity!' : 'Sending to Unity...'}
+            </div>
+          </div>
+        </>
+      )}    
           {error && (
             <div className="error">
               <strong>❌ Error:</strong> {error}
