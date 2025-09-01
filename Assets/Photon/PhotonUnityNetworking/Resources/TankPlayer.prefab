@@ -207,7 +207,7 @@ GameObject:
   - component: {fileID: 1782390584159300122}
   - component: {fileID: 4085612098965259063}
   m_Layer: 6
-  m_Name: Image
+  m_Name: monadBadgeImage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

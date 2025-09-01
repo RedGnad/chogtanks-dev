@@ -56,10 +56,13 @@ public class CameraFollow : MonoBehaviour
 
     private void FindPlayerInstance()
     {
-        PhotonView[] photonViews = FindObjectsOfType<PhotonView>();
-        foreach (PhotonView pv in photonViews)
-        { 
-            if (pv != null && pv.IsMine && pv.CompareTag("Player"))
+        // OPTIMISATION: Utiliser FindGameObjectsWithTag au lieu de FindObjectsOfType
+        GameObject[] playerObjects = GameObject.FindGameObjectsWithTag("Player");
+        
+        foreach (GameObject playerObj in playerObjects)
+        {
+            PhotonView pv = playerObj.GetComponent<PhotonView>();
+            if (pv != null && pv.IsMine)
             {
                 target = pv.transform;
                 return;

@@ -62550,7 +62550,7 @@ GameObject:
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &158992407
 Transform:
@@ -64515,7 +64515,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e39c6bc008204c3cbabca41bc0c28ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 0}
+  cam: {fileID: 158992406}
   parallaxSpeedX: 0.6
   parallaxSpeedY: 0.6
   elementCount: 1
@@ -65081,7 +65081,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e39c6bc008204c3cbabca41bc0c28ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 0}
+  cam: {fileID: 158992406}
   parallaxSpeedX: 0.3
   parallaxSpeedY: 0.3
   elementCount: 1
@@ -68816,6 +68816,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6e1b7ada9a7d419799ee9e86d39253b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1052417700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1052417701}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1052417701
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1052417700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 771.26135, y: 455.5336, z: -242.1177}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1122935200
 GameObject:
   m_ObjectHideFlags: 0
@@ -71116,7 +71147,7 @@ MonoBehaviour:
   backButton: {fileID: 1137635268}
   killFeedText: {fileID: 1275273030}
   mainScreenPlayerNameText: {fileID: 189502973}
-  monadBadgePrefab: {fileID: 0}
+  monadBadgePrefab: {fileID: 1052417700}
   timerText: {fileID: 350754768}
   roomStatusText: {fileID: 533143084}
   roomStatusTextBig: {fileID: 1956064775}
@@ -73679,7 +73710,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e39c6bc008204c3cbabca41bc0c28ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 0}
+  cam: {fileID: 158992406}
   parallaxSpeedX: 0.85
   parallaxSpeedY: 0.85
   elementCount: 1
@@ -74446,6 +74477,7 @@ MonoBehaviour:
   - {fileID: 59651515}
   soloDetectionDelay: 5
   enemySpawnInterval: 4
+  accelerationInterval: 60
   enableDebugLogs: 1
 --- !u!4 &1659913852
 Transform:
@@ -79328,3 +79360,4 @@ SceneRoots:
   - {fileID: 1594634351}
   - {fileID: 435091271}
   - {fileID: 1659913852}
+  - {fileID: 1052417701}
