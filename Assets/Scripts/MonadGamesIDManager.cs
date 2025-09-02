@@ -1,15 +1,13 @@
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
-using System.Collections;
-using Photon.Pun;
-using Photon.Realtime;
+using TMPro;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Photon.Pun;
 
 namespace Sample
 {
-    public class MonadGamesIDManager : MonoBehaviourPunCallbacks
+    public class MonadGamesIDManager : MonoBehaviour
     {
         [Header("UI")]
         [SerializeField] private Button monadSignInButton;
@@ -492,10 +490,6 @@ namespace Sample
         /// </summary>
         private void SetPlayerMonadVerifiedStatus(bool isVerified)
         {
-            // Toujours sauvegarder dans PlayerPrefs
-            PlayerPrefs.SetInt("MonadVerified", isVerified ? 1 : 0);
-            PlayerPrefs.Save();
-            
             if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null)
             {
                 ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
@@ -503,60 +497,13 @@ namespace Sample
                 PhotonNetwork.LocalPlayer.SetCustomProperties(playerProps);
                 
                 Debug.Log($"[MONAD-VERIFIED] Player marked as Monad verified: {isVerified}");
-                
-                // Synchroniser immédiatement le badge via RPC
-                StartCoroutine(SyncMonadBadgeOnTanks(isVerified));
             }
             else
             {
-                Debug.Log($"[MONAD-VERIFIED] Monad verified status saved for later sync: {isVerified}");
-            }
-        }
-        
-        /// <summary>
-        /// Appelé quand un joueur rejoint la room - synchronise son badge s'il est déjà vérifié
-        /// </summary>
-        public override void OnPlayerEnteredRoom(Player newPlayer)
-        {
-            // Si c'est moi qui rejoint et que je suis déjà vérifié
-            if (newPlayer == PhotonNetwork.LocalPlayer && PlayerPrefs.GetInt("MonadVerified", 0) == 1)
-            {
-                Debug.Log($"[MONAD-SYNC] Local player entered room - syncing Monad badge");
-                
-                // Mettre à jour les Custom Properties d'abord
-                ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
-                playerProps["monadVerified"] = true;
-                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProps);
-                
-                // Puis synchroniser le badge via RPC
-                StartCoroutine(SyncMonadBadgeOnTanks(true));
-            }
-        }
-        
-        /// <summary>
-        /// Synchronise le badge Monad sur tous les tanks du joueur local
-        /// </summary>
-        private System.Collections.IEnumerator SyncMonadBadgeOnTanks(bool isVerified)
-        {
-            // Attendre que les tanks soient spawned
-            yield return new WaitForSeconds(0.5f);
-            
-            // OPTIMISATION: Utiliser FindGameObjectsWithTag au lieu de FindObjectsOfType
-            GameObject[] playerObjects = GameObject.FindGameObjectsWithTag("Player");
-            
-            foreach (GameObject playerObj in playerObjects)
-            {
-                PhotonView pv = playerObj.GetComponent<PhotonView>();
-                if (pv != null && pv.IsMine)
-                {
-                    PlayerNameDisplay display = playerObj.GetComponentInChildren<PlayerNameDisplay>();
-                    if (display != null)
-                    {
-                        // Appeler le RPC sur ce tank pour tous les joueurs
-                        pv.RPC("SetMonadBadgeRPC", RpcTarget.All, isVerified);
-                        Debug.Log($"[MONAD-SYNC] RPC sent for tank: {playerObj.name}");
-                    }
-                }
+                // Si pas encore connecté à Photon, sauvegarder pour plus tard
+                PlayerPrefs.SetInt("MonadVerified", isVerified ? 1 : 0);
+                PlayerPrefs.Save();
+                Debug.Log($"[MONAD-VERIFIED] Monad verified status saved for later: {isVerified}");
             }
         }
 
