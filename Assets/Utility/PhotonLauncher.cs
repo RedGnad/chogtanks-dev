@@ -230,7 +230,7 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
 
     [Header("Room Settings")]
     public string roomName = "";
-    public byte maxPlayers =10;
+    public byte maxPlayers =8;
 
     public LobbyUI lobbyUI;
 
