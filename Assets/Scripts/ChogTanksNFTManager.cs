@@ -7,6 +7,8 @@ using System.Numerics;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using UnityEngine.Networking;
+using Photon.Pun;
+using ExitGames.Client.Photon;
 
 [System.Serializable]
 public class EvolutionData
@@ -107,7 +109,7 @@ public class PointsConsumptionResponse
     public string error;
 }
 
-public class ChogTanksNFTManager : MonoBehaviour
+public class ChogTanksNFTManager : MonoBehaviourPunCallbacks
 {
     [Header("Contract Settings")]
     private const string CONTRACT_ADDRESS = "0x04223adab3a0c1a2e8aade678bebd3fddd580a38";
@@ -151,6 +153,8 @@ public class ChogTanksNFTManager : MonoBehaviour
     public int selectedTokenId = 0;
     private int lastConsumedPoints = 0; 
     private int pendingEvolutionCost = 0; 
+    // Track the last level we synced to Photon to avoid redundant network updates
+    private int lastSyncedPhotonLevel = int.MinValue;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
@@ -243,6 +247,12 @@ public class ChogTanksNFTManager : MonoBehaviour
         
         InitializeRealTransactionDetection();
         
+    }
+
+    public override void OnJoinedRoom()
+    {
+        // Ensure current level is propagated when we enter a room
+        TrySyncPhotonLevel(currentNFTState != null ? currentNFTState.level : 0);
     }
     
     void OnDestroy()
@@ -1149,7 +1159,31 @@ public class ChogTanksNFTManager : MonoBehaviour
         {
             //Debug.LogError($"[UI-TRACE] scoreProgressText is NULL! Cannot update score display!");
         }
-        
+        // Also propagate level to Photon custom properties so all players can see "lvl X" next to names
+        TrySyncPhotonLevel(level);
+    }
+
+    // Sets Photon custom property "level" for the local player when it changes
+    private void TrySyncPhotonLevel(int level)
+    {
+        // Only when connected in room and value actually changed
+        if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
+        {
+            return;
+        }
+
+        if (level == lastSyncedPhotonLevel)
+        {
+            return;
+        }
+
+        lastSyncedPhotonLevel = level;
+
+    var props = new ExitGames.Client.Photon.Hashtable
+        {
+            { "level", level }
+        };
+        PhotonNetwork.LocalPlayer.SetCustomProperties(props);
     }
 
     public void OnEvolutionButtonClicked()

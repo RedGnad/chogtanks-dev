@@ -9,7 +9,11 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     [Header("UI References")]
     public TextMeshProUGUI nameText;
     public Canvas nameCanvas;
-    public UnityEngine.UI.Image monadBadgeImage; // Badge Monad ID verified
+    public UnityEngine.UI.Image monadBadgeImage; 
+    [Tooltip("Optionnel: assignez un TMP (UGUI ou 3D) distinct pour afficher uniquement le niveau (avec votre Text Effect). Laissez vide pour garder le comportement d'origine (nom + lvl ensemble).")]
+    public TMP_Text levelText;
+    [Tooltip("Préfixe ajouté avant la valeur du niveau dans levelText.")]
+    public string levelPrefix = " lvl ";
     
     [Header("Position Settings")]
     public float heightOffset = 1.5f;
@@ -17,8 +21,13 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     [Header("Color Settings")]
     public Color localPlayerColor = Color.green; 
     public Color otherPlayerColor = Color.white;
+    [Tooltip("Quand activé, ce script applique la couleur (local/autre). Désactive-le pour laisser les Text Effects / Matériaux TMP gérer la couleur.")]
+    public bool overrideTextColor = true;
+
+    // Rich Text annulé: nous utilisons désormais un TMP séparé (levelText) pour appliquer un Text Effect uniquement au niveau.
     
     private bool isSubscribedToPlayerProps = false;
+    private Coroutine badgeRotateCo;
     
     private void Start()
     {
@@ -41,6 +50,7 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
         {
             nameText.alignment = TextAlignmentOptions.Center;
             nameText.fontSize = 50f;
+            nameText.richText = true;
         }
         
         UpdateTextPosition();
@@ -71,17 +81,34 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
                 playerLevel = (int)photonView.Owner.CustomProperties["level"];
             }
             
-            if (playerLevel > 0)
+            // Rendu: si levelText est assigné, séparer nom et niveau pour appliquer un Text Effect seulement au niveau
+            if (levelText != null)
             {
-                playerName += $" lvl {playerLevel}";
+                nameText.text = playerName;
+                if (playerLevel > 0)
+                {
+                    levelText.text = $"{levelPrefix}{playerLevel}";
+                    levelText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    levelText.text = string.Empty;
+                    levelText.gameObject.SetActive(false);
+                }
             }
-            
-            nameText.text = playerName;
+            else
+            {
+                // Fallback: concaténer le niveau au nom si aucun TMP séparé n'est fourni
+                if (playerLevel > 0)
+                {
+                    playerName += $" lvl {playerLevel}";
+                }
+                nameText.text = playerName;
+            }
 
             // Show/hide Monad ID verified badge image
             bool isMonadVerified = IsPlayerMonadVerified(photonView.Owner);
-            Debug.Log($"[BADGE-DEBUG] Player {photonView.Owner.NickName} - Monad verified: {isMonadVerified}");
-        
+            
             if (monadBadgeImage != null)
             {
                 monadBadgeImage.gameObject.SetActive(isMonadVerified);
@@ -89,24 +116,37 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
                 // Ajouter rotation au badge si visible
                 if (isMonadVerified)
                 {
-                    StartCoroutine(RotateBadge());
+                    if (badgeRotateCo == null)
+                    {
+                        badgeRotateCo = StartCoroutine(RotateBadge());
+                    }
+                }
+                else
+                {
+                    if (badgeRotateCo != null)
+                    {
+                        StopCoroutine(badgeRotateCo);
+                        badgeRotateCo = null;
+                    }
                 }
                 
-                Debug.Log($"[BADGE-DEBUG] Badge set to: {isMonadVerified} - Image: {monadBadgeImage.name}");
             }
             else
             {
                 Debug.LogWarning($"[BADGE-DEBUG] monadBadgeImage is NULL for {photonView.Owner.NickName}");
             }
 
-            // Set text color
-            if (photonView.IsMine)
+            // Set text color (optionnel): laisse les Text Effects gérer la couleur si overrideTextColor est faux
+            if (overrideTextColor)
             {
-                nameText.color = localPlayerColor;
-            }
-            else
-            {
-                nameText.color = otherPlayerColor;
+                if (photonView.IsMine)
+                {
+                    nameText.color = localPlayerColor;
+                }
+                else
+                {
+                    nameText.color = otherPlayerColor;
+                }
             }
         }
     }
@@ -170,12 +210,13 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
             isSubscribedToPlayerProps = false;
         }
         StopAllCoroutines();
+    badgeRotateCo = null;
     }
 
     public void SetLocalPlayerColor(Color color)
     {
         localPlayerColor = color;
-        if (photonView.IsMine)
+    if (photonView.IsMine && overrideTextColor)
         {
             nameText.color = color;
         }
@@ -184,7 +225,7 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     public void SetOtherPlayerColor(Color color)
     {
         otherPlayerColor = color;
-        if (!photonView.IsMine)
+    if (!photonView.IsMine && overrideTextColor)
         {
             nameText.color = color;
         }
@@ -197,13 +238,13 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
     {
         if (player == null) return false;
         
-        // Vérifier dans les Custom Properties Photon
-        if (player.CustomProperties.ContainsKey("monadVerified"))
+        // 1) Vérifier l'état runtime reçu via RPC
+        if (MonadBadgeState.TryGet(player.ActorNumber, out bool cached))
         {
-            return (bool)player.CustomProperties["monadVerified"];
+            return cached;
         }
         
-        // Pour le joueur local, vérifier aussi dans PlayerPrefs si pas encore synchronisé
+        // 2) Pour le joueur local, fallback PlayerPrefs (au cas où le RPC n'a pas encore été reçu)
         if (player == PhotonNetwork.LocalPlayer)
         {
             return PlayerPrefs.GetInt("MonadVerified", 0) == 1;
@@ -227,4 +268,35 @@ public class PlayerNameDisplay : MonoBehaviourPunCallbacks
             yield return null;
         }
     }
+
+    // RPC pour synchroniser explicitement l'état du badge sur tous les clients (alternative aux Custom Properties)
+
+    // Permet à d'autres composants (RPC côté root) de piloter le badge sans dupliquer la logique
+    public void SetBadgeState(bool isVerified)
+    {
+        if (monadBadgeImage == null)
+        {
+            Debug.LogWarning("[BADGE] monadBadgeImage is null; cannot set badge state");
+            return;
+        }
+
+        monadBadgeImage.gameObject.SetActive(isVerified);
+
+        if (isVerified)
+        {
+            if (badgeRotateCo == null)
+            {
+                badgeRotateCo = StartCoroutine(RotateBadge());
+            }
+        }
+        else
+        {
+            if (badgeRotateCo != null)
+            {
+                StopCoroutine(badgeRotateCo);
+                badgeRotateCo = null;
+            }
+        }
+    }
+
 }

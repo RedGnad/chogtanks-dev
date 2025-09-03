@@ -29,7 +29,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     public TMP_Text mainScreenPlayerNameText;
     
     [Header("Monad Badge System")]
-    public GameObject monadBadgePrefab; // Prefab avec Image pour badge Monad
+    public GameObject monadBadgePrefab; 
     private Dictionary<string, GameObject> playerBadges = new Dictionary<string, GameObject>(); 
     
     [Header("Match UI")]
@@ -54,6 +54,9 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     private string shieldDefaultText = ""; 
 
     private bool needsDelayOnReturn = false;
+
+    // Cache local tank to avoid per-frame scene scans
+    private GameObject cachedLocalTank;
 
     private void Awake()
     {
@@ -96,6 +99,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
 
         if (playerNameInput != null)
         {
+            playerNameInput.characterLimit = 11;
             playerNameInput.onEndEdit.AddListener(OnPlayerNameEndEdit);
             
             UpdatePlayerNameInputState();
@@ -103,6 +107,7 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         
         if (playerNameInput2 != null)
         {
+            playerNameInput2.characterLimit = 11;
             playerNameInput2.onEndEdit.AddListener(OnPlayerNameEndEdit2);
             
             UpdatePlayerNameInputState();
@@ -239,11 +244,21 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     private void OnEnable()
     {
         PhotonNetwork.AddCallbackTarget(this);
+        PhotonTankSpawner.OnTankSpawned += HandleTankSpawned;
     }
     
     private void OnDisable()
     {
         PhotonNetwork.RemoveCallbackTarget(this);
+        PhotonTankSpawner.OnTankSpawned -= HandleTankSpawned;
+    }
+
+    private void HandleTankSpawned(GameObject tank, PhotonView view)
+    {
+        if (view != null && view.IsMine)
+        {
+            cachedLocalTank = tank;
+        }
     }
 
     private void OnPlayerNameEndEdit(string newName)
@@ -282,10 +297,10 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             if (playerNameInput != null) playerNameInput.text = playerName.Split('_')[0];
             if (playerNameInput2 != null) playerNameInput2.text = playerName.Contains("_") ? playerName.Split('_')[1] : "";
         }
-        else if (playerName.Length > 20)
+        else if (playerName.Length > 11)
         {
-            if(createdCodeText != null) createdCodeText.text = "Name cannot exceed 20 characters.";
-            playerName = playerName.Substring(0, 20);
+            if(createdCodeText != null) createdCodeText.text = "Name cannot exceed 11 characters.";
+            playerName = playerName.Substring(0, 11);
     }
         
         launcher.SetPlayerName(playerName);
@@ -486,27 +501,45 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     
     private GameObject FindLocalPlayerTank()
     {
+        // Use cached reference first when available
+        if (cachedLocalTank != null)
+        {
+            var pv = cachedLocalTank.GetComponent<PhotonView>();
+            if (pv != null && pv.IsMine)
+            {
+                return cachedLocalTank;
+            }
+            // if ownership changed or object destroyed, clear cache
+            if (cachedLocalTank == null || pv == null || !pv.IsMine)
+            {
+                cachedLocalTank = null;
+            }
+        }
+
+        // Fallback: one-time scan to refresh cache if needed
         var allTanks = GameObject.FindGameObjectsWithTag("Player");
-        
         foreach (var tank in allTanks)
         {
             var photonView = tank.GetComponent<PhotonView>();
             if (photonView != null && photonView.IsMine)
             {
+                cachedLocalTank = tank;
                 return tank;
             }
         }
-        
+
+        // Secondary fallback by component type (legacy)
         var tankMovement = FindObjectOfType<TankMovement2D>();
         if (tankMovement != null)
         {
             var photonView = tankMovement.GetComponent<PhotonView>();
             if (photonView != null && photonView.IsMine)
             {
-                return tankMovement.gameObject;
+                cachedLocalTank = tankMovement.gameObject;
+                return cachedLocalTank;
             }
         }
-        
+
         return null;
     }
 
@@ -591,7 +624,9 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
             return;
         }
         
-        Debug.Log("[LOBBYUI] UpdatePlayerList called");
+    #if UNITY_EDITOR || DEVELOPMENT_BUILD
+    Debug.Log("[LOBBYUI] UpdatePlayerList called");
+    #endif
         
         // Clear existing badges
         foreach (var badge in playerBadges.Values)
@@ -602,45 +637,70 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         
         playerListText.text = "";
         
+        int index = 0;
         foreach (Player p in PhotonNetwork.PlayerList)
         {
             int score = 0;
             if (p.CustomProperties.ContainsKey("score"))
             {
                 score = (int)p.CustomProperties["score"];
+                #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log($"[LOBBYUI] Player {p.ActorNumber} score from CustomProperties: {score}");
+                #endif
             }
             else
             {
                 if (ScoreManager.Instance != null)
                 {
                     score = ScoreManager.Instance.GetPlayerScore(p.ActorNumber);
+                    #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     Debug.Log($"[LOBBYUI] Player {p.ActorNumber} score from ScoreManager: {score}");
+                    #endif
                 }
                 else
                 {
+                    #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     Debug.LogWarning("[LOBBYUI] ScoreManager.Instance is null!");
+                    #endif
                 }
             }
             
             string playerName = string.IsNullOrEmpty(p.NickName) ? $"Player {p.ActorNumber}" : p.NickName;
             playerListText.text += $"{playerName} - {score} pts\n";
+            #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.Log($"[LOBBYUI] Added to display: {playerName} - {score} pts");
+            #endif
             
             if (IsPlayerMonadVerified(p) && monadBadgePrefab != null && playerListText.transform.parent != null)
             {
-                GameObject badge = Instantiate(monadBadgePrefab, playerListText.transform.parent);
-                playerBadges[p.UserId] = badge;
-                
-                Debug.Log($"[LOBBY-BADGE] Badge créé pour {p.NickName} (Monad verified) - GameObject: {badge.name}");
-                
-                RectTransform badgeRect = badge.GetComponent<RectTransform>();
-                if (badgeRect != null)
+                try
                 {
-                    badgeRect.anchoredPosition = new Vector2(-20f, -20f * (PhotonNetwork.PlayerList.Length - 1));
-                    Debug.Log($"[LOBBY-BADGE] Badge positionné à: {badgeRect.anchoredPosition}");
+                    GameObject badge = Instantiate(monadBadgePrefab, playerListText.transform.parent);
+                    // Use ActorNumber as a stable non-null key (PublishUserId can be false)
+                    playerBadges[p.ActorNumber.ToString()] = badge;
+                    
+                    #if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[LOBBY-BADGE] Badge créé pour {p.NickName} (Monad verified) - GameObject: {badge.name}");
+                    #endif
+                    
+                    RectTransform badgeRect = badge.GetComponent<RectTransform>();
+                    if (badgeRect != null)
+                    {
+                        // Align badge with the corresponding line using the running index
+                        badgeRect.anchoredPosition = new Vector2(-20f, -20f * index);
+                        #if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        Debug.Log($"[LOBBY-BADGE] Badge positionné à: {badgeRect.anchoredPosition}");
+                        #endif
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    #if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning($"[LOBBY-BADGE] Failed to create/place badge for {p.NickName}: {ex.Message}");
+                    #endif
                 }
             }
+            index++;
         }
     }
 
@@ -879,17 +939,16 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
     private bool IsPlayerMonadVerified(Player player)
     {
         if (player == null) return false;
-        
-        if (player.CustomProperties.ContainsKey("monadVerified"))
+        // Utiliser d'abord l'état runtime alimenté par RPC
+        if (MonadBadgeState.TryGet(player.ActorNumber, out bool cached))
         {
-            return (bool)player.CustomProperties["monadVerified"];
+            return cached;
         }
-        
+        // Fallback local uniquement pour soi-même
         if (player == PhotonNetwork.LocalPlayer)
         {
             return PlayerPrefs.GetInt("MonadVerified", 0) == 1;
         }
-        
         return false;
     }
     
@@ -911,7 +970,6 @@ public class LobbyUI : MonoBehaviourPun, IMatchmakingCallbacks
         Debug.Log("[TAP-TO-HIDE] ShowTapToHideText() called");
         if (tapToHideText != null)
         {
-            Debug.Log("[TAP-TO-HIDE] tapToHideText found, showing text");
             
             if (string.IsNullOrEmpty(originalTapToHideText))
             {

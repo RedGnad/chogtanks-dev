@@ -344,6 +344,11 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
         }
         else
         {
+            // Cap à 11 caractères par sécurité
+            if (playerName.Length > 11)
+            {
+                playerName = playerName.Substring(0, 11);
+            }
             PhotonNetwork.NickName = playerName;
         }
     }
@@ -355,6 +360,10 @@ public class PhotonLauncher : MonoBehaviourPunCallbacks
             //Debug.LogError("[PhotonLauncher] PhotonView manquant sur l'objet PhotonLauncher ! Merci d'ajouter un PhotonView dans l'inspecteur AVANT de lancer la scène.");
         }
         
+    // Slightly higher rates improve remote movement smoothness without big bandwidth cost
+    PhotonNetwork.SendRate = 30;          // default is 20
+    PhotonNetwork.SerializationRate = 15; // default is 10
+
         if (!PhotonNetwork.IsConnected)
         {
             

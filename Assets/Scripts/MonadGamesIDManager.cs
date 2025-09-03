@@ -121,7 +121,7 @@ namespace Sample
                 SaveState();
                 
                 UpdateUI();
-                UpdateStatus($"Connecté: {result.username}");
+                UpdateStatus($"Connected: {result.username}");
                 OnUsernameChanged?.Invoke(result.username);
                 
                 SetMonadUsernameAsPlayerName(result.username);
@@ -490,21 +490,10 @@ namespace Sample
         /// </summary>
         private void SetPlayerMonadVerifiedStatus(bool isVerified)
         {
-            if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null)
-            {
-                ExitGames.Client.Photon.Hashtable playerProps = new ExitGames.Client.Photon.Hashtable();
-                playerProps["monadVerified"] = isVerified;
-                PhotonNetwork.LocalPlayer.SetCustomProperties(playerProps);
-                
-                Debug.Log($"[MONAD-VERIFIED] Player marked as Monad verified: {isVerified}");
-            }
-            else
-            {
-                // Si pas encore connecté à Photon, sauvegarder pour plus tard
-                PlayerPrefs.SetInt("MonadVerified", isVerified ? 1 : 0);
-                PlayerPrefs.Save();
-                Debug.Log($"[MONAD-VERIFIED] Monad verified status saved for later: {isVerified}");
-            }
+            // Ne plus écrire dans les Custom Properties Photon pour éviter les régressions
+            PlayerPrefs.SetInt("MonadVerified", isVerified ? 1 : 0);
+            PlayerPrefs.Save();
+            Debug.Log($"[MONAD-VERIFIED] Saved to PlayerPrefs only (no Photon props): {isVerified}");
         }
 
         public string GetCurrentUsername() => currentUsername;

@@ -32,10 +32,11 @@ public class CoinCollectible : MonoBehaviourPun
         ShellCollisionHandler shellHandler = other.GetComponent<ShellCollisionHandler>();
         if (shellHandler != null) return; 
         
-        TankMovement2D tankMovement = other.GetComponent<TankMovement2D>();
+    // Tank colliders may be on children; look up the hierarchy
+    TankMovement2D tankMovement = other.GetComponentInParent<TankMovement2D>();
         if (tankMovement == null) return; 
         
-        PhotonView tankPhotonView = other.GetComponent<PhotonView>();
+    PhotonView tankPhotonView = other.GetComponentInParent<PhotonView>();
         if (tankPhotonView == null) return;
         
         if (!tankPhotonView.IsMine) return;

@@ -206,11 +206,12 @@ public class ScoreManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         if (matchEnded) 
         {
-            Debug.Log($"[SCOREMANAGER] Score blocked - matchEnded=true. Player: {playerActorNumber}, Points: {points}");
             return;
         }
         
-        Debug.Log($"[SCOREMANAGER] Adding {points} points to player {playerActorNumber}");
+    #if UNITY_EDITOR || DEVELOPMENT_BUILD
+    Debug.Log($"[SCOREMANAGER] Adding {points} points to player {playerActorNumber}");
+    #endif
 
         int scoreBefore = playerScores.ContainsKey(playerActorNumber) ? playerScores[playerActorNumber] : 0;
         if (playerScores.ContainsKey(playerActorNumber))

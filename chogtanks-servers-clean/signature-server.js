@@ -9,14 +9,22 @@ app.use(cors());
 
 const port = process.env.PORT || 3001;
 
+// Démarrage en mode dégradé si la clé n'est pas présente: ne pas quitter, garder /health up
+let gameWallet = null;
 if (!process.env.GAME_SERVER_PRIVATE_KEY) {
-    console.error('ERREUR: GAME_SERVER_PRIVATE_KEY non définie dans le fichier .env');
-    process.exit(1);
+    console.error("ERREUR: GAME_SERVER_PRIVATE_KEY non définie. Les endpoints signés seront désactivés tant que la clé n'est pas configurée.");
+} else {
+    gameWallet = new ethers.Wallet(process.env.GAME_SERVER_PRIVATE_KEY);
+    console.log("Game Server Signer Address:", gameWallet.address);
 }
 
-const gameWallet = new ethers.Wallet(process.env.GAME_SERVER_PRIVATE_KEY);
-
-console.log("Game Server Signer Address:", gameWallet.address);
+// Middleware: exige la présence du wallet pour les routes nécessitant une signature/tx
+function requireWallet(req, res, next) {
+    if (!gameWallet) {
+        return res.status(503).json({ error: 'Server wallet not configured' });
+    }
+    next();
+}
 
 // Health check endpoint pour monitoring
 app.get('/health', (req, res) => {
@@ -24,11 +32,14 @@ app.get('/health', (req, res) => {
         status: 'OK', 
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        version: '1.0.0'
+    version: '1.0.0',
+    walletReady: Boolean(gameWallet)
     });
 });
+// Supporte aussi la méthode HEAD sur /health
+app.head('/health', (req, res) => res.sendStatus(200));
 
-app.post('/api/mint-authorization', async (req, res) => {
+app.post('/api/mint-authorization', requireWallet, async (req, res) => {
     try {
         const { playerAddress, mintCost } = req.body;
         
@@ -41,7 +52,7 @@ app.post('/api/mint-authorization', async (req, res) => {
             [playerAddress, mintCost]
         );
         
-        const signature = await gameWallet.signMessage(ethers.utils.arrayify(message));
+    const signature = await gameWallet.signMessage(ethers.utils.arrayify(message));
         
         console.log(`Autorisation de mint générée pour ${playerAddress} avec un coût de ${mintCost}`);
         
@@ -57,7 +68,7 @@ app.post('/api/mint-authorization', async (req, res) => {
     }
 });
 
-app.post('/api/evolve-authorization', async (req, res) => {
+app.post('/api/evolve-authorization', requireWallet, async (req, res) => {
     try {
         const { playerAddress, tokenId, targetLevel } = req.body;
         
@@ -83,7 +94,7 @@ app.post('/api/evolve-authorization', async (req, res) => {
             [playerAddress, tokenId, targetLevel, requiredPoints]
         );
         
-        const signature = await gameWallet.signMessage(ethers.utils.arrayify(message));
+    const signature = await gameWallet.signMessage(ethers.utils.arrayify(message));
         
         console.log(`Autorisation d'évolution générée pour ${playerAddress}, token ${tokenId} vers niveau ${targetLevel}`);
         
@@ -143,7 +154,7 @@ async function getNextNonce(wallet) {
     }
 }
 
-app.post('/api/monad-games-id/update-player', async (req, res) => {
+app.post('/api/monad-games-id/update-player', requireWallet, async (req, res) => {
     try {
         const { playerAddress, appKitWallet, scoreAmount, transactionAmount, actionType } = req.body;
         
@@ -228,5 +239,13 @@ app.post('/api/monad-games-id/update-player', async (req, res) => {
 
 app.listen(port, () => {
     console.log(`Signature server running on port ${port}`);
-    console.log(`Game Server Address: ${gameWallet.address}`);
+    console.log(`Game Server Address: ${gameWallet ? gameWallet.address : 'N/A (no private key)'}`);
+});
+
+// Garde-fous contre les crashs silencieux
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException]', err);
 });

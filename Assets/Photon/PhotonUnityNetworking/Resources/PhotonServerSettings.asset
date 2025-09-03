@@ -76,6 +76,8 @@ MonoBehaviour:
   - RPC_ActivateExplosivePowerup
   - NotifyAdminCanJoin
   - RequestAdminAccess
+  - SetHasMonadBadge
+  - RPC_SetMonadVerified
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
