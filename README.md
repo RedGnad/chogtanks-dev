@@ -27,11 +27,11 @@ CHOGTANKS is a competitive multiplayer tank battle game that combines classic ar
 ## NFT System
 
 ### Tank Evolution
-Transform your tank's appearance by achieving gameplay milestones
-NFT avolve directly in contract : 0x04223adab3a0c1a2e8aade678bebd3fddd580a38
-IPSF evolutive metadata
-Store your level onchain, higher level = higher reward
-If you sell it, the buyer will earn the next rewards
+- Transform your tank's appearance by achieving gameplay milestones
+- NFT avolve directly in contract : 0x04223adab3a0c1a2e8aade678bebd3fddd580a38
+- IPSF evolutive metadata
+- Store your level onchain, higher level = higher reward
+- If you sell it, the buyer will earn the next rewards
 
 ### Requirements
 - **Mint Cost**: FREE
