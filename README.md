@@ -7,20 +7,20 @@ CHOGTANKS is a competitive multiplayer tank battle game that combines classic ar
 
 ### 🌟 Key Features
 
-- ** Real-time Multiplayer PvP** - Battle up to 8 players simultaneously
-- ** NFT Tank Evolution** - Upgrade your tank's onchain level through gameplay
-- ** Blockchain Scoring** - Verified leaderboards on Monad Games ID
-- ** Cross-Platform** - Play on any device with WebGL support
-- ** Anti-Farming Protection** - Fair play enforcement with wallet binding
-- ** Dynamic Audio** - Immersive sound effects and music
-- ** Mobile Optimized** - Touch controls and responsive UI
+- **Real-time Multiplayer PvP** - Battle up to 8 players simultaneously
+- **NFT Tank Evolution** - Upgrade your tank's onchain level through gameplay
+- **Blockchain Scoring** - Verified leaderboards on Monad Games ID
+- **Cross-Platform** - Play on any device with WebGL support
+- **Anti-Farming Protection** - Fair play enforcement with wallet binding
+- **Dynamic Audio** - Immersive sound effects and music
+- **Mobile Optimized** - Touch controls and responsive UI
 
 ---
 
 ### Game Modes
-- ** Solo Practice**: Fight AI enemies with progressive difficulty
-- ** Multiplayer PvP**: Real-time battles with up to 20 players
-- ** Ranked Matches**: Climb the Monad Games ID leaderboard 
+- **Solo Practice**: Fight AI enemies with progressive difficulty
+- **Multiplayer PvP**: Real-time battles with up to 20 players
+- **Ranked Matches**: Climb the Monad Games ID leaderboard 
 
 ---
 
